@@ -1,7 +1,7 @@
 ---
 name: "Pagesight"
-tagline: "Lint your site for search engines and AI."
-version: 2
+tagline: "See your site the way search engines and AI see it."
+version: 3
 language: en
 ---
 
@@ -105,24 +105,24 @@ We are not a marketing platform. We are not consultants. We are not SaaS. We are
 
 Most SEO tools flag "title over 60 characters" and "only one H1 allowed." Google's own engineers have said these rules are made up. We researched every common SEO rule against official documentation and built a tool that only reports what Google actually tells us.
 
-**Essence:** Google's data, your AI assistant's hands.
+**Essence:** See what Google sees. Know what AI knows.
 
 ### Tagline & Slogans
 
-**Primary tagline:** Lint your site for search engines and AI.
+**Primary tagline:** See your site the way search engines and AI see it.
 *Use everywhere: README, homepage, social bios, conference talks.*
 
 **Alternatives:**
-- Google's search data + AI crawler intelligence for AI assistants.
+- Google's data + AI crawler intelligence for AI assistants.
 - One MCP server. Three Google APIs. 139+ AI bots tracked.
-- Ask Google, not SEO tools.
+- Your site through Google's eyes.
 
 **Slogans for different contexts:**
-- README hero: "Google Search Console + PageSpeed + CrUX in one MCP server."
-- Technical: "Three Google APIs. Seven tools. One install."
+- README hero: "Google Search Console + PageSpeed + CrUX + AI crawler audit in one MCP server."
+- Technical: "Three Google APIs. 139+ bots. Eight tools. One install."
 - Community: "Stop guessing. Ask Google."
 - Myth-busting: "Title length limits? Google says they don't exist. We checked."
-- Developer pitch: "Your AI assistant's direct line to Google Search."
+- Developer pitch: "Your AI assistant's sight into Google Search."
 
 ### Manifesto
 
@@ -163,11 +163,11 @@ We researched every common SEO rule against Google's official documentation. Tit
 
 ### Phrases
 
-- "Lint your site for search engines and AI."
-- "Google's data, your AI assistant's hands."
+- "See your site the way search engines and AI see it."
+- "See what Google sees. Know what AI knows."
 - "One server. Three APIs. 139 bots. No made-up rules."
 - "Stop guessing. Ask Google."
-- "Your AI assistant's direct line to Google Search."
+- "Your AI assistant's sight into Google Search."
 - "Is GPTBot blocked? Ask Pagesight."
 - "Title length limits? Google says they don't exist."
 - "We checked every SEO rule. Most are myths."
@@ -214,10 +214,10 @@ Lint your site for search engines and AI. Google Search Console + PageSpeed Insi
 
 | We Say | We Never Say |
 |---|---|
-| "Install Pagesight" | "Sign up for Pagesight" |
-| "Ask Google" | "Optimize your digital presence" |
+| "Install pagesight" | "Sign up for Pagesight" |
+| "See what Google sees" | "Optimize your digital presence" |
 | "Google reports this page is not indexed" | "Our analysis shows SEO score 73/100" |
-| "One MCP server, three Google APIs" | "All-in-one platform" |
+| "One MCP server, three APIs, 139 bots" | "All-in-one platform" |
 | "CrUX shows p75 LCP of 2.1s" | "Your page speed needs improvement" |
 | "Open source, MIT license" | "Free forever (with Pro tier)" |
 | "Built for AI assistants" | "Built for teams of all sizes" |

@@ -1,8 +1,14 @@
 # Pagesight
 
-Google's data + AI crawler intelligence, your AI assistant's hands.
+[![npm version](https://img.shields.io/npm/v/pagesight.svg)](https://www.npmjs.com/package/pagesight)
+
+See your site the way search engines and AI see it.
 
 An open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, Chrome UX Report, and a robots.txt analyzer that audits 139+ AI crawlers. No made-up rules. No invented scores. Just data from authoritative sources.
+
+```bash
+npx pagesight
+```
 
 Most SEO tools flag "title over 60 characters" and "only one H1 allowed." [Google's own engineers say those rules don't exist.](#why-not-other-seo-tools) Pagesight skips the myths and asks the sources directly.
 
