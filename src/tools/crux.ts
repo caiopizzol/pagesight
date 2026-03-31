@@ -177,7 +177,10 @@ export function registerCruxTool(server: McpServer): void {
     },
     async ({ url, origin, form_factor, metrics }) => {
       if (!url && !origin) {
-        return { content: [{ type: "text", text: "Error: provide either url or origin." }] };
+        return { content: [{ type: "text", text: "Error: provide either url or origin, not both." }] };
+      }
+      if (url && origin) {
+        return { content: [{ type: "text", text: "Error: provide either url or origin, not both." }] };
       }
       try {
         const result = await queryCrux({
@@ -248,7 +251,10 @@ export function registerCruxTool(server: McpServer): void {
     },
     async ({ url, origin, form_factor, metrics, periods }) => {
       if (!url && !origin) {
-        return { content: [{ type: "text", text: "Error: provide either url or origin." }] };
+        return { content: [{ type: "text", text: "Error: provide either url or origin, not both." }] };
+      }
+      if (url && origin) {
+        return { content: [{ type: "text", text: "Error: provide either url or origin, not both." }] };
       }
       try {
         const result = await queryCruxHistory({

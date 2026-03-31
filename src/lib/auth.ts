@@ -133,6 +133,10 @@ export async function getAccessToken(): Promise<string> {
   );
 }
 
+export function clearTokenCache(): void {
+  cachedToken = null;
+}
+
 export function getAuthMethod(): string {
   if (process.env.GSC_SERVICE_ACCOUNT_KEY) return "service_account";
   if (process.env.GSC_REFRESH_TOKEN) return "oauth";

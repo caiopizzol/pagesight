@@ -1,4 +1,4 @@
-import { getAccessToken } from "./auth.js";
+import { clearTokenCache, getAccessToken } from "./auth.js";
 
 const GSC_API = "https://searchconsole.googleapis.com/v1";
 const WEBMASTERS_API = "https://www.googleapis.com/webmasters/v3";
@@ -15,6 +15,8 @@ async function gscFetch(url: string, body?: unknown): Promise<Record<string, unk
   });
 
   if (!res.ok) {
+    // Clear cached token on 401 so next call gets a fresh one
+    if (res.status === 401) clearTokenCache();
     const err = await res.text();
     throw new Error(`GSC API error (${res.status}): ${err}`);
   }

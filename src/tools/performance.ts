@@ -52,7 +52,7 @@ function formatPerformance(
 
   const top = rows.slice(0, 25);
   for (const row of top) {
-    const keys = row.keys.join(" | ");
+    const keys = row.keys.map((k, i) => `${dimensions[i] ?? "key"}=${k}`).join(" | ");
     lines.push(`${keys}`);
     lines.push(
       `  Clicks: ${row.clicks} | Impressions: ${row.impressions} | CTR: ${(row.ctr * 100).toFixed(1)}% | Position: ${row.position.toFixed(1)}`,
