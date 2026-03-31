@@ -2,31 +2,15 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { auditAiCrawlers, type CrawlerStatus, fetchRobotsTxt, isAllowed, type RobotsTxt } from "../lib/robots.js";
 
-function formatCrawlerStatus(statuses: CrawlerStatus[]): string {
-  const lines: string[] = [];
-
-  // Group by category
-  const categories = new Map<string, CrawlerStatus[]>();
-  for (const s of statuses) {
-    const cat = s.category;
-    if (!categories.has(cat)) categories.set(cat, []);
-    categories.get(cat)?.push(s);
-  }
-
-  for (const [cat, bots] of categories) {
-    lines.push(`--- ${cat} (${bots.length}) ---`, "");
-
-    for (const bot of bots) {
-      const status = bot.allowed ? "ALLOWED" : "BLOCKED";
-      lines.push(`  ${status}  ${bot.name} (${bot.company})`);
-      if (bot.matchedRule) {
-        lines.push(`          Rule: ${bot.matchedRule.type}: ${bot.matchedRule.path} (group: ${bot.matchedGroup})`);
-      }
-    }
-    lines.push("");
-  }
-
-  return lines.join("\n").trimEnd();
+// Normalize the messy registry categories into clean buckets
+function normalizeCategory(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes("training") || lower.includes("train") || lower.includes("scrape") || lower.includes("dataset"))
+    return "Training";
+  if (lower.includes("search") && !lower.includes("assistant")) return "Search";
+  if (lower.includes("assistant") || lower.includes("user prompt") || lower.includes("user quer")) return "Assistant";
+  if (lower.includes("agent")) return "Agent";
+  return "Other";
 }
 
 function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number, crawlers: CrawlerStatus[]): string {
@@ -63,17 +47,67 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
   }
 
   // AI Crawler audit
-  const allowed = crawlers.filter((c) => c.allowed);
   const blocked = crawlers.filter((c) => !c.allowed);
+  const allowed = crawlers.filter((c) => c.allowed);
 
   lines.push(
     "",
     `--- AI Crawlers: ${blocked.length} blocked, ${allowed.length} allowed (of ${crawlers.length} known) ---`,
     "",
-    `Source: github.com/ai-robots-txt/ai.robots.txt (${crawlers.length} bots)`,
-    "",
+    `Source: github.com/ai-robots-txt/ai.robots.txt`,
   );
-  lines.push(formatCrawlerStatus(crawlers));
+
+  if (blocked.length === 0) {
+    lines.push("", "All 139 known AI crawlers are allowed. No bots are explicitly blocked.");
+  } else if (blocked.length === crawlers.length) {
+    lines.push("", "All known AI crawlers are blocked.");
+    // Show how they're blocked
+    const byGroup = new Map<string, string[]>();
+    for (const bot of blocked) {
+      const group = bot.matchedGroup ?? "wildcard";
+      if (!byGroup.has(group)) byGroup.set(group, []);
+      byGroup.get(group)?.push(bot.name);
+    }
+    for (const [group, bots] of byGroup) {
+      lines.push(`  via group "${group}": ${bots.length} bots`);
+    }
+  } else {
+    // Mixed — show blocked bots in detail, grouped by normalized category
+    lines.push("");
+
+    const blockedByCategory = new Map<string, CrawlerStatus[]>();
+    for (const bot of blocked) {
+      const cat = normalizeCategory(bot.category);
+      if (!blockedByCategory.has(cat)) blockedByCategory.set(cat, []);
+      blockedByCategory.get(cat)?.push(bot);
+    }
+
+    const categoryOrder = ["Training", "Search", "Assistant", "Agent", "Other"];
+    for (const cat of categoryOrder) {
+      const bots = blockedByCategory.get(cat);
+      if (!bots) continue;
+
+      lines.push(`Blocked ${cat} (${bots.length}):`);
+      for (const bot of bots) {
+        lines.push(`  BLOCKED  ${bot.name} (${bot.company})`);
+      }
+      lines.push("");
+    }
+
+    // Summary of allowed by category
+    const allowedByCategory = new Map<string, number>();
+    for (const bot of allowed) {
+      const cat = normalizeCategory(bot.category);
+      allowedByCategory.set(cat, (allowedByCategory.get(cat) ?? 0) + 1);
+    }
+
+    const allowedSummary = categoryOrder
+      .filter((cat) => allowedByCategory.has(cat))
+      .map((cat) => `${cat}: ${allowedByCategory.get(cat)}`)
+      .join(", ");
+
+    lines.push(`Allowed (${allowed.length}): ${allowedSummary}`);
+  }
 
   return lines.join("\n");
 }
@@ -81,7 +115,7 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
 export function registerRobotsTool(server: McpServer): void {
   server.tool(
     "robots",
-    "Fetch and analyze a site's robots.txt. Validates syntax per RFC 9309, audits AI crawler access (130+ bots from ai-robots-txt registry), lists sitemaps, and reports blocked vs allowed bots by category.",
+    "Fetch and analyze a site's robots.txt. Validates syntax per RFC 9309, audits AI crawler access (139+ bots), lists sitemaps. Shows blocked bots in detail, summarizes allowed.",
     {
       url: z
         .string()
