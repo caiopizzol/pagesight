@@ -25,9 +25,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/caiopizzol/sitelint.git"
+    "url": "git+https://github.com/caiopizzol/pageinsight.git"
   },
-  "homepage": "https://github.com/caiopizzol/sitelint",
+  "homepage": "https://github.com/caiopizzol/pageinsight",
   "author": "Caio Pizzol",
   "scripts": {
     "start": "bun run src/index.ts",
