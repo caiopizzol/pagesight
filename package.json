@@ -25,9 +25,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/caiopizzol/pageinsight.git"
+    "url": "git+https://github.com/caiopizzol/pagesight.git"
   },
-  "homepage": "https://github.com/caiopizzol/pageinsight",
+  "homepage": "https://github.com/caiopizzol/pagesight",
   "author": "Caio Pizzol",
   "scripts": {
     "start": "bun run src/index.ts",
