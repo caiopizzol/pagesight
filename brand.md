@@ -11,17 +11,17 @@ language: en
 
 ### Overview
 
-Sitelint is an open-source MCP server that gives AI assistants direct access to Google's own data about your site. Index status, Core Web Vitals, search performance, structured data validation, crawl errors — all from Google's APIs, not made-up rules.
+Sitelint is an open-source MCP server that gives AI assistants direct access to how search engines and AI crawlers see your site. Google's index status, Core Web Vitals, search performance, structured data validation — plus a robots.txt analyzer that audits 139+ AI crawlers. All from authoritative sources, not made-up rules.
 
-It was born from a developer maintaining multiple personal projects — tired of juggling SEO tools that flag "title too long" and "only one H1 allowed" when Google itself says those rules don't exist. Sitelint skips the myths and asks Google directly: is this page indexed? What canonical did you choose? How fast is it for real users? What queries bring traffic?
+It was born from a developer maintaining multiple personal projects — tired of juggling SEO tools that flag "title too long" and "only one H1 allowed" when Google itself says those rules don't exist. Sitelint skips the myths and asks the sources directly: is this page indexed? What canonical did Google choose? Is GPTBot blocked or allowed? How fast is it for real Chrome users?
 
-What it really does: it wraps three Google APIs — Search Console, PageSpeed Insights, and Chrome UX Report — into a single MCP server that any AI assistant can use. Your assistant can inspect a URL, check performance, track Core Web Vitals trends, and diagnose search issues without you opening a dashboard.
+What it really does: it wraps three Google APIs — Search Console, PageSpeed Insights, and Chrome UX Report — plus an RFC 9309-compliant robots.txt analyzer with a live AI crawler registry into a single MCP server. Your assistant can inspect a URL, check performance, audit which AI bots can access your content, and diagnose search issues without you opening a dashboard.
 
 The problem it solves: SEO tooling is built for marketers staring at dashboards, not developers shipping code. The MCP ecosystem fragmented it further — 15+ single-purpose servers, each wrapping one API, each with its own auth flow. And most SEO tools report rules that Google has explicitly debunked.
 
 **Before Sitelint:** Install 5 MCP servers. Configure 5 auth flows. Get flagged for "multiple H1 tags" and "title over 60 characters" — neither of which Google cares about.
 
-**After Sitelint:** One server. Three Google APIs. Only data Google actually reports.
+**After Sitelint:** One server. Google APIs + AI crawler intelligence. Only data from authoritative sources.
 
 Long-term ambition: become the standard way AI assistants understand and optimize web presence — for both traditional search and generative AI.
 
@@ -39,9 +39,10 @@ Not a SaaS platform. Not a dashboard. Not a wrapper for a paid API. Not another 
 Sitelint sits below all of them in cost (free) and above all of them in accuracy (Google's own data, not approximations). It trades dashboards for raw API access that agents can use programmatically.
 
 **Structural differentials:**
-- Only MCP server unifying Google Search Console + PageSpeed Insights + Chrome UX Report
-- Reports what Google reports. Doesn't invent rules, scores, or thresholds.
-- Full API coverage — every read-only method, every parameter, every dimension
+- Only MCP server unifying Google Search Console + PageSpeed Insights + Chrome UX Report + AI crawler audit
+- Reports what authoritative sources report. Doesn't invent rules, scores, or thresholds.
+- robots.txt analysis per RFC 9309 with 139+ AI crawlers from a live community registry
+- Full Google API coverage — every read-only method, every parameter, every dimension
 - Designed for AI assistants, not humans clicking through tabs
 - Zero vendor lock-in — MIT license, works with Claude, Cursor, Codex, any MCP client
 
@@ -112,8 +113,8 @@ Most SEO tools flag "title over 60 characters" and "only one H1 allowed." Google
 *Use everywhere: README, homepage, social bios, conference talks.*
 
 **Alternatives:**
-- Google's search data for AI assistants.
-- One MCP server. Three Google APIs.
+- Google's search data + AI crawler intelligence for AI assistants.
+- One MCP server. Three Google APIs. 139+ AI bots tracked.
 - Ask Google, not SEO tools.
 
 **Slogans for different contexts:**
@@ -146,10 +147,10 @@ Just Google's data. In your AI assistant's hands.
 ### Message Pillars
 
 **Evidence-Based**
-Every data point comes from Google's APIs. We don't invent rules, assign scores, or set thresholds. If Google's documentation doesn't support it, we don't report it.
+Every data point comes from authoritative sources — Google's APIs, RFC 9309, community-maintained bot registries. We don't invent rules, assign scores, or set thresholds. If the source doesn't support it, we don't report it.
 
 **Unified**
-Three Google APIs in one MCP server. Search Console for indexing and search data. PageSpeed Insights for Lighthouse audits. Chrome UX Report for real-world performance. Seven tools. One install.
+Three Google APIs plus AI crawler intelligence in one MCP server. Search Console for indexing and search data. PageSpeed Insights for Lighthouse audits. Chrome UX Report for real-world performance. robots.txt analyzer for AI bot access control. Eight tools. One install.
 
 **Open**
 MIT license. Free APIs only. No paid dependencies. No vendor lock-in. Works with Claude, Cursor, Codex, and every MCP-compatible client.
@@ -164,12 +165,13 @@ We researched every common SEO rule against Google's official documentation. Tit
 
 - "Lint your site for search engines and AI."
 - "Google's data, your AI assistant's hands."
-- "One server. Three APIs. No made-up rules."
+- "One server. Three APIs. 139 bots. No made-up rules."
 - "Stop guessing. Ask Google."
 - "Your AI assistant's direct line to Google Search."
+- "Is GPTBot blocked? Ask Sitelint."
 - "Title length limits? Google says they don't exist."
 - "We checked every SEO rule. Most are myths."
-- "If Google doesn't report it, neither do we."
+- "If the source doesn't report it, neither do we."
 
 ### Social Bios
 

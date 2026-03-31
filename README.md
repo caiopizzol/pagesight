@@ -1,14 +1,14 @@
 # Sitelint
 
-Google's data, your AI assistant's hands.
+Google's data + AI crawler intelligence, your AI assistant's hands.
 
-An open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and Chrome UX Report. No made-up rules. No invented scores. Just what Google actually reports about your site.
+An open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, Chrome UX Report, and a robots.txt analyzer that audits 139+ AI crawlers. No made-up rules. No invented scores. Just data from authoritative sources.
 
-Most SEO tools flag "title over 60 characters" and "only one H1 allowed." [Google's own engineers say those rules don't exist.](#why-not-other-seo-tools) Sitelint skips the myths and asks Google directly.
+Most SEO tools flag "title over 60 characters" and "only one H1 allowed." [Google's own engineers say those rules don't exist.](#why-not-other-seo-tools) Sitelint skips the myths and asks the sources directly.
 
 ## Tools
 
-Seven tools. Three Google APIs. One install.
+Eight tools. Three Google APIs. 139+ AI bots tracked. One install.
 
 ### `inspect`
 
@@ -54,6 +54,28 @@ Google Search Console search analytics with full API coverage:
 - **Data freshness**: `all`, `final`, `hourly_all`
 - **Pagination**: up to 25,000 rows with offset
 
+### `robots`
+
+Fetch and analyze any site's robots.txt:
+
+- **Syntax validation** per [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309)
+- **AI crawler audit** — checks 139+ bots from the [ai-robots-txt](https://github.com/ai-robots-txt/ai.robots.txt) community registry
+- **Bot categories**: training scrapers, AI search crawlers, AI assistants, AI agents
+- **Per-bot status**: blocked or allowed, with the matched rule and group
+- **Path checking**: is a specific path allowed for a specific user-agent?
+- **Sitemaps**: lists all sitemaps declared in robots.txt
+
+```
+=== robots.txt: https://www.cnn.com ===
+AI Crawlers: 55 blocked, 84 allowed (of 139 known)
+Source: github.com/ai-robots-txt/ai.robots.txt
+
+  BLOCKED  GPTBot (OpenAI) — GPT model training
+  BLOCKED  ClaudeBot (Anthropic) — Claude model training
+  ALLOWED  Claude-User (Anthropic) — User-initiated fetching
+  BLOCKED  PerplexityBot (Perplexity) — Search indexing
+```
+
 ### `sitemaps`
 
 Search Console properties and sitemaps (read-only):
@@ -98,6 +120,8 @@ GSC_REFRESH_TOKEN=your-refresh-token
 GOOGLE_API_KEY=your-api-key
 ```
 
+Note: The `robots` tool works without any credentials — it fetches the public `/robots.txt` file directly.
+
 ## Usage
 
 Add to Claude Code, Cursor, or any MCP client:
@@ -128,7 +152,8 @@ Then just talk to your AI assistant:
 "Show me CrUX data for my site on phones"
 "How have my Core Web Vitals changed over the last 10 months?"
 "Which queries bring traffic to this page?"
-"Show me image search performance"
+"Which AI crawlers can access my site?"
+"Is GPTBot blocked on reddit.com?"
 "Any sitemap errors?"
 ```
 
@@ -142,7 +167,7 @@ We researched every common SEO "rule" against official Google documentation. Mos
 - **"Minimum 300 words per page"** — Mueller: "the number of words on a page is not a quality factor, not a ranking factor."
 - **"Text-to-HTML ratio matters"** — Mueller: "it makes absolutely no sense at all for SEO."
 
-Tools that flag these "issues" are reporting their opinions, not Google's data. Sitelint only reports what Google's APIs actually return.
+Tools that flag these "issues" are reporting their opinions, not data. Sitelint only reports what authoritative sources actually return — Google's APIs for search data, RFC 9309 for robots.txt, and a community-maintained registry for AI crawlers.
 
 ## Development
 
