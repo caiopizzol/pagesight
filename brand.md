@@ -1,27 +1,27 @@
 ---
-name: "Sitelint"
+name: "Pagesight"
 tagline: "Lint your site for search engines and AI."
 version: 2
 language: en
 ---
 
-# Sitelint
+# Pagesight
 
 ## Strategy
 
 ### Overview
 
-Sitelint is an open-source MCP server that gives AI assistants direct access to how search engines and AI crawlers see your site. Google's index status, Core Web Vitals, search performance, structured data validation — plus a robots.txt analyzer that audits 139+ AI crawlers. All from authoritative sources, not made-up rules.
+Pagesight is an open-source MCP server that gives AI assistants direct access to how search engines and AI crawlers see your site. Google's index status, Core Web Vitals, search performance, structured data validation — plus a robots.txt analyzer that audits 139+ AI crawlers. All from authoritative sources, not made-up rules.
 
-It was born from a developer maintaining multiple personal projects — tired of juggling SEO tools that flag "title too long" and "only one H1 allowed" when Google itself says those rules don't exist. Sitelint skips the myths and asks the sources directly: is this page indexed? What canonical did Google choose? Is GPTBot blocked or allowed? How fast is it for real Chrome users?
+It was born from a developer maintaining multiple personal projects — tired of juggling SEO tools that flag "title too long" and "only one H1 allowed" when Google itself says those rules don't exist. Pagesight skips the myths and asks the sources directly: is this page indexed? What canonical did Google choose? Is GPTBot blocked or allowed? How fast is it for real Chrome users?
 
 What it really does: it wraps three Google APIs — Search Console, PageSpeed Insights, and Chrome UX Report — plus an RFC 9309-compliant robots.txt analyzer with a live AI crawler registry into a single MCP server. Your assistant can inspect a URL, check performance, audit which AI bots can access your content, and diagnose search issues without you opening a dashboard.
 
 The problem it solves: SEO tooling is built for marketers staring at dashboards, not developers shipping code. The MCP ecosystem fragmented it further — 15+ single-purpose servers, each wrapping one API, each with its own auth flow. And most SEO tools report rules that Google has explicitly debunked.
 
-**Before Sitelint:** Install 5 MCP servers. Configure 5 auth flows. Get flagged for "multiple H1 tags" and "title over 60 characters" — neither of which Google cares about.
+**Before Pagesight:** Install 5 MCP servers. Configure 5 auth flows. Get flagged for "multiple H1 tags" and "title over 60 characters" — neither of which Google cares about.
 
-**After Sitelint:** One server. Google APIs + AI crawler intelligence. Only data from authoritative sources.
+**After Pagesight:** One server. Google APIs + AI crawler intelligence. Only data from authoritative sources.
 
 Long-term ambition: become the standard way AI assistants understand and optimize web presence — for both traditional search and generative AI.
 
@@ -36,7 +36,7 @@ Not a SaaS platform. Not a dashboard. Not a wrapper for a paid API. Not another 
 - **Mid layer:** Focused SaaS (Frase, Otterly.AI, Profound) — $25-500/mo, narrower scope, still subscription-based
 - **Bottom layer:** Open-source MCP servers — free but fragmented. 5+ PageSpeed MCPs, 9+ Search Console MCPs, all silos with partial API coverage. DataForSEO MCP is comprehensive but wraps a paid API.
 
-Sitelint sits below all of them in cost (free) and above all of them in accuracy (Google's own data, not approximations). It trades dashboards for raw API access that agents can use programmatically.
+Pagesight sits below all of them in cost (free) and above all of them in accuracy (Google's own data, not approximations). It trades dashboards for raw API access that agents can use programmatically.
 
 **Structural differentials:**
 - Only MCP server unifying Google Search Console + PageSpeed Insights + Chrome UX Report + AI crawler audit
@@ -46,7 +46,7 @@ Sitelint sits below all of them in cost (free) and above all of them in accuracy
 - Designed for AI assistants, not humans clicking through tabs
 - Zero vendor lock-in — MIT license, works with Claude, Cursor, Codex, any MCP client
 
-**Territory:** Sitelint owns the intersection of "developer tooling" and "Google Search data." The tool that makes Google's APIs conversational.
+**Territory:** Pagesight owns the intersection of "developer tooling" and "Google Search data." The tool that makes Google's APIs conversational.
 
 ### Personality
 
@@ -76,9 +76,9 @@ One install. Three APIs. No made-up rules.
 
 If your AI assistant can't ask Google about your site, your SEO tool has failed.
 
-**Base message:** Sitelint gives AI assistants direct access to what Google knows about your site — index status, performance, Core Web Vitals, search queries — so they can diagnose and fix issues with real data.
+**Base message:** Pagesight gives AI assistants direct access to what Google knows about your site — index status, performance, Core Web Vitals, search queries — so they can diagnose and fix issues with real data.
 
-**Synthesizing phrase:** Sitelint exists so developers never have to open an SEO dashboard again.
+**Synthesizing phrase:** Pagesight exists so developers never have to open an SEO dashboard again.
 
 ### Guardrails
 
@@ -99,7 +99,7 @@ If your AI assistant can't ask Google about your site, your SEO tool has failed.
 
 ### Identity
 
-We don't make up rules. We ask Google. Sitelint is an open-source MCP server that connects AI assistants to Google Search Console, PageSpeed Insights, and Chrome UX Report — the same data Google uses to evaluate your site.
+We don't make up rules. We ask Google. Pagesight is an open-source MCP server that connects AI assistants to Google Search Console, PageSpeed Insights, and Chrome UX Report — the same data Google uses to evaluate your site.
 
 We are not a marketing platform. We are not consultants. We are not SaaS. We are a developer tool that does one job well: make Google's search data accessible to AI assistants.
 
@@ -134,7 +134,7 @@ We checked every rule. We read the documentation. We watched the office hours. M
 
 So we built something different.
 
-Sitelint doesn't make up rules. It asks Google directly. Three APIs — Search Console, PageSpeed Insights, Chrome UX Report — unified into one MCP server that your AI assistant can use.
+Pagesight doesn't make up rules. It asks Google directly. Three APIs — Search Console, PageSpeed Insights, Chrome UX Report — unified into one MCP server that your AI assistant can use.
 
 Is this page indexed? Ask Google. What canonical did Google choose? Ask Google. How fast is this page for real users? Ask Google. What queries bring traffic? Ask Google.
 
@@ -142,7 +142,7 @@ No scores we invented. No thresholds we made up. No "best practices" that are ac
 
 Just Google's data. In your AI assistant's hands.
 
-**Sitelint.**
+**Pagesight.**
 
 ### Message Pillars
 
@@ -159,7 +159,7 @@ MIT license. Free APIs only. No paid dependencies. No vendor lock-in. Works with
 Built with Bun. Configured with env vars. Speaks MCP over stdio. Designed to run inside AI workflows, not beside them. No dashboard. No browser. No login page.
 
 **Myth-Free**
-We researched every common SEO rule against Google's official documentation. Title length limits, H1 requirements, word count minimums — all debunked. Sitelint only reports what Google actually cares about.
+We researched every common SEO rule against Google's official documentation. Title length limits, H1 requirements, word count minimums — all debunked. Pagesight only reports what Google actually cares about.
 
 ### Phrases
 
@@ -168,7 +168,7 @@ We researched every common SEO rule against Google's official documentation. Tit
 - "One server. Three APIs. 139 bots. No made-up rules."
 - "Stop guessing. Ask Google."
 - "Your AI assistant's direct line to Google Search."
-- "Is GPTBot blocked? Ask Sitelint."
+- "Is GPTBot blocked? Ask Pagesight."
 - "Title length limits? Google says they don't exist."
 - "We checked every SEO rule. Most are myths."
 - "If the source doesn't report it, neither do we."
@@ -176,7 +176,7 @@ We researched every common SEO rule against Google's official documentation. Tit
 ### Social Bios
 
 **LinkedIn:**
-Sitelint is an open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and Chrome UX Report. Inspect indexing status, track Core Web Vitals, analyze search performance — with real data from Google's APIs, not made-up rules. Built with Bun. MIT license.
+Pagesight is an open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and Chrome UX Report. Inspect indexing status, track Core Web Vitals, analyze search performance — with real data from Google's APIs, not made-up rules. Built with Bun. MIT license.
 
 **Instagram:**
 Open-source MCP server for AI assistants
@@ -200,7 +200,7 @@ Lint your site for search engines and AI. Google Search Console + PageSpeed Insi
 6. When debunking a myth, quote the Google engineer directly. Names and dates.
 7. Respect the reader's time. If it can be said in one line, don't use three.
 8. Use code examples and terminal output over screenshots and diagrams.
-9. Acknowledge what we don't cover. "Sitelint doesn't do X" is better than hiding it.
+9. Acknowledge what we don't cover. "Pagesight doesn't do X" is better than hiding it.
 10. Never promise traffic results. Promise access to data.
 11. Open source is a fact, not a selling point. Don't over-celebrate it.
 12. "Google says" is our strongest argument. Use it.
@@ -214,7 +214,7 @@ Lint your site for search engines and AI. Google Search Console + PageSpeed Insi
 
 | We Say | We Never Say |
 |---|---|
-| "Install Sitelint" | "Sign up for Sitelint" |
+| "Install Pagesight" | "Sign up for Pagesight" |
 | "Ask Google" | "Optimize your digital presence" |
 | "Google reports this page is not indexed" | "Our analysis shows SEO score 73/100" |
 | "One MCP server, three Google APIs" | "All-in-one platform" |

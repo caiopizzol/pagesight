@@ -1,10 +1,10 @@
-# Sitelint
+# Pagesight
 
 Google's data + AI crawler intelligence, your AI assistant's hands.
 
 An open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, Chrome UX Report, and a robots.txt analyzer that audits 139+ AI crawlers. No made-up rules. No invented scores. Just data from authoritative sources.
 
-Most SEO tools flag "title over 60 characters" and "only one H1 allowed." [Google's own engineers say those rules don't exist.](#why-not-other-seo-tools) Sitelint skips the myths and asks the sources directly.
+Most SEO tools flag "title over 60 characters" and "only one H1 allowed." [Google's own engineers say those rules don't exist.](#why-not-other-seo-tools) Pagesight skips the myths and asks the sources directly.
 
 ## Tools
 
@@ -129,9 +129,9 @@ Add to Claude Code, Cursor, or any MCP client:
 ```json
 {
   "mcpServers": {
-    "sitelint": {
+    "pagesight": {
       "command": "bun",
-      "args": ["run", "/path/to/sitelint/src/index.ts"],
+      "args": ["run", "/path/to/pagesight/src/index.ts"],
       "env": {
         "GSC_CLIENT_ID": "your-client-id",
         "GSC_CLIENT_SECRET": "your-secret",
@@ -167,7 +167,7 @@ We researched every common SEO "rule" against official Google documentation. Mos
 - **"Minimum 300 words per page"** — Mueller: "the number of words on a page is not a quality factor, not a ranking factor."
 - **"Text-to-HTML ratio matters"** — Mueller: "it makes absolutely no sense at all for SEO."
 
-Tools that flag these "issues" are reporting their opinions, not data. Sitelint only reports what authoritative sources actually return — Google's APIs for search data, RFC 9309 for robots.txt, and a community-maintained registry for AI crawlers.
+Tools that flag these "issues" are reporting their opinions, not data. Pagesight only reports what authoritative sources actually return — Google's APIs for search data, RFC 9309 for robots.txt, and a community-maintained registry for AI crawlers.
 
 ## Development
 

@@ -1,6 +1,6 @@
-# Sitelint
+# Pagesight
 
-MCP server for SEO analysis powered by Google APIs.
+MCP server for SEO, GEO, and web performance analysis. npm package: `pagesight`.
 
 ## Stack
 
@@ -48,5 +48,5 @@ src/
 
 - All tools have try/catch error handling with clean error messages
 - Use Bun built-in APIs over third-party packages
-- No HTML parsing or on-page analysis — only Google API data
-- Every check must be backed by an official Google API, not industry conventions
+- No HTML parsing or on-page analysis — only authoritative data sources
+- Every check must be backed by an official API or standard (Google APIs, RFC 9309), not industry conventions

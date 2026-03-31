@@ -63,7 +63,7 @@ async function fetchRegistry(): Promise<CrawlerInfo[]> {
 
   try {
     const res = await fetch(REGISTRY_URL, {
-      headers: { "User-Agent": "Sitelint/0.1" },
+      headers: { "User-Agent": "Pagesight/0.1" },
       signal: AbortSignal.timeout(10_000),
     });
 
@@ -264,7 +264,7 @@ export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: Robot
   const url = new URL("/robots.txt", origin).href;
 
   const res = await fetch(url, {
-    headers: { "User-Agent": "Sitelint/0.1" },
+    headers: { "User-Agent": "Pagesight/0.1" },
     redirect: "follow",
   });
 

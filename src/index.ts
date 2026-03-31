@@ -10,8 +10,8 @@ import { registerSetupTool } from "./tools/setup.js";
 import { registerSitemapsTool } from "./tools/sitemaps.js";
 
 const server = new McpServer({
-  name: "sitelint",
-  version: "0.1.0",
+  name: "pagesight",
+  version: "0.0.0",
 });
 
 registerCruxTool(server);

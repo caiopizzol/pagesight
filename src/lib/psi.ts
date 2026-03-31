@@ -78,7 +78,7 @@ export async function runPagespeed(
   if (options?.locale) params.set("locale", options.locale);
 
   const res = await fetch(`${PSI_API}?${params}`, {
-    headers: { "User-Agent": "Sitelint/0.1" },
+    headers: { "User-Agent": "Pagesight/0.1" },
   });
 
   if (!res.ok) {

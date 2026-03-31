@@ -23,11 +23,11 @@ export function registerSetupTool(server: McpServer): void {
               {
                 type: "text",
                 text: [
-                  "=== Sitelint Auth Status ===",
+                  "=== Pagesight Auth Status ===",
                   "",
                   "Status: NOT CONFIGURED",
                   "",
-                  "To use Sitelint, configure one of:",
+                  "To use Pagesight, configure one of:",
                   "",
                   "Option 1: OAuth 2.0 (recommended for personal use)",
                   "  1. Create a Google Cloud project",
@@ -52,7 +52,7 @@ export function registerSetupTool(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `=== Sitelint Auth Status ===\n\nStatus: CONFIGURED\nMethod: ${method}`,
+              text: `=== Pagesight Auth Status ===\n\nStatus: CONFIGURED\nMethod: ${method}`,
             },
           ],
         };
@@ -101,7 +101,7 @@ export function registerSetupTool(server: McpServer): void {
                 `GSC_CLIENT_SECRET=${client_secret}`,
                 `GSC_REFRESH_TOKEN=${tokens.refreshToken}`,
                 "",
-                "Then restart Sitelint.",
+                "Then restart Pagesight.",
               ].join("\n"),
             },
           ],

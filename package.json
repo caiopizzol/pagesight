@@ -1,12 +1,18 @@
 {
-  "name": "sitelint",
-  "version": "0.0.1",
-  "description": "Lint your site for search engines and AI. Powered by Google Search Console.",
+  "name": "pagesight",
+  "version": "0.0.0",
+  "description": "Google's data + AI crawler intelligence for AI assistants. MCP server for SEO, GEO, and web performance.",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
-    "sitelint": "src/index.ts"
+    "pagesight": "src/index.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caiopizzol/sitelint.git"
+  },
+  "homepage": "https://github.com/caiopizzol/sitelint",
+  "author": "Caio Pizzol",
   "scripts": {
     "start": "bun run src/index.ts",
     "test": "bun test",
