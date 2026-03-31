@@ -15,7 +15,7 @@ function formatInspection(url: string, siteUrl: string, r: InspectionResult): st
     `Page fetch: ${idx.pageFetchState}`,
     `Robots.txt: ${idx.robotsTxtState}`,
     `Indexing: ${idx.indexingState}`,
-    `Crawled as: ${idx.crawledAs}`,
+    `Crawled as: ${idx.crawledAs ?? "unknown"}`,
   ];
 
   if (idx.lastCrawlTime) lines.push(`Last crawled: ${idx.lastCrawlTime}`);
@@ -83,8 +83,23 @@ export function registerInspectTool(server: McpServer): void {
       site_url: z.string().describe("The GSC property (e.g., 'https://example.com/' or 'sc-domain:example.com')"),
     },
     async ({ url, site_url }) => {
-      const result = await inspectUrl(url, site_url);
-      return { content: [{ type: "text", text: formatInspection(url, site_url, result) }] };
+      try {
+        const result = await inspectUrl(url, site_url);
+        return { content: [{ type: "text", text: formatInspection(url, site_url, result) }] };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("PERMISSION_DENIED")) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error: URL "${url}" is not part of property "${site_url}", or you don't have access.`,
+              },
+            ],
+          };
+        }
+        return { content: [{ type: "text", text: `Error inspecting URL: ${msg}` }] };
+      }
     },
   );
 }
