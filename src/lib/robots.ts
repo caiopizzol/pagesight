@@ -1,6 +1,9 @@
 /**
  * robots.txt parser per RFC 9309
  * https://www.rfc-editor.org/rfc/rfc9309
+ *
+ * AI crawler registry sourced from:
+ * https://github.com/ai-robots-txt/ai.robots.txt (robots.json)
  */
 
 export interface RobotsGroup {
@@ -18,254 +21,71 @@ export interface RobotsTxt {
 export interface CrawlerStatus {
   name: string;
   company: string;
-  category: "training" | "search" | "assistant" | "agent";
-  purpose: string;
-  docsUrl: string;
+  category: string;
+  respectsRobotsTxt: string;
+  description: string;
   allowed: boolean;
   matchedRule?: { type: "allow" | "disallow"; path: string } | null;
   matchedGroup?: string;
 }
 
-// --- AI Crawler Registry ---
-
 export interface CrawlerInfo {
   token: string;
-  company: string;
-  category: "training" | "search" | "assistant" | "agent";
-  purpose: string;
-  docsUrl: string;
-  respectsRobotsTxt: boolean;
+  operator: string;
+  respect: string;
+  function: string;
+  description: string;
 }
 
-export const AI_CRAWLERS: CrawlerInfo[] = [
-  // OpenAI
-  {
-    token: "GPTBot",
-    company: "OpenAI",
-    category: "training",
-    purpose: "GPT model training",
-    docsUrl: "https://platform.openai.com/docs/bots",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "OAI-SearchBot",
-    company: "OpenAI",
-    category: "search",
-    purpose: "ChatGPT search citations",
-    docsUrl: "https://platform.openai.com/docs/bots",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "ChatGPT-User",
-    company: "OpenAI",
-    category: "assistant",
-    purpose: "User-initiated browsing",
-    docsUrl: "https://platform.openai.com/docs/bots",
-    respectsRobotsTxt: true,
-  },
+// --- Remote Registry ---
 
-  // Anthropic
-  {
-    token: "ClaudeBot",
-    company: "Anthropic",
-    category: "training",
-    purpose: "Claude model training",
-    docsUrl: "https://support.claude.com/en/articles/8896518",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "Claude-SearchBot",
-    company: "Anthropic",
-    category: "search",
-    purpose: "Claude search indexing",
-    docsUrl: "https://support.claude.com/en/articles/8896518",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "Claude-User",
-    company: "Anthropic",
-    category: "assistant",
-    purpose: "User-initiated fetching",
-    docsUrl: "https://support.claude.com/en/articles/8896518",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "anthropic-ai",
-    company: "Anthropic",
-    category: "training",
-    purpose: "Bulk training data (legacy)",
-    docsUrl: "https://support.claude.com/en/articles/8896518",
-    respectsRobotsTxt: true,
-  },
+const REGISTRY_URL = "https://raw.githubusercontent.com/ai-robots-txt/ai.robots.txt/main/robots.json";
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-  // Google
-  {
-    token: "Google-Extended",
-    company: "Google",
-    category: "training",
-    purpose: "Gemini training/grounding (does NOT affect Search)",
-    docsUrl: "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "GoogleOther",
-    company: "Google",
-    category: "training",
-    purpose: "R&D crawling by Google teams",
-    docsUrl: "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "Google-CloudVertexBot",
-    company: "Google",
-    category: "training",
-    purpose: "Vertex AI Search/Agents",
-    docsUrl: "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "Gemini-Deep-Research",
-    company: "Google",
-    category: "assistant",
-    purpose: "Gemini Deep Research",
-    docsUrl: "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "Google-NotebookLM",
-    company: "Google",
-    category: "assistant",
-    purpose: "NotebookLM source fetching",
-    docsUrl: "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers",
-    respectsRobotsTxt: true,
-  },
+let cachedRegistry: CrawlerInfo[] | null = null;
+let cacheTimestamp = 0;
 
-  // Meta
-  {
-    token: "meta-externalagent",
-    company: "Meta",
-    category: "training",
-    purpose: "LLaMA model training",
-    docsUrl: "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "Meta-ExternalFetcher",
-    company: "Meta",
-    category: "assistant",
-    purpose: "User-initiated AI fetches",
-    docsUrl: "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/",
-    respectsRobotsTxt: true,
-  },
+function stripMarkdownLinks(text: string): string {
+  return text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+}
 
-  // Microsoft
-  {
-    token: "AzureAI-SearchBot",
-    company: "Microsoft",
-    category: "search",
-    purpose: "Azure AI search indexing",
-    docsUrl: "https://www.bing.com/bingbot.htm",
-    respectsRobotsTxt: true,
-  },
+function parseRespect(raw: string): string {
+  const clean = stripMarkdownLinks(raw).trim().toLowerCase();
+  if (clean.startsWith("yes")) return "yes";
+  if (clean.startsWith("no")) return "no";
+  return "unclear";
+}
 
-  // Apple
-  {
-    token: "Applebot-Extended",
-    company: "Apple",
-    category: "training",
-    purpose: "Apple Intelligence training",
-    docsUrl: "https://support.apple.com/en-us/119829",
-    respectsRobotsTxt: true,
-  },
+async function fetchRegistry(): Promise<CrawlerInfo[]> {
+  if (cachedRegistry && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedRegistry;
+  }
 
-  // Amazon
-  {
-    token: "Amazonbot",
-    company: "Amazon",
-    category: "training",
-    purpose: "Alexa/Rufus AI training",
-    docsUrl: "https://developer.amazon.com/amazonbot",
-    respectsRobotsTxt: true,
-  },
+  try {
+    const res = await fetch(REGISTRY_URL, {
+      headers: { "User-Agent": "Sitelint/0.1" },
+      signal: AbortSignal.timeout(10_000),
+    });
 
-  // Perplexity
-  {
-    token: "PerplexityBot",
-    company: "Perplexity",
-    category: "search",
-    purpose: "Perplexity search indexing",
-    docsUrl: "https://docs.perplexity.ai/docs/resources/perplexity-crawlers",
-    respectsRobotsTxt: true,
-  },
-  {
-    token: "Perplexity-User",
-    company: "Perplexity",
-    category: "assistant",
-    purpose: "User-initiated browsing",
-    docsUrl: "https://docs.perplexity.ai/docs/resources/perplexity-crawlers",
-    respectsRobotsTxt: false,
-  },
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-  // ByteDance
-  {
-    token: "Bytespider",
-    company: "ByteDance",
-    category: "training",
-    purpose: "Doubao/Lark LLM training",
-    docsUrl: "",
-    respectsRobotsTxt: false,
-  },
+    const data = (await res.json()) as Record<string, Record<string, string>>;
 
-  // Common Crawl
-  {
-    token: "CCBot",
-    company: "Common Crawl",
-    category: "training",
-    purpose: "Open web dataset used by many LLMs",
-    docsUrl: "https://commoncrawl.org/ccbot",
-    respectsRobotsTxt: true,
-  },
+    cachedRegistry = Object.entries(data).map(([token, info]) => ({
+      token,
+      operator: stripMarkdownLinks(info.operator ?? "Unknown"),
+      respect: info.respect ?? "Unclear",
+      function: info.function ?? "Unknown",
+      description: stripMarkdownLinks(info.description ?? ""),
+    }));
 
-  // Cohere
-  {
-    token: "cohere-ai",
-    company: "Cohere",
-    category: "training",
-    purpose: "Cohere LLM training",
-    docsUrl: "https://cohere.com",
-    respectsRobotsTxt: true,
-  },
-
-  // Mistral
-  {
-    token: "MistralAI-User",
-    company: "Mistral",
-    category: "assistant",
-    purpose: "Le Chat user browsing",
-    docsUrl: "https://docs.mistral.ai/robots",
-    respectsRobotsTxt: true,
-  },
-
-  // DuckDuckGo
-  {
-    token: "DuckAssistBot",
-    company: "DuckDuckGo",
-    category: "search",
-    purpose: "AI-assisted answers",
-    docsUrl: "http://duckduckgo.com/duckassistbot.html",
-    respectsRobotsTxt: true,
-  },
-
-  // Diffbot
-  {
-    token: "Diffbot",
-    company: "Diffbot",
-    category: "training",
-    purpose: "Structured data extraction",
-    docsUrl: "https://diffbot.com",
-    respectsRobotsTxt: true,
-  },
-];
+    cacheTimestamp = Date.now();
+    return cachedRegistry;
+  } catch {
+    // Fall back to cached or empty
+    return cachedRegistry ?? [];
+  }
+}
 
 // --- Parser ---
 
@@ -303,7 +123,6 @@ export function parseRobotsTxt(raw: string): RobotsTxt {
         errors.push(`Line ${lineNum}: Empty user-agent value`);
         continue;
       }
-      // Start new group or extend current if no rules yet
       if (!currentGroup || currentGroup.rules.length > 0) {
         currentGroup = { userAgents: [value], rules: [] };
         groups.push(currentGroup);
@@ -325,10 +144,8 @@ export function parseRobotsTxt(raw: string): RobotsTxt {
     } else if (directive === "sitemap") {
       if (value) sitemaps.push(value);
       else errors.push(`Line ${lineNum}: Empty sitemap URL`);
-    } else if (directive === "crawl-delay") {
-      // Valid directive but not supported by Google — note but don't error
-    } else if (directive === "host") {
-      // Yandex-specific, not in RFC 9309
+    } else if (directive === "crawl-delay" || directive === "host") {
+      // Known non-standard directives — ignore silently
     } else {
       errors.push(`Line ${lineNum}: Unknown directive "${directive}"`);
     }
@@ -342,7 +159,6 @@ export function parseRobotsTxt(raw: string): RobotsTxt {
 function pathMatches(pattern: string, path: string): boolean {
   if (!pattern) return false;
 
-  // Convert pattern to regex
   let regex = "^";
   for (let i = 0; i < pattern.length; i++) {
     const c = pattern[i];
@@ -354,7 +170,6 @@ function pathMatches(pattern: string, path: string): boolean {
       regex += c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
   }
-  // Implicit trailing wildcard if no $ anchor
   if (!pattern.endsWith("$")) regex += ".*";
 
   try {
@@ -368,14 +183,16 @@ export function isAllowed(
   robots: RobotsTxt,
   userAgent: string,
   path: string,
-): { allowed: boolean; matchedRule: { type: "allow" | "disallow"; path: string } | null; matchedGroup: string | null } {
+): {
+  allowed: boolean;
+  matchedRule: { type: "allow" | "disallow"; path: string } | null;
+  matchedGroup: string | null;
+} {
   const ua = userAgent.toLowerCase();
 
-  // Find matching groups — specific match first, then wildcard
   let matchingGroup: RobotsGroup | null = null;
   let matchedGroupName: string | null = null;
 
-  // 1. Try specific user-agent match
   for (const group of robots.groups) {
     for (const agent of group.userAgents) {
       if (agent.toLowerCase() === ua) {
@@ -387,7 +204,6 @@ export function isAllowed(
     if (matchingGroup) break;
   }
 
-  // 2. Fall back to wildcard
   if (!matchingGroup) {
     for (const group of robots.groups) {
       if (group.userAgents.some((a) => a === "*")) {
@@ -398,10 +214,8 @@ export function isAllowed(
     }
   }
 
-  // No matching group = allowed
   if (!matchingGroup) return { allowed: true, matchedRule: null, matchedGroup: null };
 
-  // Find the most specific (longest path) matching rule
   let bestRule: { type: "allow" | "disallow"; path: string } | null = null;
   let bestLength = -1;
 
@@ -426,15 +240,17 @@ export function isAllowed(
 
 // --- AI Crawler Audit ---
 
-export function auditAiCrawlers(robots: RobotsTxt): CrawlerStatus[] {
-  return AI_CRAWLERS.map((crawler) => {
+export async function auditAiCrawlers(robots: RobotsTxt): Promise<CrawlerStatus[]> {
+  const registry = await fetchRegistry();
+
+  return registry.map((crawler) => {
     const result = isAllowed(robots, crawler.token, "/");
     return {
       name: crawler.token,
-      company: crawler.company,
-      category: crawler.category,
-      purpose: crawler.purpose,
-      docsUrl: crawler.docsUrl,
+      company: crawler.operator,
+      category: crawler.function,
+      respectsRobotsTxt: parseRespect(crawler.respect),
+      description: crawler.description.slice(0, 120),
       allowed: result.allowed,
       matchedRule: result.matchedRule,
       matchedGroup: result.matchedGroup ?? undefined,
@@ -453,10 +269,11 @@ export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: Robot
   });
 
   if (res.status >= 400) {
-    // Per RFC 9309: 4xx = no restrictions (all allowed)
     return { robotsTxt: { groups: [], sitemaps: [], raw: "", errors: [] }, statusCode: res.status };
   }
 
   const raw = await res.text();
   return { robotsTxt: parseRobotsTxt(raw), statusCode: res.status };
 }
+
+export { fetchRegistry as loadCrawlerRegistry };

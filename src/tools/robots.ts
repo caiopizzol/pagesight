@@ -5,25 +5,20 @@ import { auditAiCrawlers, type CrawlerStatus, fetchRobotsTxt, isAllowed, type Ro
 function formatCrawlerStatus(statuses: CrawlerStatus[]): string {
   const lines: string[] = [];
 
-  const categories = ["training", "search", "assistant", "agent"] as const;
-  const categoryLabels: Record<string, string> = {
-    training: "AI Training Crawlers (take your content, no attribution)",
-    search: "AI Search Crawlers (index for AI search, cite you)",
-    assistant: "AI Assistants (user-initiated fetches)",
-    agent: "AI Agents (autonomous browsing)",
-  };
+  // Group by category
+  const categories = new Map<string, CrawlerStatus[]>();
+  for (const s of statuses) {
+    const cat = s.category;
+    if (!categories.has(cat)) categories.set(cat, []);
+    categories.get(cat)?.push(s);
+  }
 
-  for (const cat of categories) {
-    const bots = statuses.filter((s) => s.category === cat);
-    if (bots.length === 0) continue;
-
-    lines.push(`--- ${categoryLabels[cat]} ---`, "");
+  for (const [cat, bots] of categories) {
+    lines.push(`--- ${cat} (${bots.length}) ---`, "");
 
     for (const bot of bots) {
       const status = bot.allowed ? "ALLOWED" : "BLOCKED";
-      const icon = bot.allowed ? "  " : "  ";
-      lines.push(`${icon} ${status}  ${bot.name} (${bot.company})`);
-      lines.push(`          ${bot.purpose}`);
+      lines.push(`  ${status}  ${bot.name} (${bot.company})`);
       if (bot.matchedRule) {
         lines.push(`          Rule: ${bot.matchedRule.type}: ${bot.matchedRule.path} (group: ${bot.matchedGroup})`);
       }
@@ -37,13 +32,11 @@ function formatCrawlerStatus(statuses: CrawlerStatus[]): string {
 function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number, crawlers: CrawlerStatus[]): string {
   const lines: string[] = [`=== robots.txt: ${origin} ===`, `Status: ${statusCode}`, ""];
 
-  // Summary stats
   const totalRules = robots.groups.reduce((sum, g) => sum + g.rules.length, 0);
   lines.push(`Groups: ${robots.groups.length}`);
   lines.push(`Rules: ${totalRules}`);
   lines.push(`Sitemaps: ${robots.sitemaps.length}`);
 
-  // Errors
   if (robots.errors.length > 0) {
     lines.push(`Parse errors: ${robots.errors.length}`, "");
     lines.push("--- Parse Errors ---", "");
@@ -52,7 +45,6 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
     }
   }
 
-  // Sitemaps
   if (robots.sitemaps.length > 0) {
     lines.push("", "--- Sitemaps ---", "");
     for (const sm of robots.sitemaps) {
@@ -60,7 +52,6 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
     }
   }
 
-  // User-agent groups summary
   if (robots.groups.length > 0) {
     lines.push("", "--- User-Agent Groups ---", "");
     for (const group of robots.groups) {
@@ -79,6 +70,8 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
     "",
     `--- AI Crawlers: ${blocked.length} blocked, ${allowed.length} allowed (of ${crawlers.length} known) ---`,
     "",
+    `Source: github.com/ai-robots-txt/ai.robots.txt (${crawlers.length} bots)`,
+    "",
   );
   lines.push(formatCrawlerStatus(crawlers));
 
@@ -88,7 +81,7 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
 export function registerRobotsTool(server: McpServer): void {
   server.tool(
     "robots",
-    "Fetch and analyze a site's robots.txt. Validates syntax per RFC 9309, audits AI crawler access (50+ bots: GPTBot, ClaudeBot, PerplexityBot, etc.), lists sitemaps, and checks for common mistakes.",
+    "Fetch and analyze a site's robots.txt. Validates syntax per RFC 9309, audits AI crawler access (130+ bots from ai-robots-txt registry), lists sitemaps, and reports blocked vs allowed bots by category.",
     {
       url: z
         .string()
@@ -107,13 +100,12 @@ export function registerRobotsTool(server: McpServer): void {
         const origin = new URL(url).origin;
         const { robotsTxt, statusCode } = await fetchRobotsTxt(origin);
 
-        // If checking a specific path
         if (check_path) {
           const ua = user_agent ?? "Googlebot";
           const result = isAllowed(robotsTxt, ua, check_path);
           const status = result.allowed ? "ALLOWED" : "BLOCKED";
           const lines = [
-            `=== robots.txt path check ===`,
+            "=== robots.txt path check ===",
             `Origin: ${origin}`,
             `User-Agent: ${ua}`,
             `Path: ${check_path}`,
@@ -128,8 +120,7 @@ export function registerRobotsTool(server: McpServer): void {
           return { content: [{ type: "text", text: lines.join("\n") }] };
         }
 
-        // Full audit
-        const crawlers = auditAiCrawlers(robotsTxt);
+        const crawlers = await auditAiCrawlers(robotsTxt);
         return { content: [{ type: "text", text: formatRobotsAudit(origin, robotsTxt, statusCode, crawlers) }] };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
