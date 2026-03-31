@@ -73,32 +73,51 @@ export interface SearchAnalyticsRow {
   position: number;
 }
 
+export interface SearchAnalyticsMetadata {
+  first_incomplete_date?: string;
+  first_incomplete_hour?: string;
+}
+
 export interface SearchAnalyticsResponse {
   rows: SearchAnalyticsRow[];
   responseAggregationType: string;
+  metadata?: SearchAnalyticsMetadata;
+}
+
+export interface SearchAnalyticsFilter {
+  dimension: string;
+  operator: string;
+  expression: string;
+}
+
+export interface SearchAnalyticsOptions {
+  startDate: string;
+  endDate: string;
+  dimensions?: string[];
+  type?: string;
+  rowLimit?: number;
+  startRow?: number;
+  dimensionFilterGroups?: Array<{ groupType?: string; filters: SearchAnalyticsFilter[] }>;
+  dataState?: string;
+  aggregationType?: string;
 }
 
 export async function querySearchAnalytics(
   siteUrl: string,
-  options: {
-    startDate: string;
-    endDate: string;
-    dimensions?: string[];
-    type?: string;
-    rowLimit?: number;
-    dimensionFilterGroups?: Array<{ filters: Array<{ dimension: string; operator: string; expression: string }> }>;
-    dataState?: string;
-  },
+  options: SearchAnalyticsOptions,
 ): Promise<SearchAnalyticsResponse> {
-  const body = {
+  const body: Record<string, unknown> = {
     startDate: options.startDate,
     endDate: options.endDate,
     dimensions: options.dimensions ?? ["query", "page"],
     type: options.type ?? "web",
     rowLimit: options.rowLimit ?? 1000,
     dataState: options.dataState ?? "all",
-    ...(options.dimensionFilterGroups ? { dimensionFilterGroups: options.dimensionFilterGroups } : {}),
   };
+
+  if (options.startRow !== undefined) body.startRow = options.startRow;
+  if (options.aggregationType) body.aggregationType = options.aggregationType;
+  if (options.dimensionFilterGroups) body.dimensionFilterGroups = options.dimensionFilterGroups;
 
   const data = await gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, body);
   return data as unknown as SearchAnalyticsResponse;
@@ -116,24 +135,39 @@ export async function listSites(): Promise<GscSite[]> {
   return (data.siteEntry as GscSite[] | undefined) ?? [];
 }
 
+export async function getSite(siteUrl: string): Promise<GscSite> {
+  const data = await gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}`);
+  return data as unknown as GscSite;
+}
+
 // --- Sitemaps ---
+
+export interface GscSitemapContent {
+  type: string;
+  submitted?: string;
+  indexed?: string;
+}
 
 export interface GscSitemap {
   path: string;
   lastSubmitted?: string;
   isPending: boolean;
   isSitemapsIndex: boolean;
+  type?: string;
   lastDownloaded?: string;
   warnings?: string;
   errors?: string;
-  contents?: Array<{
-    type: string;
-    submitted?: string;
-    indexed?: string;
-  }>;
+  contents?: GscSitemapContent[];
 }
 
 export async function listSitemaps(siteUrl: string): Promise<GscSitemap[]> {
   const data = await gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
   return (data.sitemap as GscSitemap[] | undefined) ?? [];
+}
+
+export async function getSitemap(siteUrl: string, feedpath: string): Promise<GscSitemap> {
+  const data = await gscFetch(
+    `${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps/${encodeURIComponent(feedpath)}`,
+  );
+  return data as unknown as GscSitemap;
 }

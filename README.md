@@ -12,12 +12,35 @@ bun install
 
 ## Tools
 
-| Tool | What it does |
-|---|---|
-| `inspect` | Is the page indexed? What canonical did Google choose? Crawl errors? Rich results validation? |
-| `performance` | Clicks, impressions, CTR, position — by query, page, country, device, date |
-| `sitemaps` | List Search Console properties or sitemaps with status |
-| `setup` | Check auth status or walk through OAuth setup |
+### `inspect`
+
+Inspect a URL using Google's index. Returns index status, canonical (yours vs Google's), crawl status, rich results validation, mobile usability, sitemaps, and referring URLs.
+
+### `performance`
+
+Query search analytics with full API support:
+
+- **Dimensions**: `query`, `page`, `country`, `device`, `date`, `searchAppearance`, `hour`
+- **Search types**: `web`, `image`, `video`, `news`, `discover`, `googleNews`
+- **Filter operators**: `equals`, `contains`, `notEquals`, `notContains`, `includingRegex`, `excludingRegex`
+- **Aggregation**: `auto`, `byPage`, `byProperty`, `byNewsShowcasePanel`
+- **Data freshness**: `all` (includes fresh), `final` (finalized only), `hourly_all` (hourly granularity)
+- **Pagination**: `row_limit` (up to 25,000) + `start_row` offset
+
+### `sitemaps`
+
+Manage Search Console properties and sitemaps (read-only):
+
+- `list_sites` — list all GSC properties
+- `get_site` — get details for a specific property
+- `list_sitemaps` — list sitemaps for a property
+- `get_sitemap` — get details for a specific sitemap (type, errors, warnings, contents)
+
+Action is auto-detected from parameters.
+
+### `setup`
+
+Check auth status or walk through the OAuth setup flow interactively.
 
 ## Setup
 
@@ -71,7 +94,12 @@ Add to your Claude Code, Cursor, or any MCP client config:
   "mcpServers": {
     "sitelint": {
       "command": "bun",
-      "args": ["run", "/path/to/sitelint/src/index.ts"]
+      "args": ["run", "/path/to/sitelint/src/index.ts"],
+      "env": {
+        "GSC_CLIENT_ID": "your-client-id",
+        "GSC_CLIENT_SECRET": "your-secret",
+        "GSC_REFRESH_TOKEN": "your-token"
+      }
     }
   }
 }
@@ -79,10 +107,12 @@ Add to your Claude Code, Cursor, or any MCP client config:
 
 Then ask your AI assistant:
 
-- "Inspect https://mysite.com"
+- "Is https://mysite.com indexed?"
+- "What canonical did Google choose for this page?"
 - "Show me search performance for my site"
-- "List my Search Console properties"
-- "Is this page indexed?"
+- "Which queries bring traffic to this page?"
+- "Show me Discover performance"
+- "List my sitemaps and any errors"
 
 ### Run directly
 
@@ -92,7 +122,7 @@ bun run src/index.ts
 
 ## What you get
 
-### URL Inspection (from Google's index)
+### URL Inspection
 
 ```
 === URL Inspection: https://example.com ===
