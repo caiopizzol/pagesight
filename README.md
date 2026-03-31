@@ -1,98 +1,95 @@
 # Sitelint
 
-Lint your site for search engines and AI.
+Google's data, your AI assistant's hands.
 
-An open-source MCP server powered by Google APIs. Inspect indexing status, validate structured data, track search performance, measure Core Web Vitals — directly from Google's own data. No guesswork. No made-up rules.
+An open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and Chrome UX Report. No made-up rules. No invented scores. Just what Google actually reports about your site.
 
-## Install
-
-```bash
-bun install
-```
+Most SEO tools flag "title over 60 characters" and "only one H1 allowed." [Google's own engineers say those rules don't exist.](#why-not-other-seo-tools) Sitelint skips the myths and asks Google directly.
 
 ## Tools
 
+Seven tools. Three Google APIs. One install.
+
 ### `inspect`
 
-Inspect a URL using Google's index. Returns index status, canonical (yours vs Google's), crawl status, rich results validation, mobile usability, sitemaps, and referring URLs.
+Ask Google: is this page indexed? What canonical did you choose? Any crawl errors? Structured data issues?
+
+Returns index status, canonical (yours vs Google's), crawl status, rich results validation, sitemaps, and referring URLs — directly from Google's index.
 
 ### `pagespeed`
 
-Analyze performance with Google PageSpeed Insights API v5:
+Run Google Lighthouse on any URL:
 
-- **Lighthouse scores**: performance, accessibility, best-practices, seo
+- **Scores**: performance, accessibility, best-practices, seo
 - **Core Web Vitals (lab)**: FCP, LCP, TBT, CLS, Speed Index, TTI
-- **CrUX field data**: real-world metrics from Chrome users (page + origin level)
+- **CrUX field data**: real Chrome user metrics when available (page + origin)
 - **Opportunities**: ranked by severity with potential savings
 - **Strategy**: `mobile` or `desktop`
 - **Locale**: localized results (e.g., `pt-BR`)
 
 ### `crux`
 
-Query Chrome UX Report for real-world Core Web Vitals (28-day rolling window):
+Real-world Core Web Vitals from Chrome users (28-day rolling window):
 
 - **Metrics**: LCP, FCP, INP, CLS, TTFB, RTT, navigation types, form factors
-- **Granularity**: by URL or origin, by device type (DESKTOP, PHONE, TABLET)
+- **Granularity**: by URL or origin, by device (DESKTOP, PHONE, TABLET)
 - **Data**: p75 values + histogram distributions (good/needs improvement/poor)
 
 ### `crux_history`
 
-CrUX trends over time — up to 40 weekly data points (~10 months):
+Core Web Vitals trends over time — up to 40 weekly data points (~10 months):
 
-- Same metrics as `crux` but as timeseries
-- Trend detection (improved/stable/worse)
-- Recent data points table for core metrics
+- Trend detection (improved/stable/worse) with percentage change
+- Recent data points table for LCP, INP, CLS
 - Custom period count (1-40)
 
 ### `performance`
 
-Query Google Search Console search analytics with full API support:
+Google Search Console search analytics with full API coverage:
 
 - **Dimensions**: `query`, `page`, `country`, `device`, `date`, `searchAppearance`, `hour`
 - **Search types**: `web`, `image`, `video`, `news`, `discover`, `googleNews`
-- **Filter operators**: `equals`, `contains`, `notEquals`, `notContains`, `includingRegex`, `excludingRegex`
+- **Filters**: `equals`, `contains`, `notEquals`, `notContains`, `includingRegex`, `excludingRegex`
 - **Aggregation**: `auto`, `byPage`, `byProperty`, `byNewsShowcasePanel`
 - **Data freshness**: `all`, `final`, `hourly_all`
-- **Pagination**: `row_limit` (up to 25,000) + `start_row` offset
+- **Pagination**: up to 25,000 rows with offset
 
 ### `sitemaps`
 
-Manage Search Console properties and sitemaps (read-only):
+Search Console properties and sitemaps (read-only):
 
-- `list_sites` — list all GSC properties
-- `get_site` — get details for a specific property
-- `list_sitemaps` — list sitemaps for a property
-- `get_sitemap` — get details for a specific sitemap
+- `list_sites` — all GSC properties with permission level
+- `get_site` — details for a specific property
+- `list_sitemaps` — sitemaps with error/warning counts and content types
+- `get_sitemap` — full details for a specific sitemap
 
 ### `setup`
 
-Check auth status or walk through the OAuth setup flow.
+Check auth status or walk through OAuth interactively.
 
 ## Setup
 
-### 1. Create Google Cloud credentials
+### 1. Google Cloud project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project (or use an existing one)
-3. Enable these APIs:
+2. Create a project (or use existing)
+3. Enable three APIs:
    - **Google Search Console API**
    - **PageSpeed Insights API**
    - **Chrome UX Report API**
-4. Create **OAuth client ID** (Desktop app) for Search Console
-5. Create **API key** for PageSpeed and CrUX
+4. Create **OAuth client ID** (Desktop app) — for Search Console
+5. Create **API key** — for PageSpeed and CrUX
 
 ### 2. Authorize Search Console
 
-```bash
-# Use the setup tool to walk through OAuth, or manually:
-# 1. Visit the auth URL with your client_id
-# 2. Authorize, copy the code from redirect URL
-# 3. Exchange for refresh token
-```
+Use the `setup` tool to walk through OAuth, or manually:
+
+1. Visit the auth URL with your client ID
+2. Authorize access to Search Console
+3. Copy the code from the redirect URL
+4. Exchange it for a refresh token
 
 ### 3. Configure
-
-Create a `.env` file:
 
 ```env
 GSC_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -101,18 +98,9 @@ GSC_REFRESH_TOKEN=your-refresh-token
 GOOGLE_API_KEY=your-api-key
 ```
 
-Or use a service account for Search Console:
-
-```env
-GSC_SERVICE_ACCOUNT_KEY=/path/to/service-account.json
-GOOGLE_API_KEY=your-api-key
-```
-
 ## Usage
 
-### As an MCP server
-
-Add to your Claude Code, Cursor, or any MCP client config:
+Add to Claude Code, Cursor, or any MCP client:
 
 ```json
 {
@@ -131,40 +119,40 @@ Add to your Claude Code, Cursor, or any MCP client config:
 }
 ```
 
-Then ask your AI assistant:
+Then just talk to your AI assistant:
 
-- "Inspect https://mysite.com"
-- "Run pagespeed on my homepage"
-- "Show CrUX data for my site"
-- "How have my Core Web Vitals changed over time?"
-- "Which queries bring traffic to this page?"
-- "Show me Discover performance"
-
-### Run directly
-
-```bash
-bun run src/index.ts
+```
+"Is https://mysite.com indexed?"
+"What canonical did Google choose for this page?"
+"Run pagespeed on my homepage, mobile"
+"Show me CrUX data for my site on phones"
+"How have my Core Web Vitals changed over the last 10 months?"
+"Which queries bring traffic to this page?"
+"Show me image search performance"
+"Any sitemap errors?"
 ```
 
-## Philosophy
+## Why not other SEO tools?
 
-Every check is backed by Google's own data. No made-up rules, no industry conventions passed off as standards.
+We researched every common SEO "rule" against official Google documentation. Most are myths:
 
-We researched every common SEO "rule" against official Google documentation:
+- **"Title must be under 60 characters"** — Google: "there's no limit." Gary Illyes called it "an externally made-up metric."
+- **"Meta description must be 155 characters"** — Google: "there's no limit on how long a meta description can be."
+- **"Only one H1 per page"** — John Mueller: "You can use H1 tags as often as you want. There's no limit."
+- **"Minimum 300 words per page"** — Mueller: "the number of words on a page is not a quality factor, not a ranking factor."
+- **"Text-to-HTML ratio matters"** — Mueller: "it makes absolutely no sense at all for SEO."
 
-- **Title length limits?** Google: "there's no limit." Gary Illyes: "externally made-up metric."
-- **Meta description length?** Google: "no limit on how long a meta description can be."
-- **Must have exactly one H1?** John Mueller: "You can use H1 tags as often as you want."
-- **Word count minimum?** Mueller: "the number of words on a page is not a quality factor."
+Tools that flag these "issues" are reporting their opinions, not Google's data. Sitelint only reports what Google's APIs actually return.
 
-Instead of guessing, Sitelint asks Google directly.
+Full research: [`research/07-rules-standards.md`](research/07-rules-standards.md)
 
 ## Development
 
 ```bash
+bun install       # install dependencies
+bun run start     # start MCP server
 bun run lint      # biome check
 bun run format    # biome format
-bun test          # run tests
 ```
 
 ## License
