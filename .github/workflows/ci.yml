@@ -13,8 +13,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - run: bunx biome check src/
+      - run: bunx biome check src/ __tests__/
       - run: bunx tsc --noEmit
+      - run: bun test
 
   release:
     needs: check
