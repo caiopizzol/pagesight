@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { registerCruxTool } from "./tools/crux.js";
 import { registerInspectTool } from "./tools/inspect.js";
 import { registerPagespeedTool } from "./tools/pagespeed.js";
 import { registerPerformanceTool } from "./tools/performance.js";
@@ -12,9 +13,10 @@ const server = new McpServer({
   version: "0.1.0",
 });
 
+registerCruxTool(server);
 registerInspectTool(server);
-registerPerformanceTool(server);
 registerPagespeedTool(server);
+registerPerformanceTool(server);
 registerSitemapsTool(server);
 registerSetupTool(server);
 

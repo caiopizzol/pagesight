@@ -2,7 +2,7 @@
 
 Lint your site for search engines and AI.
 
-An open-source MCP server powered by Google Search Console. Inspect indexing status, validate structured data, track search performance — directly from Google's index. No guesswork. No made-up rules. Only data Google actually reports.
+An open-source MCP server powered by Google APIs. Inspect indexing status, validate structured data, track search performance, measure Core Web Vitals — directly from Google's own data. No guesswork. No made-up rules.
 
 ## Install
 
@@ -16,15 +16,43 @@ bun install
 
 Inspect a URL using Google's index. Returns index status, canonical (yours vs Google's), crawl status, rich results validation, mobile usability, sitemaps, and referring URLs.
 
+### `pagespeed`
+
+Analyze performance with Google PageSpeed Insights API v5:
+
+- **Lighthouse scores**: performance, accessibility, best-practices, seo
+- **Core Web Vitals (lab)**: FCP, LCP, TBT, CLS, Speed Index, TTI
+- **CrUX field data**: real-world metrics from Chrome users (page + origin level)
+- **Opportunities**: ranked by severity with potential savings
+- **Strategy**: `mobile` or `desktop`
+- **Locale**: localized results (e.g., `pt-BR`)
+
+### `crux`
+
+Query Chrome UX Report for real-world Core Web Vitals (28-day rolling window):
+
+- **Metrics**: LCP, FCP, INP, CLS, TTFB, RTT, navigation types, form factors
+- **Granularity**: by URL or origin, by device type (DESKTOP, PHONE, TABLET)
+- **Data**: p75 values + histogram distributions (good/needs improvement/poor)
+
+### `crux_history`
+
+CrUX trends over time — up to 40 weekly data points (~10 months):
+
+- Same metrics as `crux` but as timeseries
+- Trend detection (improved/stable/worse)
+- Recent data points table for core metrics
+- Custom period count (1-40)
+
 ### `performance`
 
-Query search analytics with full API support:
+Query Google Search Console search analytics with full API support:
 
 - **Dimensions**: `query`, `page`, `country`, `device`, `date`, `searchAppearance`, `hour`
 - **Search types**: `web`, `image`, `video`, `news`, `discover`, `googleNews`
 - **Filter operators**: `equals`, `contains`, `notEquals`, `notContains`, `includingRegex`, `excludingRegex`
 - **Aggregation**: `auto`, `byPage`, `byProperty`, `byNewsShowcasePanel`
-- **Data freshness**: `all` (includes fresh), `final` (finalized only), `hourly_all` (hourly granularity)
+- **Data freshness**: `all`, `final`, `hourly_all`
 - **Pagination**: `row_limit` (up to 25,000) + `start_row` offset
 
 ### `sitemaps`
@@ -34,53 +62,50 @@ Manage Search Console properties and sitemaps (read-only):
 - `list_sites` — list all GSC properties
 - `get_site` — get details for a specific property
 - `list_sitemaps` — list sitemaps for a property
-- `get_sitemap` — get details for a specific sitemap (type, errors, warnings, contents)
-
-Action is auto-detected from parameters.
+- `get_sitemap` — get details for a specific sitemap
 
 ### `setup`
 
-Check auth status or walk through the OAuth setup flow interactively.
+Check auth status or walk through the OAuth setup flow.
 
 ## Setup
-
-Sitelint uses the Google Search Console API. You need OAuth credentials.
 
 ### 1. Create Google Cloud credentials
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a project (or use an existing one)
-3. Enable **Google Search Console API**
-4. Go to **Credentials** > **Create Credentials** > **OAuth client ID**
-5. Select **Desktop app**, name it "Sitelint"
-6. Download the JSON file
+3. Enable these APIs:
+   - **Google Search Console API**
+   - **PageSpeed Insights API**
+   - **Chrome UX Report API**
+4. Create **OAuth client ID** (Desktop app) for Search Console
+5. Create **API key** for PageSpeed and CrUX
 
-### 2. Authorize
-
-Run the OAuth flow to get a refresh token:
+### 2. Authorize Search Console
 
 ```bash
-# Start the server and use the setup tool, or manually:
+# Use the setup tool to walk through OAuth, or manually:
 # 1. Visit the auth URL with your client_id
-# 2. Authorize access to Search Console
-# 3. Copy the code from the redirect URL
-# 4. Exchange it for a refresh token
+# 2. Authorize, copy the code from redirect URL
+# 3. Exchange for refresh token
 ```
 
 ### 3. Configure
 
-Create a `.env` file in the project root:
+Create a `.env` file:
 
 ```env
 GSC_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GSC_CLIENT_SECRET=your-client-secret
 GSC_REFRESH_TOKEN=your-refresh-token
+GOOGLE_API_KEY=your-api-key
 ```
 
-Or use a service account:
+Or use a service account for Search Console:
 
 ```env
 GSC_SERVICE_ACCOUNT_KEY=/path/to/service-account.json
+GOOGLE_API_KEY=your-api-key
 ```
 
 ## Usage
@@ -98,7 +123,8 @@ Add to your Claude Code, Cursor, or any MCP client config:
       "env": {
         "GSC_CLIENT_ID": "your-client-id",
         "GSC_CLIENT_SECRET": "your-secret",
-        "GSC_REFRESH_TOKEN": "your-token"
+        "GSC_REFRESH_TOKEN": "your-token",
+        "GOOGLE_API_KEY": "your-api-key"
       }
     }
   }
@@ -107,54 +133,17 @@ Add to your Claude Code, Cursor, or any MCP client config:
 
 Then ask your AI assistant:
 
-- "Is https://mysite.com indexed?"
-- "What canonical did Google choose for this page?"
-- "Show me search performance for my site"
+- "Inspect https://mysite.com"
+- "Run pagespeed on my homepage"
+- "Show CrUX data for my site"
+- "How have my Core Web Vitals changed over time?"
 - "Which queries bring traffic to this page?"
 - "Show me Discover performance"
-- "List my sitemaps and any errors"
 
 ### Run directly
 
 ```bash
 bun run src/index.ts
-```
-
-## What you get
-
-### URL Inspection
-
-```
-=== URL Inspection: https://example.com ===
-
-Verdict: PASS
-Coverage: Submitted and indexed
-Page fetch: SUCCESSFUL
-Robots.txt: ALLOWED
-Crawled as: MOBILE
-Last crawled: 2026-03-30T08:59:15Z
-Google's canonical: https://example.com
-Your canonical: https://example.com
-
---- Rich Results ---
-Type: Article
-  Status: PASS
-```
-
-### Search Performance
-
-```
-=== Search Performance: sc-domain:example.com ===
-Period: 2026-03-03 to 2026-03-28
-
-Clicks: 1,200
-Impressions: 45,000
-Avg CTR: 2.7%
-Avg Position: 8.3
-
---- Top Results ---
-best widgets 2026 | https://example.com/widgets
-  Clicks: 89 | Impressions: 3,200 | CTR: 2.8% | Position: 5.1
 ```
 
 ## Philosophy
@@ -165,10 +154,10 @@ We researched every common SEO "rule" against official Google documentation:
 
 - **Title length limits?** Google: "there's no limit." Gary Illyes: "externally made-up metric."
 - **Meta description length?** Google: "no limit on how long a meta description can be."
-- **Must have exactly one H1?** John Mueller: "You can use H1 tags as often as you want. There's no limit."
+- **Must have exactly one H1?** John Mueller: "You can use H1 tags as often as you want."
 - **Word count minimum?** Mueller: "the number of words on a page is not a quality factor."
 
-Instead of guessing, Sitelint asks Google directly via the Search Console API.
+Instead of guessing, Sitelint asks Google directly.
 
 ## Development
 

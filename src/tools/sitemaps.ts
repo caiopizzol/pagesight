@@ -74,34 +74,39 @@ export function registerSitemapsTool(server: McpServer): void {
         ),
     },
     async ({ site_url, sitemap_url, action }) => {
-      // Auto-detect action if not specified
-      const resolvedAction = action ?? (sitemap_url ? "get_sitemap" : site_url ? "list_sitemaps" : "list_sites");
+      try {
+        // Auto-detect action if not specified
+        const resolvedAction = action ?? (sitemap_url ? "get_sitemap" : site_url ? "list_sitemaps" : "list_sites");
 
-      if (resolvedAction === "list_sites") {
-        const sites = await listSites();
-        return { content: [{ type: "text", text: formatSites(sites) }] };
-      }
-
-      if (!site_url) {
-        return { content: [{ type: "text", text: "Error: site_url is required for this action." }] };
-      }
-
-      if (resolvedAction === "get_site") {
-        const site = await getSite(site_url);
-        return { content: [{ type: "text", text: formatSite(site) }] };
-      }
-
-      if (resolvedAction === "get_sitemap") {
-        if (!sitemap_url) {
-          return { content: [{ type: "text", text: "Error: sitemap_url is required for get_sitemap." }] };
+        if (resolvedAction === "list_sites") {
+          const sites = await listSites();
+          return { content: [{ type: "text", text: formatSites(sites) }] };
         }
-        const sm = await getSitemap(site_url, sitemap_url);
-        return { content: [{ type: "text", text: formatSitemapDetail(sm) }] };
-      }
 
-      // list_sitemaps (default when site_url provided)
-      const sitemaps = await listSitemaps(site_url);
-      return { content: [{ type: "text", text: formatSitemaps(site_url, sitemaps) }] };
+        if (!site_url) {
+          return { content: [{ type: "text", text: "Error: site_url is required for this action." }] };
+        }
+
+        if (resolvedAction === "get_site") {
+          const site = await getSite(site_url);
+          return { content: [{ type: "text", text: formatSite(site) }] };
+        }
+
+        if (resolvedAction === "get_sitemap") {
+          if (!sitemap_url) {
+            return { content: [{ type: "text", text: "Error: sitemap_url is required for get_sitemap." }] };
+          }
+          const sm = await getSitemap(site_url, sitemap_url);
+          return { content: [{ type: "text", text: formatSitemapDetail(sm) }] };
+        }
+
+        // list_sitemaps (default when site_url provided)
+        const sitemaps = await listSitemaps(site_url);
+        return { content: [{ type: "text", text: formatSitemaps(site_url, sitemaps) }] };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `Error: ${msg}` }] };
+      }
     },
   );
 }

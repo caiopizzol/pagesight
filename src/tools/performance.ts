@@ -142,21 +142,26 @@ export function registerPerformanceTool(server: McpServer): void {
           ? [{ groupType: "and" as const, filters: filters as SearchAnalyticsFilter[] }]
           : undefined;
 
-      const result = await querySearchAnalytics(site_url, {
-        startDate,
-        endDate,
-        dimensions: dims,
-        type: search_type,
-        dataState: data_state,
-        aggregationType: aggregation_type,
-        rowLimit: row_limit ?? 1000,
-        startRow: start_row,
-        dimensionFilterGroups: filterGroups,
-      });
+      try {
+        const result = await querySearchAnalytics(site_url, {
+          startDate,
+          endDate,
+          dimensions: dims,
+          type: search_type,
+          dataState: data_state,
+          aggregationType: aggregation_type,
+          rowLimit: row_limit ?? 1000,
+          startRow: start_row,
+          dimensionFilterGroups: filterGroups,
+        });
 
-      return {
-        content: [{ type: "text", text: formatPerformance(site_url, result, dims, startDate, endDate) }],
-      };
+        return {
+          content: [{ type: "text", text: formatPerformance(site_url, result, dims, startDate, endDate) }],
+        };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: "text", text: `Error querying search analytics: ${msg}` }] };
+      }
     },
   );
 }
