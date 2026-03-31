@@ -1,7 +1,7 @@
 ---
 name: "Sitelint"
 tagline: "Lint your site for search engines and AI."
-version: 1
+version: 2
 language: en
 ---
 
@@ -11,86 +11,86 @@ language: en
 
 ### Overview
 
-Sitelint is an open-source MCP server that lints websites for SEO and AI discoverability. Like ESLint catches JavaScript issues before they ship, Sitelint catches search and visibility issues before they cost you traffic.
+Sitelint is an open-source MCP server that gives AI assistants direct access to Google's own data about your site. Index status, Core Web Vitals, search performance, structured data validation, crawl errors — all from Google's APIs, not made-up rules.
 
-It was born from a developer maintaining multiple personal projects — tired of juggling 5 different SEO tools, paying for dashboards he'd check once a month, and manually tuning meta tags when an AI assistant could just do it. Sitelint is the tool he wanted: plug it into your AI workflow, and it tells you what's wrong and how to fix it.
+It was born from a developer maintaining multiple personal projects — tired of juggling SEO tools that flag "title too long" and "only one H1 allowed" when Google itself says those rules don't exist. Sitelint skips the myths and asks Google directly: is this page indexed? What canonical did you choose? How fast is it for real users? What queries bring traffic?
 
-What it really does: it gives AI assistants the ability to see your site the way Google, ChatGPT, Perplexity, and every other search surface sees it — then fix the problems autonomously. It unifies PageSpeed Insights, Google Search Console, on-page analysis, technical SEO auditing, and AI-readiness checks into a single MCP server. No paid APIs. No subscriptions. No dashboards.
+What it really does: it wraps three Google APIs — Search Console, PageSpeed Insights, and Chrome UX Report — into a single MCP server that any AI assistant can use. Your assistant can inspect a URL, check performance, track Core Web Vitals trends, and diagnose search issues without you opening a dashboard.
 
-The problem it solves is structural: SEO tooling is fragmented, expensive, and built for marketers staring at dashboards — not for developers shipping code. The MCP ecosystem made it worse by scattering capabilities across 15+ single-purpose servers. Sitelint collapses all of it into one tool that works inside the workflow developers already use.
+The problem it solves: SEO tooling is built for marketers staring at dashboards, not developers shipping code. The MCP ecosystem fragmented it further — 15+ single-purpose servers, each wrapping one API, each with its own auth flow. And most SEO tools report rules that Google has explicitly debunked.
 
-**Before Sitelint:** Install 5 MCP servers. Configure 5 auth flows. Get 5 different response formats. Manually cross-reference findings. Pay $38-500/mo for anything comprehensive.
+**Before Sitelint:** Install 5 MCP servers. Configure 5 auth flows. Get flagged for "multiple H1 tags" and "title over 60 characters" — neither of which Google cares about.
 
-**After Sitelint:** One server. One install. Your AI assistant handles the rest.
+**After Sitelint:** One server. Three Google APIs. Only data Google actually reports.
 
 Long-term ambition: become the standard way AI assistants understand and optimize web presence — for both traditional search and generative AI.
 
 ### Positioning
 
-**Category:** Open-source SEO & GEO linter for AI assistants.
+**Category:** Open-source Google Search intelligence for AI assistants.
 
-Not a SaaS platform. Not a dashboard. Not a wrapper for a paid API. Not another single-purpose MCP server. Not a marketing tool with a chat interface bolted on.
+Not a SaaS platform. Not a dashboard. Not a wrapper for a paid API. Not another single-purpose MCP server. Not a tool that invents rules.
 
 **Competitive landscape:**
-- **Top layer:** Enterprise SaaS (Semrush, Ahrefs, Moz) — $100-500/mo, built for marketing teams, dashboard-centric, feature bloat
+- **Top layer:** Enterprise SaaS (Semrush, Ahrefs, Moz) — $100-500/mo, built for marketing teams, dashboard-centric, hundreds of made-up "SEO scores"
 - **Mid layer:** Focused SaaS (Frase, Otterly.AI, Profound) — $25-500/mo, narrower scope, still subscription-based
-- **Bottom layer:** Open-source MCP servers — free but fragmented. 5+ PageSpeed MCPs, 9+ Search Console MCPs, 2 audit MCPs, all silos. DataForSEO MCP is comprehensive but wraps a paid API.
+- **Bottom layer:** Open-source MCP servers — free but fragmented. 5+ PageSpeed MCPs, 9+ Search Console MCPs, all silos with partial API coverage. DataForSEO MCP is comprehensive but wraps a paid API.
 
-Sitelint sits below all of them in cost (free) and above all of them in integration (one tool, works with any AI assistant). It trades dashboards and UI chrome for raw capability that agents can use programmatically.
+Sitelint sits below all of them in cost (free) and above all of them in accuracy (Google's own data, not approximations). It trades dashboards for raw API access that agents can use programmatically.
 
 **Structural differentials:**
-- Only unified SEO + GEO MCP server using exclusively free APIs
-- Designed for AI assistants, not humans staring at screens
-- Opinionated by default — flags issues with severity, not just data dumps
-- Linter mental model — developers already know how linters work
+- Only MCP server unifying Google Search Console + PageSpeed Insights + Chrome UX Report
+- Reports what Google reports. Doesn't invent rules, scores, or thresholds.
+- Full API coverage — every read-only method, every parameter, every dimension
+- Designed for AI assistants, not humans clicking through tabs
 - Zero vendor lock-in — MIT license, works with Claude, Cursor, Codex, any MCP client
 
-**Territory:** Sitelint owns the intersection of "developer tooling" and "search visibility." It's the place where `bun run lint` meets "why isn't my page ranking."
+**Territory:** Sitelint owns the intersection of "developer tooling" and "Google Search data." The tool that makes Google's APIs conversational.
 
 ### Personality
 
-**Dominant archetype:** The Architect — systematic, precise, opinionated. Builds foundations others rely on.
+**Dominant archetype:** The Architect — systematic, precise, evidence-based. Builds on verified foundations, not assumptions.
 
-**Attributes the brand transmits:** precise, open, unified, developer-native, opinionated, practical
+**Attributes the brand transmits:** precise, honest, unified, developer-native, evidence-based, practical
 
 **What it is:**
-- A linter, not a dashboard
-- A tool for builders, not watchers
-- Opinionated with escape hatches
+- Google's data, made accessible to AI assistants
+- A tool for builders who want facts, not opinions
+- Evidence over convention
 - Free as in freedom
 - One tool that replaces five
 
 **What it is not:**
-- Not flashy or marketing-speak
-- Not trying to be your SEO strategy consultant
+- Not a tool that invents SEO rules
+- Not a score generator that makes up numbers
+- Not trying to be your SEO consultant
 - Not a platform that wants your monthly payment
 - Not enterprise software dressed up as open source
-- Not another AI wrapper with a landing page
 
 ### Promise
 
-Your site, seen clearly — by every search surface that matters.
+Your site, seen through Google's eyes.
 
-One install. Every check. No subscriptions.
+One install. Three APIs. No made-up rules.
 
-If your AI assistant can't tell you what's wrong with your SEO, your SEO tool has failed.
+If your AI assistant can't ask Google about your site, your SEO tool has failed.
 
-**Base message:** Sitelint gives AI assistants the eyes to see what search engines and AI models see — and the knowledge to fix it.
+**Base message:** Sitelint gives AI assistants direct access to what Google knows about your site — index status, performance, Core Web Vitals, search queries — so they can diagnose and fix issues with real data.
 
 **Synthesizing phrase:** Sitelint exists so developers never have to open an SEO dashboard again.
 
 ### Guardrails
 
-**Tone summary:** direct, technical, confident, no-nonsense, helpful
+**Tone summary:** direct, technical, confident, evidence-based, helpful
 
 **What the brand cannot be:**
-- A salesy tool that promises "10x your traffic"
-- A bloated platform that tries to do everything
-- A tool that requires an SEO certification to use
+- A tool that promises "10x your traffic"
+- A score generator that assigns arbitrary numbers
+- A tool that flags "issues" Google says don't matter
 - A project that treats developers as secondary users
 - Anything that feels like Salesforce
 
-**Litmus test:** If a developer wouldn't put it in their `package.json`, it's wrong.
+**Litmus test:** If Google's own documentation doesn't support the claim, don't make it.
 
 ---
 
@@ -98,13 +98,13 @@ If your AI assistant can't tell you what's wrong with your SEO, your SEO tool ha
 
 ### Identity
 
-We build linters, not dashboards. Sitelint is an open-source MCP server that tells your AI assistant what's wrong with your site's SEO and AI discoverability — and how to fix it. We don't sell subscriptions. We don't gate features. We don't require you to log into anything.
+We don't make up rules. We ask Google. Sitelint is an open-source MCP server that connects AI assistants to Google Search Console, PageSpeed Insights, and Chrome UX Report — the same data Google uses to evaluate your site.
 
-We are not a marketing platform. We are not consultants. We are not SaaS. We are a developer tool that does one job well: make your site findable by everything that searches — Google, ChatGPT, Perplexity, and whatever comes next.
+We are not a marketing platform. We are not consultants. We are not SaaS. We are a developer tool that does one job well: make Google's search data accessible to AI assistants.
 
-We believe SEO tooling should work like every other developer tool: install it, configure it, let it run. No dashboards. No monthly emails about your "SEO health score." No upsells. Just rules, violations, and fixes.
+Most SEO tools flag "title over 60 characters" and "only one H1 allowed." Google's own engineers have said these rules are made up. We researched every common SEO rule against official documentation and built a tool that only reports what Google actually tells us.
 
-**Essence:** The linter for the rest of the web.
+**Essence:** Google's data, your AI assistant's hands.
 
 ### Tagline & Slogans
 
@@ -112,114 +112,113 @@ We believe SEO tooling should work like every other developer tool: install it, 
 *Use everywhere: README, homepage, social bios, conference talks.*
 
 **Alternatives:**
-- SEO and GEO analysis for AI assistants.
-- One MCP server. Every search surface.
-- The missing linter for web visibility.
+- Google's search data for AI assistants.
+- One MCP server. Three Google APIs.
+- Ask Google, not SEO tools.
 
 **Slogans for different contexts:**
-- README hero: "Like ESLint for your site's search visibility."
-- Technical: "Unified SEO and GEO analysis over MCP. Free. Open source."
-- Community: "Stop paying for dashboards. Start linting."
-- GEO-forward: "Be found by Google. Be cited by AI."
-- Developer pitch: "Your AI assistant's SEO toolkit."
+- README hero: "Google Search Console + PageSpeed + CrUX in one MCP server."
+- Technical: "Three Google APIs. Seven tools. One install."
+- Community: "Stop guessing. Ask Google."
+- Myth-busting: "Title length limits? Google says they don't exist. We checked."
+- Developer pitch: "Your AI assistant's direct line to Google Search."
 
 ### Manifesto
 
-Every developer tool has a linter.
+Most SEO tools are built on myths.
 
-JavaScript has ESLint. CSS has Stylelint. Your code gets checked before it ships. But your site's visibility? That's still a dashboard you forget to check and a subscription you overpay for.
+"Title must be under 60 characters." Google: "there's no limit." "Only one H1 per page." John Mueller: "You can use H1 tags as often as you want." "Meta description must be 155 characters." Google: "There's no limit on how long a meta description can be." "Minimum 300 words per page." Mueller: "Word count is not a quality factor."
 
-Search changed. It's not just Google anymore. ChatGPT cites sources. Perplexity links references. Google summarizes instead of listing. Your site needs to be found by crawlers and understood by language models.
+We checked every rule. We read the documentation. We watched the office hours. Most of what SEO tools flag has no basis in anything Google has ever said.
 
-The tools didn't keep up. SEO is still fragmented across 15 different services, each charging monthly, each returning data in a different format, each requiring its own auth flow. Developers gave up and ignored it.
+So we built something different.
 
-We think that's broken.
+Sitelint doesn't make up rules. It asks Google directly. Three APIs — Search Console, PageSpeed Insights, Chrome UX Report — unified into one MCP server that your AI assistant can use.
 
-Sitelint is one tool. One install. One protocol. It gives your AI assistant the ability to see your site the way every search surface sees it — and fix what's wrong. PageSpeed, Search Console, on-page analysis, technical audits, AI-readiness checks. All free. All open source.
+Is this page indexed? Ask Google. What canonical did Google choose? Ask Google. How fast is this page for real users? Ask Google. What queries bring traffic? Ask Google.
 
-No dashboards. No subscriptions. No "upgrade to Pro."
+No scores we invented. No thresholds we made up. No "best practices" that are actually just blog posts from 2015.
 
-We built this because we needed it. We open-sourced it because everyone does.
-
-Lint your site. Ship with confidence.
+Just Google's data. In your AI assistant's hands.
 
 **Sitelint.**
 
 ### Message Pillars
 
+**Evidence-Based**
+Every data point comes from Google's APIs. We don't invent rules, assign scores, or set thresholds. If Google's documentation doesn't support it, we don't report it.
+
 **Unified**
-One MCP server replaces five. PageSpeed, Search Console, on-page analysis, technical SEO, and AI-readiness — all in one tool. Install once, use everything.
+Three Google APIs in one MCP server. Search Console for indexing and search data. PageSpeed Insights for Lighthouse audits. Chrome UX Report for real-world performance. Seven tools. One install.
 
 **Open**
 MIT license. Free APIs only. No paid dependencies. No vendor lock-in. Works with Claude, Cursor, Codex, and every MCP-compatible client.
 
-**Opinionated**
-Like a good linter, Sitelint has opinions. It flags issues with severity levels, not just raw data. It tells you what to fix first. Escape hatches exist for when you disagree.
-
 **Developer-Native**
-Built for `bun install`, not for marketing dashboards. Designed to run inside AI workflows, not beside them. Speaks MCP, not REST-with-a-pretty-UI.
+Built with Bun. Configured with env vars. Speaks MCP over stdio. Designed to run inside AI workflows, not beside them. No dashboard. No browser. No login page.
 
-**Future-Ready**
-SEO today. GEO tomorrow. Your site needs to be found by crawlers and cited by AI models. Sitelint checks for both.
+**Myth-Free**
+We researched every common SEO rule against Google's official documentation. Title length limits, H1 requirements, word count minimums — all debunked. Sitelint only reports what Google actually cares about.
 
 ### Phrases
 
 - "Lint your site for search engines and AI."
-- "Like ESLint, but for your site's visibility."
-- "One server. Every search surface."
-- "No dashboards. No subscriptions. Just rules."
-- "Your AI assistant's SEO toolkit."
-- "Stop paying to see what's wrong with your site."
-- "Found by Google. Cited by ChatGPT. Checked by Sitelint."
-- "The linter for the rest of the web."
+- "Google's data, your AI assistant's hands."
+- "One server. Three APIs. No made-up rules."
+- "Stop guessing. Ask Google."
+- "Your AI assistant's direct line to Google Search."
+- "Title length limits? Google says they don't exist."
+- "We checked every SEO rule. Most are myths."
+- "If Google doesn't report it, neither do we."
 
 ### Social Bios
 
 **LinkedIn:**
-Sitelint is an open-source MCP server that gives AI assistants the ability to analyze and fix SEO and AI discoverability issues. It unifies PageSpeed Insights, Google Search Console, on-page analysis, and AI-readiness checks into a single tool — no paid APIs, no subscriptions. Built for developers who want their sites found by search engines and cited by AI models.
+Sitelint is an open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and Chrome UX Report. Inspect indexing status, track Core Web Vitals, analyze search performance — with real data from Google's APIs, not made-up rules. Built with Bun. MIT license.
 
 **Instagram:**
-Open-source SEO & GEO linter for AI assistants
-One MCP server. Every search surface.
-No dashboards. No subscriptions.
+Open-source MCP server for AI assistants
+Google Search Console + PageSpeed + CrUX
+No dashboards. No made-up rules. Just Google's data.
 MIT License | Built with Bun
 
 **X/Twitter:**
-Open-source MCP server that lints your site for SEO and AI discoverability. One install, every check. No subscriptions.
+Open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and CrUX. No made-up SEO rules. Just Google's data.
 
 **GitHub:**
-Lint your site for search engines and AI. Unified SEO and GEO analysis over MCP. Free and open source.
+Lint your site for search engines and AI. Google Search Console + PageSpeed Insights + Chrome UX Report in one MCP server.
 
 ### Tonal Rules
 
 1. Speak in short, declarative sentences. No hedging.
 2. Lead with what the tool does, not what it is.
-3. Use developer vocabulary: install, configure, lint, rules, violations — not "solutions," "empower," "leverage."
-4. Technical confidence without arrogance. State facts, not opinions disguised as facts.
+3. Use developer vocabulary: install, configure, query, inspect — not "solutions," "empower," "leverage."
+4. When citing an SEO claim, always reference the source. "Google says X" with a link, not "best practice suggests."
 5. Never use marketing superlatives: "revolutionary," "game-changing," "next-generation," "cutting-edge."
-6. Comparisons to developer tools are always welcome. Comparisons to SaaS platforms are not.
+6. When debunking a myth, quote the Google engineer directly. Names and dates.
 7. Respect the reader's time. If it can be said in one line, don't use three.
 8. Use code examples and terminal output over screenshots and diagrams.
-9. Acknowledge limitations directly. "Sitelint doesn't do X" is better than hiding it.
-10. Never promise traffic results. Promise clarity.
+9. Acknowledge what we don't cover. "Sitelint doesn't do X" is better than hiding it.
+10. Never promise traffic results. Promise access to data.
 11. Open source is a fact, not a selling point. Don't over-celebrate it.
+12. "Google says" is our strongest argument. Use it.
 
 **Identity boundaries:**
 - We are not consultants who leave a report behind.
 - We are not a platform trying to become your workflow.
-- We are not enterprise software with an "open-source edition."
+- We are not a score generator that makes up numbers.
 - We are not a startup looking for your email address.
-- We are not building the next Semrush. We are building the next ESLint — for search.
+- We are not building the next Semrush. We are building a bridge to Google's APIs.
 
 | We Say | We Never Say |
 |---|---|
 | "Install Sitelint" | "Sign up for Sitelint" |
-| "Lint your site" | "Optimize your digital presence" |
-| "Found by search engines and AI" | "Maximize your organic reach" |
-| "One MCP server" | "All-in-one platform" |
-| "Flags issues with severity" | "Actionable insights dashboard" |
+| "Ask Google" | "Optimize your digital presence" |
+| "Google reports this page is not indexed" | "Our analysis shows SEO score 73/100" |
+| "One MCP server, three Google APIs" | "All-in-one platform" |
+| "CrUX shows p75 LCP of 2.1s" | "Your page speed needs improvement" |
 | "Open source, MIT license" | "Free forever (with Pro tier)" |
-| "Built for developers" | "Built for teams of all sizes" |
+| "Built for AI assistants" | "Built for teams of all sizes" |
 | "Works with any MCP client" | "Seamless integration ecosystem" |
 
 ---
@@ -234,14 +233,17 @@ Headlines, body text, primary UI elements. The default state. Clean, authoritati
 **Secondary:** `#18181B` (zinc-900)
 Card backgrounds, code blocks, secondary surfaces. Provides depth without competing.
 
-**Accent:** `#22C55E` (green-500)
-Pass states, CTAs, success indicators. The "lint passed" color. Used sparingly — when something is correct or actionable.
+**Accent:** `#4285F4` (Google blue)
+Links, interactive elements, data highlights. References Google as the data source. Used sparingly.
+
+**Good:** `#22C55E` (green-500)
+Pass states, "indexed" indicators, good CrUX ratings. The "everything is fine" color.
 
 **Warning:** `#EAB308` (yellow-500)
-Warnings, medium-severity issues. The linter's caution signal.
+Warnings, "needs improvement" CrUX ratings. Attention without alarm.
 
 **Error:** `#EF4444` (red-500)
-Errors, high-severity issues, critical findings. Demands attention.
+Errors, "not indexed" states, poor CrUX ratings. Demands action.
 
 **Muted:** `#71717A` (zinc-500)
 Secondary text, descriptions, metadata. Stays out of the way.
@@ -249,7 +251,7 @@ Secondary text, descriptions, metadata. Stays out of the way.
 **Background:** `#FAFAFA` (zinc-50)
 Page backgrounds, light mode surfaces. Clean, not sterile.
 
-**Avoid:** Gradients, blues (too corporate), purples (too SaaS), any neon or saturated palette that signals "marketing tool."
+**Avoid:** Gradients, purples (too SaaS), any neon or saturated palette that signals "marketing tool." Don't overuse Google blue — it's an accent, not a primary.
 
 ### Typography
 
@@ -260,12 +262,12 @@ Headlines, hero text, brand name. Clean geometric sans-serif. Same family used b
 Paragraphs, descriptions, UI text. Highly legible at all sizes.
 
 **Mono:** JetBrains Mono — 400 weight
-Code examples, terminal output, tool names, configuration snippets. This is a developer tool — monospace is a first-class citizen, not an afterthought.
+Code examples, terminal output, tool names, API responses, configuration snippets. This is a developer tool — monospace is a first-class citizen, not an afterthought.
 
 ### Style
 
-**Design keywords:** systematic, minimal, structured, terminal-native, monochrome-with-signal
+**Design keywords:** systematic, minimal, structured, terminal-native, data-forward
 
-**Reference brands:** Linear (systematic clarity), Vercel (developer-native), Resend (clean minimalism), ESLint (linter authority)
+**Reference brands:** Linear (systematic clarity), Vercel (developer-native), Resend (clean minimalism), Google Search Console (data authority)
 
-**Direction:** The identity should communicate precision and utility, not decoration. Every visual element should feel like it belongs in a terminal or a well-designed README. If it wouldn't look right in a `--help` output, reconsider it.
+**Direction:** The identity should communicate precision and data integrity, not decoration. Every visual element should feel like it belongs in a terminal or a well-designed README. Data tables and API responses are the hero content, not illustrations. If it wouldn't look right next to a `curl` output, reconsider it.
