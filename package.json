@@ -1,6 +1,6 @@
 {
   "name": "pagesight",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Google's data + AI crawler intelligence for AI assistants. MCP server for SEO, GEO, and web performance.",
   "type": "module",
   "main": "src/index.ts",
