@@ -9,9 +9,11 @@ import { registerRobotsTool } from "./tools/robots.js";
 import { registerSetupTool } from "./tools/setup.js";
 import { registerSitemapsTool } from "./tools/sitemaps.js";
 
+const pkg = await Bun.file(new URL("../package.json", import.meta.url)).json();
+
 const server = new McpServer({
   name: "pagesight",
-  version: "0.0.0",
+  version: pkg.version,
 });
 
 registerCruxTool(server);

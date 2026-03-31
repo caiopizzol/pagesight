@@ -39,7 +39,7 @@ function formatPerformance(
     totalImpressions > 0 ? rows.reduce((sum, r) => sum + r.position * r.impressions, 0) / totalImpressions : 0;
 
   lines.push(
-    "--- Totals ---",
+    `--- Summary (${rows.length} rows returned) ---`,
     "",
     `Clicks: ${totalClicks.toLocaleString()}`,
     `Impressions: ${totalImpressions.toLocaleString()}`,
@@ -67,9 +67,10 @@ function formatPerformance(
 }
 
 function daysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().split("T")[0];
+  // GSC dates are in PT (Pacific Time). Use UTC-8 as a stable approximation.
+  const now = new Date(Date.now() - 8 * 60 * 60 * 1000);
+  now.setDate(now.getDate() - n);
+  return now.toISOString().split("T")[0];
 }
 
 export function registerPerformanceTool(server: McpServer): void {
