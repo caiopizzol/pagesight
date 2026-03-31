@@ -39,14 +39,15 @@ function formatInspection(url: string, siteUrl: string, r: InspectionResult): st
     lines.push("", "--- Rich Results ---", "");
     lines.push(`Verdict: ${r.richResultsResult.verdict}`);
 
-    for (const item of r.richResultsResult.detectedItems) {
+    for (const item of r.richResultsResult.detectedItems ?? []) {
       lines.push(`\nType: ${item.richResultType}`);
-      for (const instance of item.items) {
+      for (const instance of item.items ?? []) {
         if (instance.name) lines.push(`  Name: ${instance.name}`);
-        if (instance.issues.length === 0) {
+        const issues = instance.issues ?? [];
+        if (issues.length === 0) {
           lines.push("  Status: PASS");
         } else {
-          for (const issue of instance.issues) {
+          for (const issue of issues) {
             lines.push(`  ${issue.severity}: ${issue.issueMessage}`);
           }
         }
