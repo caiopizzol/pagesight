@@ -2,6 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerInspectTool } from "./tools/inspect.js";
+import { registerPagespeedTool } from "./tools/pagespeed.js";
 import { registerPerformanceTool } from "./tools/performance.js";
 import { registerSetupTool } from "./tools/setup.js";
 import { registerSitemapsTool } from "./tools/sitemaps.js";
@@ -13,6 +14,7 @@ const server = new McpServer({
 
 registerInspectTool(server);
 registerPerformanceTool(server);
+registerPagespeedTool(server);
 registerSitemapsTool(server);
 registerSetupTool(server);
 

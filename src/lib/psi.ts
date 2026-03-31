@@ -1,0 +1,90 @@
+const PSI_API = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
+
+export interface PsiCategory {
+  id: string;
+  title: string;
+  score: number | null;
+}
+
+export interface PsiAudit {
+  id: string;
+  title: string;
+  description: string;
+  score: number | null;
+  scoreDisplayMode: string;
+  displayValue?: string;
+  numericValue?: number;
+  numericUnit?: string;
+}
+
+export interface PsiMetric {
+  percentile: number;
+  distributions: Array<{ min: number; max?: number; proportion: number }>;
+  category: string;
+}
+
+export interface PsiLoadingExperience {
+  id: string;
+  metrics: Record<string, PsiMetric>;
+  overall_category: string;
+}
+
+export interface PsiResult {
+  id: string;
+  loadingExperience?: PsiLoadingExperience;
+  originLoadingExperience?: PsiLoadingExperience;
+  lighthouseResult: {
+    requestedUrl: string;
+    finalUrl: string;
+    lighthouseVersion: string;
+    fetchTime: string;
+    audits: Record<string, PsiAudit>;
+    categories: Record<string, PsiCategory>;
+    timing: { total: number };
+    runtimeError?: { code: string; message: string };
+    runWarnings?: string[];
+    configSettings: {
+      emulatedFormFactor: string;
+      locale: string;
+    };
+  };
+  analysisUTCTimestamp: string;
+}
+
+export type PsiStrategy = "mobile" | "desktop";
+export type PsiCategoryType = "performance" | "accessibility" | "best-practices" | "seo";
+
+export async function runPagespeed(
+  url: string,
+  options?: {
+    strategy?: PsiStrategy;
+    categories?: PsiCategoryType[];
+    locale?: string;
+  },
+): Promise<PsiResult> {
+  const params = new URLSearchParams({ url });
+
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (apiKey) params.set("key", apiKey);
+
+  const strategy = options?.strategy ?? "mobile";
+  params.set("strategy", strategy);
+
+  const categories = options?.categories ?? ["performance", "accessibility", "best-practices", "seo"];
+  for (const cat of categories) {
+    params.append("category", cat);
+  }
+
+  if (options?.locale) params.set("locale", options.locale);
+
+  const res = await fetch(`${PSI_API}?${params}`, {
+    headers: { "User-Agent": "Sitelint/0.1" },
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`PageSpeed API error (${res.status}): ${err}`);
+  }
+
+  return res.json() as Promise<PsiResult>;
+}
