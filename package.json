@@ -1,6 +1,6 @@
 {
   "name": "sitelint",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Lint your site for search engines and AI. Powered by Google Search Console.",
   "type": "module",
   "main": "src/index.ts",
