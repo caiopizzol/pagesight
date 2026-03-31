@@ -50,6 +50,11 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
   const blocked = crawlers.filter((c) => !c.allowed);
   const allowed = crawlers.filter((c) => c.allowed);
 
+  if (crawlers.length === 0) {
+    lines.push("", "--- AI Crawlers ---", "", "Could not load AI crawler registry. Audit skipped.");
+    return lines.join("\n");
+  }
+
   lines.push(
     "",
     `--- AI Crawlers: ${blocked.length} blocked, ${allowed.length} allowed (of ${crawlers.length} known) ---`,
@@ -58,7 +63,7 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
   );
 
   if (blocked.length === 0) {
-    lines.push("", "All 139 known AI crawlers are allowed. No bots are explicitly blocked.");
+    lines.push("", `All ${crawlers.length} known AI crawlers are allowed. No bots are explicitly blocked.`);
   } else if (blocked.length === crawlers.length) {
     lines.push("", "All known AI crawlers are blocked.");
     // Show how they're blocked

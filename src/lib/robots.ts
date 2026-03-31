@@ -144,10 +144,8 @@ export function parseRobotsTxt(raw: string): RobotsTxt {
     } else if (directive === "sitemap") {
       if (value) sitemaps.push(value);
       else errors.push(`Line ${lineNum}: Empty sitemap URL`);
-    } else if (directive === "crawl-delay" || directive === "host") {
-      // Known non-standard directives — ignore silently
     } else {
-      errors.push(`Line ${lineNum}: Unknown directive "${directive}"`);
+      // RFC 9309 allows parser-specific extensions — ignore unknown directives silently
     }
   }
 
@@ -190,36 +188,41 @@ export function isAllowed(
 } {
   const ua = userAgent.toLowerCase();
 
-  let matchingGroup: RobotsGroup | null = null;
+  // RFC 9309: collect ALL rules from groups matching this user-agent
+  // Try specific user-agent match first, merging all matching groups
+  const matchedRules: Array<{ type: "allow" | "disallow"; path: string }> = [];
   let matchedGroupName: string | null = null;
+  let foundSpecific = false;
 
   for (const group of robots.groups) {
     for (const agent of group.userAgents) {
       if (agent.toLowerCase() === ua) {
-        matchingGroup = group;
+        matchedRules.push(...group.rules);
         matchedGroupName = agent;
-        break;
+        foundSpecific = true;
       }
     }
-    if (matchingGroup) break;
   }
 
-  if (!matchingGroup) {
+  // Fall back to wildcard if no specific match
+  if (!foundSpecific) {
     for (const group of robots.groups) {
       if (group.userAgents.some((a) => a === "*")) {
-        matchingGroup = group;
+        matchedRules.push(...group.rules);
         matchedGroupName = "*";
-        break;
       }
     }
   }
 
-  if (!matchingGroup) return { allowed: true, matchedRule: null, matchedGroup: null };
+  if (matchedRules.length === 0 && !matchedGroupName) {
+    return { allowed: true, matchedRule: null, matchedGroup: null };
+  }
 
+  // Find the most specific (longest path) matching rule
   let bestRule: { type: "allow" | "disallow"; path: string } | null = null;
   let bestLength = -1;
 
-  for (const rule of matchingGroup.rules) {
+  for (const rule of matchedRules) {
     if (pathMatches(rule.path, path)) {
       const ruleLength = rule.path.length;
       if (ruleLength > bestLength || (ruleLength === bestLength && rule.type === "allow")) {
@@ -267,6 +270,18 @@ export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: Robot
     headers: { "User-Agent": "Pagesight/0.1" },
     redirect: "follow",
   });
+
+  // RFC 9309: 4xx (except 429) = no restrictions (allow all)
+  // 5xx and 429 = assume complete disallow
+  if (res.status >= 500 || res.status === 429) {
+    const disallowAll: RobotsTxt = {
+      groups: [{ userAgents: ["*"], rules: [{ type: "disallow", path: "/" }] }],
+      sitemaps: [],
+      raw: "",
+      errors: [`Server returned ${res.status} — treating as full disallow per RFC 9309`],
+    };
+    return { robotsTxt: disallowAll, statusCode: res.status };
+  }
 
   if (res.status >= 400) {
     return { robotsTxt: { groups: [], sitemaps: [], raw: "", errors: [] }, statusCode: res.status };

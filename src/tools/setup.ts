@@ -87,25 +87,30 @@ export function registerSetupTool(server: McpServer): void {
         if (!client_id || !client_secret || !code) {
           return { content: [{ type: "text", text: "Error: client_id, client_secret, and code are all required." }] };
         }
-        const tokens = await exchangeCodeForToken(client_id, client_secret, code);
-        return {
-          content: [
-            {
-              type: "text",
-              text: [
-                "=== OAuth Setup Complete ===",
-                "",
-                "Add these environment variables to your MCP server config:",
-                "",
-                `GSC_CLIENT_ID=${client_id}`,
-                `GSC_CLIENT_SECRET=${client_secret}`,
-                `GSC_REFRESH_TOKEN=${tokens.refreshToken}`,
-                "",
-                "Then restart Pagesight.",
-              ].join("\n"),
-            },
-          ],
-        };
+        try {
+          const tokens = await exchangeCodeForToken(client_id, client_secret, code);
+          return {
+            content: [
+              {
+                type: "text",
+                text: [
+                  "=== OAuth Setup Complete ===",
+                  "",
+                  "Add these environment variables to your MCP server config:",
+                  "",
+                  `GSC_CLIENT_ID=${client_id}`,
+                  "GSC_CLIENT_SECRET=(use the client_secret you already have)",
+                  `GSC_REFRESH_TOKEN=${tokens.refreshToken}`,
+                  "",
+                  "Then restart Pagesight.",
+                ].join("\n"),
+              },
+            ],
+          };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return { content: [{ type: "text", text: `Error exchanging code: ${msg}` }] };
+        }
       }
 
       return { content: [{ type: "text", text: "Unknown action." }] };

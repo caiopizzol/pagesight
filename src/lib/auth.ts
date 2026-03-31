@@ -17,8 +17,8 @@ async function getServiceAccountToken(keyPath: string): Promise<string> {
   const keyFile = JSON.parse(await Bun.file(keyPath).text());
   const now = Math.floor(Date.now() / 1000);
 
-  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const payload = btoa(
+  const header = toBase64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const payload = toBase64Url(
     JSON.stringify({
       iss: keyFile.client_email,
       scope: SCOPES.join(" "),
@@ -65,11 +65,15 @@ function pemToBuffer(pem: string): ArrayBuffer {
   return buf.buffer;
 }
 
+function toBase64Url(input: string): string {
+  return btoa(input).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 function bufferToBase64Url(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return toBase64Url(binary);
 }
 
 // --- OAuth Refresh Token Auth ---
@@ -140,7 +144,7 @@ export function getAuthMethod(): string {
 export function getOAuthSetupUrl(clientId: string): string {
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: "urn:ietf:wg:oauth:2.0:oob",
+    redirect_uri: "http://localhost",
     response_type: "code",
     scope: SCOPES.join(" "),
     access_type: "offline",
@@ -162,7 +166,7 @@ export async function exchangeCodeForToken(
       client_id: clientId,
       client_secret: clientSecret,
       code,
-      redirect_uri: "urn:ietf:wg:oauth:2.0:oob",
+      redirect_uri: "http://localhost",
     }).toString(),
   });
 
