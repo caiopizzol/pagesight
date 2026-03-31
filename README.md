@@ -144,8 +144,6 @@ We researched every common SEO "rule" against official Google documentation. Mos
 
 Tools that flag these "issues" are reporting their opinions, not Google's data. Sitelint only reports what Google's APIs actually return.
 
-Full research: [`research/07-rules-standards.md`](research/07-rules-standards.md)
-
 ## Development
 
 ```bash
