@@ -1,7 +1,7 @@
 ---
 name: "Pagesight"
 tagline: "See your site the way search engines and AI see it."
-version: 3
+version: 1
 language: en
 ---
 
@@ -11,87 +11,85 @@ language: en
 
 ### Overview
 
-Pagesight is an open-source MCP server that gives AI assistants direct access to how search engines and AI crawlers see your site. Google's index status, Core Web Vitals, search performance, structured data validation — plus a robots.txt analyzer that audits 139+ AI crawlers. All from authoritative sources, not made-up rules.
+Pagesight lets you see your site through the eyes of search engines and AI. Not what an SEO tool thinks. Not what a score generator invents. What Google, Chrome users, and 139 AI crawlers actually report.
 
-It was born from a developer maintaining multiple personal projects — tired of juggling SEO tools that flag "title too long" and "only one H1 allowed" when Google itself says those rules don't exist. Pagesight skips the myths and asks the sources directly: is this page indexed? What canonical did Google choose? Is GPTBot blocked or allowed? How fast is it for real Chrome users?
+It started because a developer got tired of SEO tools lying to him. "Title too long." "Only one H1." "Minimum 300 words." He checked every rule against Google's official documentation. Most were made up. So he built a tool that only reports what the sources actually say.
 
-What it really does: it wraps three Google APIs — Search Console, PageSpeed Insights, and Chrome UX Report — plus an RFC 9309-compliant robots.txt analyzer with a live AI crawler registry into a single MCP server. Your assistant can inspect a URL, check performance, audit which AI bots can access your content, and diagnose search issues without you opening a dashboard.
+What it really does: it connects to the systems that evaluate your site — Google Search Console, PageSpeed Insights, Chrome UX Report, and a robots.txt analyzer with a live registry of AI crawlers — and makes their data available to AI assistants. Your assistant sees what Google sees, knows which AI bots can access your content, and can act on real data instead of invented rules.
 
-The problem it solves: SEO tooling is built for marketers staring at dashboards, not developers shipping code. The MCP ecosystem fragmented it further — 15+ single-purpose servers, each wrapping one API, each with its own auth flow. And most SEO tools report rules that Google has explicitly debunked.
+The problem it solves is trust. SEO tools have spent two decades building on myths — character limits, heading hierarchies, word count thresholds — that Google's own engineers have publicly debunked. Developers either overpay for dashboards full of noise or ignore SEO entirely. Pagesight gives them a third option: the truth, delivered through their AI assistant while they code.
 
-**Before Pagesight:** Install 5 MCP servers. Configure 5 auth flows. Get flagged for "multiple H1 tags" and "title over 60 characters" — neither of which Google cares about.
+**Before Pagesight:** Pay $100+/mo for a dashboard that flags "issues" Google says don't matter. Or install 5 separate tools and stitch them together. Or just ignore SEO.
 
-**After Pagesight:** One server. Google APIs + AI crawler intelligence. Only data from authoritative sources.
+**After Pagesight:** Ask your AI assistant. It sees what Google sees.
 
-Long-term ambition: become the standard way AI assistants understand and optimize web presence — for both traditional search and generative AI.
+Long-term ambition: become the standard way developers understand their site's visibility — across every search surface, traditional and generative.
 
 ### Positioning
 
-**Category:** Open-source Google Search intelligence for AI assistants.
+**Category:** Search visibility intelligence for developers.
 
-Not a SaaS platform. Not a dashboard. Not a wrapper for a paid API. Not another single-purpose MCP server. Not a tool that invents rules.
+Not a dashboard. Not a score generator. Not a SaaS platform. Not an "SEO tool." Not defined by any single protocol or API. A new kind of tool that gives AI assistants sight into how search engines and AI crawlers see your site.
 
 **Competitive landscape:**
-- **Top layer:** Enterprise SaaS (Semrush, Ahrefs, Moz) — $100-500/mo, built for marketing teams, dashboard-centric, hundreds of made-up "SEO scores"
-- **Mid layer:** Focused SaaS (Frase, Otterly.AI, Profound) — $25-500/mo, narrower scope, still subscription-based
-- **Bottom layer:** Open-source MCP servers — free but fragmented. 5+ PageSpeed MCPs, 9+ Search Console MCPs, all silos with partial API coverage. DataForSEO MCP is comprehensive but wraps a paid API.
+- **Top layer:** Enterprise SEO suites (Semrush, Ahrefs, Moz) — $100-500/mo, built for marketing teams, hundreds of made-up rules, dashboard-centric
+- **Mid layer:** Focused SaaS (Frase, Otterly.AI) — $25-500/mo, narrower scope, still subscription-based, still inventing scores
+- **Bottom layer:** Open-source fragments — 15+ single-purpose tools that each wrap one API. No coherence, no shared philosophy, no myth-busting.
 
-Pagesight sits below all of them in cost (free) and above all of them in accuracy (Google's own data, not approximations). It trades dashboards for raw API access that agents can use programmatically.
+Pagesight sits outside this stack entirely. It doesn't compete on features with Semrush — it competes on honesty. The insight is that most of what SEO tools report has no basis in anything Google has ever said, and developers know it.
 
 **Structural differentials:**
-- Only MCP server unifying Google Search Console + PageSpeed Insights + Chrome UX Report + AI crawler audit
-- Reports what authoritative sources report. Doesn't invent rules, scores, or thresholds.
-- robots.txt analysis per RFC 9309 with 139+ AI crawlers from a live community registry
-- Full Google API coverage — every read-only method, every parameter, every dimension
-- Designed for AI assistants, not humans clicking through tabs
-- Zero vendor lock-in — MIT license, works with Claude, Cursor, Codex, any MCP client
+- Only tool that researched every common SEO rule against official documentation and published the findings
+- Unifies Google Search Console + PageSpeed Insights + Chrome UX Report + AI crawler audit in one package
+- Audits 139+ AI crawlers from a live community registry — training bots, search bots, assistants, agents
+- Built for AI assistants first. No dashboard, no login, no browser required.
+- Evidence over convention. If the source doesn't report it, neither does Pagesight.
 
-**Territory:** Pagesight owns the intersection of "developer tooling" and "Google Search data." The tool that makes Google's APIs conversational.
+**Territory:** Pagesight owns the concept of "sight" — seeing your site the way the systems that evaluate it actually see it. Not through the lens of an SEO tool's opinions. Through the lens of the sources themselves.
 
 ### Personality
 
-**Dominant archetype:** The Architect — systematic, precise, evidence-based. Builds on verified foundations, not assumptions.
+**Dominant archetype:** The Lens — clarity through direct observation. Removes distortion. Shows what's actually there.
 
-**Attributes the brand transmits:** precise, honest, unified, developer-native, evidence-based, practical
+**Attributes the brand transmits:** clear, honest, precise, developer-native, evidence-based, calm
 
 **What it is:**
-- Google's data, made accessible to AI assistants
-- A tool for builders who want facts, not opinions
-- Evidence over convention
-- Free as in freedom
-- One tool that replaces five
+- A direct line to the sources that evaluate your site
+- A tool that shows, doesn't judge
+- Evidence delivered where you already work
+- Open source, open philosophy
 
 **What it is not:**
-- Not a tool that invents SEO rules
-- Not a score generator that makes up numbers
-- Not trying to be your SEO consultant
-- Not a platform that wants your monthly payment
-- Not enterprise software dressed up as open source
+- Not a score generator that invents numbers
+- Not a rules engine that tells you what to do
+- Not a dashboard that wants your attention
+- Not a platform that wants your subscription
+- Not defined by any single API, protocol, or integration
 
 ### Promise
 
-Your site, seen through Google's eyes.
+See what search engines see. Know what AI crawlers know.
 
-One install. Three APIs. No made-up rules.
+One tool. No made-up rules.
 
-If your AI assistant can't ask Google about your site, your SEO tool has failed.
+If your AI assistant can't see what Google sees about your site, you're flying blind.
 
-**Base message:** Pagesight gives AI assistants direct access to what Google knows about your site — index status, performance, Core Web Vitals, search queries — so they can diagnose and fix issues with real data.
+**Base message:** Pagesight gives developers direct sight into how search engines and AI crawlers evaluate their site — with real data from the sources, not opinions from tools.
 
-**Synthesizing phrase:** Pagesight exists so developers never have to open an SEO dashboard again.
+**Synthesizing phrase:** Pagesight exists because developers deserve to see the truth about their site, not what an SEO tool made up.
 
 ### Guardrails
 
-**Tone summary:** direct, technical, confident, evidence-based, helpful
+**Tone summary:** clear, direct, technical, honest, unhurried
 
 **What the brand cannot be:**
-- A tool that promises "10x your traffic"
-- A score generator that assigns arbitrary numbers
-- A tool that flags "issues" Google says don't matter
-- A project that treats developers as secondary users
-- Anything that feels like Salesforce
+- A tool that invents rules or scores
+- A dashboard that demands attention
+- A brand that uses marketing superlatives
+- A product that defines itself by its implementation details
+- Anything that sounds like Semrush
 
-**Litmus test:** If Google's own documentation doesn't support the claim, don't make it.
+**Litmus test:** If Google's own engineers would disagree with what we're saying, don't say it.
 
 ---
 
@@ -99,129 +97,128 @@ If your AI assistant can't ask Google about your site, your SEO tool has failed.
 
 ### Identity
 
-We don't make up rules. We ask Google. Pagesight is an open-source MCP server that connects AI assistants to Google Search Console, PageSpeed Insights, and Chrome UX Report — the same data Google uses to evaluate your site.
+We show you what search engines and AI actually see when they look at your site. Not what an SEO tool thinks they see. Not what a blog post from 2015 said they see. What they actually report.
 
-We are not a marketing platform. We are not consultants. We are not SaaS. We are a developer tool that does one job well: make Google's search data accessible to AI assistants.
+We built Pagesight because the SEO industry has a credibility problem. "Title must be under 60 characters" — Google says there's no limit. "Only one H1 per page" — Google says use as many as you want. "Minimum 300 words" — Google says word count isn't a quality factor. We checked every rule. Most are myths.
 
-Most SEO tools flag "title over 60 characters" and "only one H1 allowed." Google's own engineers have said these rules are made up. We researched every common SEO rule against official documentation and built a tool that only reports what Google actually tells us.
+So we went to the sources. Google Search Console tells you if a page is indexed. PageSpeed Insights tells you how fast it loads. Chrome UX Report tells you how real users experience it. And a live registry of 139+ AI crawlers tells you which bots can access your content. That's what Pagesight reports. Nothing more, nothing less.
 
-**Essence:** See what Google sees. Know what AI knows.
+**Essence:** Sight into what search engines and AI actually see.
 
 ### Tagline & Slogans
 
 **Primary tagline:** See your site the way search engines and AI see it.
-*Use everywhere: README, homepage, social bios, conference talks.*
+*Use everywhere: npm, GitHub, homepage, social bios.*
 
 **Alternatives:**
-- Google's data + AI crawler intelligence for AI assistants.
-- One MCP server. Three Google APIs. 139+ AI bots tracked.
-- Your site through Google's eyes.
+- Search visibility intelligence for developers.
+- What Google sees. What AI knows. One tool.
+- The truth about your site's visibility.
 
 **Slogans for different contexts:**
-- README hero: "Google Search Console + PageSpeed + CrUX + AI crawler audit in one MCP server."
-- Technical: "Three Google APIs. 139+ bots. Eight tools. One install."
-- Community: "Stop guessing. Ask Google."
-- Myth-busting: "Title length limits? Google says they don't exist. We checked."
-- Developer pitch: "Your AI assistant's sight into Google Search."
+- npm/GitHub: "See your site the way search engines and AI see it."
+- Technical: "Google Search Console + PageSpeed + CrUX + 139 AI crawlers. One package."
+- Myth-busting: "We checked every SEO rule. Most are made up."
+- Developer pitch: "Your AI assistant's sight into search."
+- Community: "Stop paying for opinions. Get the data."
 
 ### Manifesto
 
-Most SEO tools are built on myths.
+Every SEO tool gives you a score. Nobody tells you where the score comes from.
 
-"Title must be under 60 characters." Google: "there's no limit." "Only one H1 per page." John Mueller: "You can use H1 tags as often as you want." "Meta description must be 155 characters." Google: "There's no limit on how long a meta description can be." "Minimum 300 words per page." Mueller: "Word count is not a quality factor."
+"Title too long." Says who? Not Google. "Only one H1." Says who? Not the HTML spec. "Minimum 300 words." Says who? Not anyone who works at a search engine.
 
-We checked every rule. We read the documentation. We watched the office hours. Most of what SEO tools flag has no basis in anything Google has ever said.
+We checked. We read the documentation. We watched the office hours. We found the quotes. Gary Illyes called title length "an externally made-up metric." John Mueller said you can use H1 tags "as often as you want." The word count rule? "Not a quality factor."
 
-So we built something different.
+The SEO industry built a cathedral of rules on a foundation of blog posts. Developers knew something was off. They just didn't have time to prove it.
 
-Pagesight doesn't make up rules. It asks Google directly. Three APIs — Search Console, PageSpeed Insights, Chrome UX Report — unified into one MCP server that your AI assistant can use.
+So we built a tool that goes to the source. Google Search Console — is this page indexed? What canonical did Google choose? PageSpeed Insights — how fast is it really? Chrome UX Report — what do actual Chrome users experience? And for the new world: which of the 139 known AI crawlers can access your content?
 
-Is this page indexed? Ask Google. What canonical did Google choose? Ask Google. How fast is this page for real users? Ask Google. What queries bring traffic? Ask Google.
+No scores we invented. No thresholds we made up. No rules we can't cite.
 
-No scores we invented. No thresholds we made up. No "best practices" that are actually just blog posts from 2015.
+Your AI assistant asks the questions. The sources answer. You see what they see.
 
-Just Google's data. In your AI assistant's hands.
+That's Pagesight.
 
 **Pagesight.**
 
 ### Message Pillars
 
-**Evidence-Based**
-Every data point comes from authoritative sources — Google's APIs, RFC 9309, community-maintained bot registries. We don't invent rules, assign scores, or set thresholds. If the source doesn't support it, we don't report it.
+**Sight**
+You can't fix what you can't see. Pagesight shows you exactly what search engines and AI crawlers report about your site — index status, performance, search traffic, bot access. Direct from the source.
 
-**Unified**
-Three Google APIs plus AI crawler intelligence in one MCP server. Search Console for indexing and search data. PageSpeed Insights for Lighthouse audits. Chrome UX Report for real-world performance. robots.txt analyzer for AI bot access control. Eight tools. One install.
+**Truth**
+Every data point has a citation. Google's API, an RFC, a community-maintained registry. We don't invent rules. We don't assign scores. We report what the sources report.
+
+**Developer-First**
+Install it. Configure it. Let your AI assistant use it. No dashboard. No browser. No login. Works where you already work.
+
+**AI-Aware**
+Search isn't just Google anymore. 139+ AI crawlers visit your site — for training, for search, for user queries. Pagesight shows you who's knocking and whether you've let them in.
 
 **Open**
-MIT license. Free APIs only. No paid dependencies. No vendor lock-in. Works with Claude, Cursor, Codex, and every MCP-compatible client.
-
-**Developer-Native**
-Built with Bun. Configured with env vars. Speaks MCP over stdio. Designed to run inside AI workflows, not beside them. No dashboard. No browser. No login page.
-
-**Myth-Free**
-We researched every common SEO rule against Google's official documentation. Title length limits, H1 requirements, word count minimums — all debunked. Pagesight only reports what Google actually cares about.
+Open source. Open data. Open philosophy. MIT license. Community-maintained bot registry. Every debunked rule published with sources.
 
 ### Phrases
 
 - "See your site the way search engines and AI see it."
-- "See what Google sees. Know what AI knows."
-- "One server. Three APIs. 139 bots. No made-up rules."
-- "Stop guessing. Ask Google."
-- "Your AI assistant's sight into Google Search."
-- "Is GPTBot blocked? Ask Pagesight."
+- "We checked every SEO rule. Most are made up."
+- "What Google sees. What AI knows. One tool."
+- "139 AI crawlers. Do you know which ones you've let in?"
+- "Is GPTBot blocked? Is your page indexed? Ask Pagesight."
+- "No scores we invented. No rules we can't cite."
 - "Title length limits? Google says they don't exist."
-- "We checked every SEO rule. Most are myths."
-- "If the source doesn't report it, neither do we."
+- "Your AI assistant's sight into search."
 
 ### Social Bios
 
 **LinkedIn:**
-Pagesight is an open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and Chrome UX Report. Inspect indexing status, track Core Web Vitals, analyze search performance — with real data from Google's APIs, not made-up rules. Built with Bun. MIT license.
+Pagesight is an open-source tool that shows how search engines and AI crawlers see your site. Google Search Console, PageSpeed Insights, Chrome UX Report, and 139+ AI crawlers — real data from the sources, not made-up rules. Built for developers. Available as an npm package.
 
 **Instagram:**
-Open-source MCP server for AI assistants
-Google Search Console + PageSpeed + CrUX
-No dashboards. No made-up rules. Just Google's data.
-MIT License | Built with Bun
+See your site the way search engines and AI see it.
+Google data + 139 AI crawlers. No made-up rules.
+Open source. Built for developers.
+npm install pagesight
 
 **X/Twitter:**
-Open-source MCP server that gives AI assistants direct access to Google Search Console, PageSpeed Insights, and CrUX. No made-up SEO rules. Just Google's data.
+See your site the way search engines and AI see it. Open-source tool for search visibility — Google APIs + 139 AI crawlers. No invented scores.
 
 **GitHub:**
-Lint your site for search engines and AI. Google Search Console + PageSpeed Insights + Chrome UX Report in one MCP server.
+See your site the way search engines and AI see it.
 
 ### Tonal Rules
 
 1. Speak in short, declarative sentences. No hedging.
-2. Lead with what the tool does, not what it is.
-3. Use developer vocabulary: install, configure, query, inspect — not "solutions," "empower," "leverage."
-4. When citing an SEO claim, always reference the source. "Google says X" with a link, not "best practice suggests."
-5. Never use marketing superlatives: "revolutionary," "game-changing," "next-generation," "cutting-edge."
-6. When debunking a myth, quote the Google engineer directly. Names and dates.
-7. Respect the reader's time. If it can be said in one line, don't use three.
-8. Use code examples and terminal output over screenshots and diagrams.
-9. Acknowledge what we don't cover. "Pagesight doesn't do X" is better than hiding it.
-10. Never promise traffic results. Promise access to data.
-11. Open source is a fact, not a selling point. Don't over-celebrate it.
-12. "Google says" is our strongest argument. Use it.
+2. Lead with what you can see, not what the tool is.
+3. Use developer vocabulary: install, configure, query — not "solutions," "empower," "leverage."
+4. When debunking a rule, always quote the source by name. "Mueller said X." Not "experts agree."
+5. Never use marketing superlatives. Never say revolutionary, game-changing, next-generation, cutting-edge.
+6. Don't define the product by its implementation. "See what Google sees" not "MCP server that wraps Google APIs."
+7. Respect the reader's time. One sentence over three.
+8. Use data and terminal output over screenshots and diagrams.
+9. Acknowledge what we don't cover. Silence is deception.
+10. Never promise traffic results. Promise sight.
+11. Open source is a fact, not a differentiator. State it once.
+12. The strongest argument is always a direct quote from an authoritative source.
 
 **Identity boundaries:**
-- We are not consultants who leave a report behind.
-- We are not a platform trying to become your workflow.
-- We are not a score generator that makes up numbers.
-- We are not a startup looking for your email address.
-- We are not building the next Semrush. We are building a bridge to Google's APIs.
+- We are not an SEO tool. We are sight into search.
+- We are not a dashboard. We are data where you already work.
+- We are not a score generator. We are a window to the source.
+- We are not a startup looking for your email.
+- We are not building the next Semrush. We are building the opposite.
 
 | We Say | We Never Say |
 |---|---|
-| "Install pagesight" | "Sign up for Pagesight" |
 | "See what Google sees" | "Optimize your digital presence" |
-| "Google reports this page is not indexed" | "Our analysis shows SEO score 73/100" |
-| "One MCP server, three APIs, 139 bots" | "All-in-one platform" |
-| "CrUX shows p75 LCP of 2.1s" | "Your page speed needs improvement" |
+| "Google reports this page is not indexed" | "Your SEO score is 73/100" |
+| "139 AI crawlers checked" | "Comprehensive AI-powered analysis" |
+| "npm install pagesight" | "Sign up for a free trial" |
+| "Mueller says there's no limit" | "Best practice suggests 60 characters" |
 | "Open source, MIT license" | "Free forever (with Pro tier)" |
-| "Built for AI assistants" | "Built for teams of all sizes" |
-| "Works with any MCP client" | "Seamless integration ecosystem" |
+| "Built for developers" | "Built for teams of all sizes" |
+| "Works with your AI assistant" | "Seamless integration ecosystem" |
 
 ---
 
@@ -230,46 +227,46 @@ Lint your site for search engines and AI. Google Search Console + PageSpeed Insi
 ### Colors
 
 **Primary:** `#0A0A0A` (near-black)
-Headlines, body text, primary UI elements. The default state. Clean, authoritative, no decoration.
+Headlines, body text, primary UI elements. The default state.
 
 **Secondary:** `#18181B` (zinc-900)
-Card backgrounds, code blocks, secondary surfaces. Provides depth without competing.
+Card backgrounds, code blocks, secondary surfaces.
 
-**Accent:** `#4285F4` (Google blue)
-Links, interactive elements, data highlights. References Google as the data source. Used sparingly.
+**Accent:** `#3B82F6` (blue-500)
+Links, interactive elements, data highlights. The color of clarity — like looking through glass.
 
 **Good:** `#22C55E` (green-500)
-Pass states, "indexed" indicators, good CrUX ratings. The "everything is fine" color.
+Indexed, allowed, passing states. "Google confirms."
 
 **Warning:** `#EAB308` (yellow-500)
-Warnings, "needs improvement" CrUX ratings. Attention without alarm.
+Needs attention. Unclear states.
 
 **Error:** `#EF4444` (red-500)
-Errors, "not indexed" states, poor CrUX ratings. Demands action.
+Not indexed, blocked, errors. Demands action.
 
 **Muted:** `#71717A` (zinc-500)
-Secondary text, descriptions, metadata. Stays out of the way.
+Secondary text, metadata, descriptions.
 
 **Background:** `#FAFAFA` (zinc-50)
-Page backgrounds, light mode surfaces. Clean, not sterile.
+Page backgrounds, light surfaces.
 
-**Avoid:** Gradients, purples (too SaaS), any neon or saturated palette that signals "marketing tool." Don't overuse Google blue — it's an accent, not a primary.
+**Avoid:** Gradients. Purples (too SaaS). Neon (too marketing). Don't overuse accent — data should feel neutral, not promotional.
 
 ### Typography
 
 **Display:** Inter — 700 weight
-Headlines, hero text, brand name. Clean geometric sans-serif. Same family used by Linear and Vercel.
+Headlines, hero text, brand name.
 
 **Body:** Inter — 400/500 weight
-Paragraphs, descriptions, UI text. Highly legible at all sizes.
+Paragraphs, descriptions, UI text.
 
 **Mono:** JetBrains Mono — 400 weight
-Code examples, terminal output, tool names, API responses, configuration snippets. This is a developer tool — monospace is a first-class citizen, not an afterthought.
+Code, terminal output, API responses, configuration. First-class citizen.
 
 ### Style
 
-**Design keywords:** systematic, minimal, structured, terminal-native, data-forward
+**Design keywords:** clear, minimal, data-forward, terminal-native, unhurried
 
-**Reference brands:** Linear (systematic clarity), Vercel (developer-native), Resend (clean minimalism), Google Search Console (data authority)
+**Reference brands:** Linear (systematic clarity), Vercel (developer-native), Resend (clean minimalism)
 
-**Direction:** The identity should communicate precision and data integrity, not decoration. Every visual element should feel like it belongs in a terminal or a well-designed README. Data tables and API responses are the hero content, not illustrations. If it wouldn't look right next to a `curl` output, reconsider it.
+**Direction:** The identity should feel like looking through a clean window. No decoration. No noise. Data presented clearly, with space to breathe. API responses and terminal output are the hero content. If it wouldn't look right next to a `curl` response, reconsider it.

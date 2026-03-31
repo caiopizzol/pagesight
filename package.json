@@ -1,7 +1,23 @@
 {
   "name": "pagesight",
-  "version": "0.1.0",
-  "description": "Google's data + AI crawler intelligence for AI assistants. MCP server for SEO, GEO, and web performance.",
+  "version": "0.0.0",
+  "description": "See your site the way search engines and AI see it.",
+  "keywords": [
+    "seo",
+    "geo",
+    "google-search-console",
+    "pagespeed-insights",
+    "core-web-vitals",
+    "web-performance",
+    "robots-txt",
+    "ai-crawlers",
+    "mcp"
+  ],
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "bin": {
