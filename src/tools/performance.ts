@@ -111,7 +111,7 @@ function formatComparison(
     `Clicks:      ${String(cur.clicks.toLocaleString()).padEnd(12)} ${String(prev.clicks.toLocaleString()).padEnd(12)} ${pctChange(cur.clicks, prev.clicks)}`,
     `Impressions: ${String(cur.impressions.toLocaleString()).padEnd(12)} ${String(prev.impressions.toLocaleString()).padEnd(12)} ${pctChange(cur.impressions, prev.impressions)}`,
     `Avg CTR:     ${`${(cur.ctr * 100).toFixed(1)}%`.padEnd(12)} ${`${(prev.ctr * 100).toFixed(1)}%`.padEnd(12)} ${((cur.ctr - prev.ctr) * 100).toFixed(1)}pp`,
-    `Avg Position:${String(cur.position.toFixed(1)).padEnd(13)} ${String(prev.position.toFixed(1)).padEnd(12)} ${cur.position < prev.position ? "improved" : cur.position > prev.position ? "regressed" : "stable"} (${(cur.position - prev.position).toFixed(1)})`,
+    `Avg Position:${String(cur.position.toFixed(1)).padEnd(13)} ${String(prev.position.toFixed(1)).padEnd(12)} ${prev.position === 0 && cur.position > 0 ? "new" : cur.position < prev.position ? "improved" : cur.position > prev.position ? "regressed" : "stable"} (${(cur.position - prev.position).toFixed(1)})`,
     "",
   ];
 
