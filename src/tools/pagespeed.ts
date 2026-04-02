@@ -52,8 +52,12 @@ function formatOpportunities(audits: Record<string, PsiAudit>): string[] {
   const opportunities: PsiAudit[] = [];
 
   for (const audit of Object.values(audits)) {
-    if (audit.score !== null && audit.score < 1 && audit.numericValue && audit.numericValue > 0) {
-      if (audit.scoreDisplayMode === "numeric" || audit.scoreDisplayMode === "binary") {
+    if (audit.score === null || audit.score >= 1) continue;
+    const mode = audit.scoreDisplayMode;
+    const hasItems = (audit.details?.items?.length ?? 0) > 0;
+    const hasNumeric = audit.numericValue && audit.numericValue > 0;
+    if (mode === "metricSavings" || ((mode === "numeric" || mode === "binary") && hasNumeric)) {
+      if (hasNumeric || hasItems) {
         opportunities.push(audit);
       }
     }
@@ -90,7 +94,12 @@ function formatDiagnostics(audits: Record<string, PsiAudit>): string[] {
   const failing: Array<{ title: string; displayValue: string }> = [];
 
   for (const audit of Object.values(audits)) {
-    if (audit.score !== null && audit.score < 0.5 && audit.scoreDisplayMode === "numeric" && audit.displayValue) {
+    if (
+      audit.score !== null &&
+      audit.score < 0.5 &&
+      (audit.scoreDisplayMode === "numeric" || audit.scoreDisplayMode === "metricSavings") &&
+      audit.displayValue
+    ) {
       failing.push({ title: audit.title, displayValue: audit.displayValue });
     }
   }
