@@ -91,7 +91,7 @@ function formatOpportunities(audits: Record<string, PsiAudit>): string[] {
 }
 
 function formatDiagnostics(audits: Record<string, PsiAudit>): string[] {
-  const failing: Array<{ title: string; displayValue: string }> = [];
+  const failing: PsiAudit[] = [];
 
   for (const audit of Object.values(audits)) {
     if (
@@ -100,15 +100,31 @@ function formatDiagnostics(audits: Record<string, PsiAudit>): string[] {
       (audit.scoreDisplayMode === "numeric" || audit.scoreDisplayMode === "metricSavings") &&
       audit.displayValue
     ) {
-      failing.push({ title: audit.title, displayValue: audit.displayValue });
+      failing.push(audit);
     }
   }
 
   if (failing.length === 0) return [];
 
+  failing.sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
+
   const lines: string[] = ["--- Diagnostics ---", ""];
-  for (const item of failing.slice(0, 10)) {
-    lines.push(`${item.title}: ${item.displayValue}`);
+  for (const audit of failing.slice(0, 10)) {
+    lines.push(`${audit.title}: ${audit.displayValue}`);
+
+    const linkMatch = audit.description?.match(/\[.*?\]\((https?:\/\/[^)]+)\)/);
+    if (linkMatch) lines.push(`  Learn more: ${linkMatch[1]}`);
+
+    const items = audit.details?.items;
+    if (items && items.length > 0) {
+      for (const item of items.slice(0, 3)) {
+        lines.push(...formatDetailItem(item));
+      }
+      if (items.length > 3) {
+        lines.push(`  ... and ${items.length - 3} more`);
+      }
+    }
+    lines.push("");
   }
 
   return lines;
