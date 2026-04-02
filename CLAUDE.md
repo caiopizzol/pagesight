@@ -14,19 +14,24 @@ MCP server for SEO, GEO, and web performance analysis. npm package: `pagesight`.
 
 ```
 src/
-  index.ts          # MCP server entry, registers all tools
+  index.ts              # MCP server entry, registers all tools
   lib/
-    auth.ts         # OAuth 2.0 + Service Account auth for GSC
-    gsc.ts          # Google Search Console API client
-    psi.ts          # PageSpeed Insights API client
-    crux.ts         # Chrome UX Report API client
+    auth.ts             # OAuth 2.0 + Service Account auth for GSC
+    gsc.ts              # Google Search Console API client
+    psi.ts              # PageSpeed Insights API client
+    crux.ts             # Chrome UX Report API client
+    robots.ts           # robots.txt parser + AI crawler registry
   tools/
-    inspect.ts      # URL Inspection tool
-    pagespeed.ts    # PageSpeed Insights tool
-    crux.ts         # CrUX + CrUX History tools
-    performance.ts  # Search Analytics tool
-    sitemaps.ts     # Sites + Sitemaps tool
-    setup.ts        # Auth setup helper
+    audit.ts            # Cross-tool site audit (orchestrates all tools)
+    inspect.ts          # URL Inspection tool
+    metatags.ts         # Meta tags, OG, Twitter, JSON-LD, redirect chain
+    pagespeed.ts        # PageSpeed Insights + failing audit details
+    crux.ts             # CrUX + CrUX History tools
+    performance.ts      # Search Analytics + period comparison
+    robots.ts           # robots.txt + AI crawler audit
+    sample-inspect.ts   # Batch sitemap URL inspection
+    sitemaps.ts         # Sites + Sitemaps tool
+    setup.ts            # Auth setup helper
 ```
 
 ## APIs Used
@@ -48,5 +53,5 @@ src/
 
 - All tools have try/catch error handling with clean error messages
 - Use Bun built-in APIs over third-party packages
-- No HTML parsing or on-page analysis — only authoritative data sources
-- Every check must be backed by an official API or standard (Google APIs, RFC 9309), not industry conventions
+- Meta tag and structured data checks fetch the page directly — no third-party parsing libraries
+- Every check must be backed by an official API or standard (Google APIs, RFC 9309, schema.org), not industry conventions
