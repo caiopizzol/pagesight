@@ -89,11 +89,22 @@ export function registerInspectTool(server: McpServer): void {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("PERMISSION_DENIED")) {
+          const domain = new URL(url).hostname;
           return {
             content: [
               {
                 type: "text",
-                text: `Error: URL "${url}" is not part of property "${site_url}", or you don't have access.`,
+                text: [
+                  `Error: Cannot inspect "${url}" — permission denied for property "${site_url}".`,
+                  "",
+                  "Possible causes:",
+                  `  1. ${domain} is not a verified property in Google Search Console`,
+                  `  2. The authenticated account does not have access to "${site_url}"`,
+                  `  3. The property format is wrong — try "sc-domain:${domain}" or "https://${domain}/"`,
+                  "",
+                  "To verify a property: https://search.google.com/search-console",
+                  "To check your auth: use the setup tool to verify credentials",
+                ].join("\n"),
               },
             ],
           };

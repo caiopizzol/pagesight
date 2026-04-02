@@ -4,6 +4,30 @@ export interface PsiCategory {
   id: string;
   title: string;
   score: number | null;
+  auditRefs?: Array<{ id: string; weight: number }>;
+}
+
+export interface PsiAuditDetailItem {
+  node?: {
+    selector: string;
+    snippet?: string;
+    nodeLabel?: string;
+    explanation?: string;
+  };
+  // Table-style items (performance opportunities, SEO, etc.)
+  url?: string;
+  wastedBytes?: number;
+  wastedMs?: number;
+  totalBytes?: number;
+  // Generic key-value items
+  [key: string]: unknown;
+}
+
+export interface PsiAuditDetails {
+  type: string;
+  items?: PsiAuditDetailItem[];
+  overallSavingsMs?: number;
+  overallSavingsBytes?: number;
 }
 
 export interface PsiAudit {
@@ -15,6 +39,7 @@ export interface PsiAudit {
   displayValue?: string;
   numericValue?: number;
   numericUnit?: string;
+  details?: PsiAuditDetails;
 }
 
 export interface PsiMetric {
