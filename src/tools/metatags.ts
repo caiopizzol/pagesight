@@ -134,6 +134,77 @@ function formatJsonLd(data: unknown, indent = 0): string[] {
   return lines;
 }
 
+interface RedirectHop {
+  url: string;
+  status: number;
+}
+
+interface ImageCheck {
+  url: string;
+  tag: string;
+  status: number | null;
+  contentType: string | null;
+  contentLength: number | null;
+  error: string | null;
+}
+
+async function followRedirects(
+  url: string,
+  ua: string,
+  maxHops = 10,
+): Promise<{ chain: RedirectHop[]; response: Response }> {
+  const chain: RedirectHop[] = [];
+  let current = url;
+
+  for (let i = 0; i < maxHops; i++) {
+    const res = await fetch(current, {
+      headers: { "User-Agent": ua, Accept: "text/html" },
+      redirect: "manual",
+    });
+
+    chain.push({ url: current, status: res.status });
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      if (!location) break;
+      current = new URL(location, current).href;
+      continue;
+    }
+
+    return { chain, response: res };
+  }
+
+  // If we exhausted hops, do a final follow-redirect fetch
+  const res = await fetch(current, {
+    headers: { "User-Agent": ua, Accept: "text/html" },
+    redirect: "follow",
+  });
+  return { chain, response: res };
+}
+
+async function checkImage(imageUrl: string, tag: string): Promise<ImageCheck> {
+  try {
+    const res = await fetch(imageUrl, { method: "HEAD", redirect: "follow" });
+    return {
+      url: imageUrl,
+      tag,
+      status: res.status,
+      contentType: res.headers.get("content-type"),
+      contentLength: res.headers.has("content-length") ? Number(res.headers.get("content-length")) : null,
+      error: null,
+    };
+  } catch (err) {
+    return {
+      url: imageUrl,
+      tag,
+      status: null,
+      contentType: null,
+      contentLength: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 function formatMetatags(url: string, parsed: ParsedHead): string {
   const lines: string[] = [`=== Meta Tags: ${url} ===`, ""];
 
@@ -231,13 +302,7 @@ export function registerMetatagsTool(server: McpServer): void {
     async ({ url, user_agent }) => {
       try {
         const ua = user_agent ?? "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
-        const res = await fetch(url, {
-          headers: {
-            "User-Agent": ua,
-            Accept: "text/html",
-          },
-          redirect: "follow",
-        });
+        const { chain, response: res } = await followRedirects(url, ua);
 
         if (!res.ok) {
           return {
@@ -252,15 +317,50 @@ export function registerMetatagsTool(server: McpServer): void {
 
         const html = await res.text();
         const parsed = parseHead(html);
-        const finalUrl = res.url !== url ? `(redirected to ${res.url})\n\n` : "";
+        const output: string[] = [];
+
+        // Redirect chain (only if there were redirects)
+        if (chain.length > 1) {
+          output.push("--- Redirect Chain ---", "");
+          for (let i = 0; i < chain.length; i++) {
+            const hop = chain[i];
+            const prefix = i === chain.length - 1 ? "" : `${hop.status} → `;
+            output.push(`${i + 1}. ${prefix}${hop.url}`);
+          }
+          output.push("");
+        }
+
+        // Main meta tag report
+        const finalUrl = chain.length > 1 ? chain[chain.length - 1].url : url;
+        output.push(formatMetatags(finalUrl, parsed));
+
+        // OG/Twitter image validation
+        const ogImage = getMeta(parsed.meta, "og:image");
+        const twitterImage = getMeta(parsed.meta, "twitter:image");
+        const imagesToCheck: Array<{ url: string; tag: string }> = [];
+        if (ogImage) imagesToCheck.push({ url: ogImage, tag: "og:image" });
+        if (twitterImage && twitterImage !== ogImage) imagesToCheck.push({ url: twitterImage, tag: "twitter:image" });
+
+        if (imagesToCheck.length > 0) {
+          const checks = await Promise.all(imagesToCheck.map((img) => checkImage(img.url, img.tag)));
+          output.push("", "--- Image Validation ---", "");
+          for (const check of checks) {
+            if (check.error) {
+              output.push(`${check.tag}: FAILED — ${check.error}`);
+              output.push(`  URL: ${check.url}`);
+            } else if (check.status && check.status >= 400) {
+              output.push(`${check.tag}: BROKEN — HTTP ${check.status}`);
+              output.push(`  URL: ${check.url}`);
+            } else {
+              const size = check.contentLength ? ` (${Math.round(check.contentLength / 1024)} KB)` : "";
+              const type = check.contentType ? ` ${check.contentType}` : "";
+              output.push(`${check.tag}: OK —${type}${size}`);
+            }
+          }
+        }
 
         return {
-          content: [
-            {
-              type: "text",
-              text: `${finalUrl}${formatMetatags(res.url, parsed)}`,
-            },
-          ],
+          content: [{ type: "text", text: output.join("\n") }],
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

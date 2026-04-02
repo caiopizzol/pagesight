@@ -193,14 +193,15 @@ export function registerCruxTool(server: McpServer): void {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("404")) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No CrUX data available for ${url ?? origin}. The page may not have enough Chrome user traffic.`,
-              },
-            ],
-          };
+          const target = url ?? origin ?? "";
+          const lines = [`No CrUX data for ${target}.`, ""];
+          lines.push("CrUX requires sufficient Chrome user traffic (roughly 1,000+ monthly visits).");
+          if (url) {
+            const originUrl = new URL(url).origin;
+            lines.push(`Try origin-level data instead: origin "${originUrl}"`);
+          }
+          lines.push("For lab metrics without traffic requirements, use the pagespeed tool.");
+          return { content: [{ type: "text", text: lines.join("\n") }] };
         }
         if (msg.includes("SERVICE_DISABLED") || msg.includes("API_KEY_SERVICE_BLOCKED")) {
           return {
@@ -268,14 +269,15 @@ export function registerCruxTool(server: McpServer): void {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("404")) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No CrUX history data for ${url ?? origin}. The page may not have enough Chrome user traffic.`,
-              },
-            ],
-          };
+          const target = url ?? origin ?? "";
+          const lines = [`No CrUX history data for ${target}.`, ""];
+          lines.push("CrUX requires sufficient Chrome user traffic (roughly 1,000+ monthly visits).");
+          if (url) {
+            const originUrl = new URL(url).origin;
+            lines.push(`Try origin-level data instead: origin "${originUrl}"`);
+          }
+          lines.push("For lab metrics without traffic requirements, use the pagespeed tool.");
+          return { content: [{ type: "text", text: lines.join("\n") }] };
         }
         if (msg.includes("SERVICE_DISABLED")) {
           return {
