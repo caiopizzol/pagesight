@@ -108,6 +108,15 @@ async function inspectSingle(url: string, siteUrl: string): Promise<InspectionSu
   }
 }
 
+function humanizeState(state: string): string {
+  const map: Record<string, string> = {
+    PAGE_FETCH_STATE_UNSPECIFIED: "not yet crawled",
+    ROBOTS_TXT_STATE_UNSPECIFIED: "not yet checked",
+    INDEXING_STATE_UNSPECIFIED: "not yet determined",
+  };
+  return map[state] ?? state;
+}
+
 function formatResults(siteUrl: string, sitemapUrl: string, totalUrls: number, results: InspectionSummary[]): string {
   const lines: string[] = [
     `=== Sample Inspection: ${siteUrl} ===`,
@@ -153,7 +162,7 @@ function formatResults(siteUrl: string, sitemapUrl: string, totalUrls: number, r
     lines.push("");
     lines.push("Page fetch issues:");
     for (const [state, count] of fetchIssues) {
-      lines.push(`  ${state}: ${count}`);
+      lines.push(`  ${humanizeState(state)}: ${count}`);
     }
   }
 
@@ -171,9 +180,9 @@ function formatResults(siteUrl: string, sitemapUrl: string, totalUrls: number, r
     } else {
       lines.push(`   Verdict: ${r.verdict}`);
       lines.push(`   Coverage: ${r.coverageState}`);
-      lines.push(`   Page fetch: ${r.pageFetchState}`);
-      if (r.robotsTxtState !== "ALLOWED") lines.push(`   Robots.txt: ${r.robotsTxtState}`);
-      if (r.indexingState !== "INDEXING_ALLOWED") lines.push(`   Indexing: ${r.indexingState}`);
+      lines.push(`   Page fetch: ${humanizeState(r.pageFetchState)}`);
+      if (r.robotsTxtState !== "ALLOWED") lines.push(`   Robots.txt: ${humanizeState(r.robotsTxtState)}`);
+      if (r.indexingState !== "INDEXING_ALLOWED") lines.push(`   Indexing: ${humanizeState(r.indexingState)}`);
       if (r.lastCrawlTime) lines.push(`   Last crawled: ${r.lastCrawlTime}`);
       if (r.googleCanonical && r.googleCanonical !== r.url) {
         lines.push(`   Google canonical: ${r.googleCanonical}`);
