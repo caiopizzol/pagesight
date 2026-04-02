@@ -134,6 +134,168 @@ function formatJsonLd(data: unknown, indent = 0): string[] {
   return lines;
 }
 
+// --- Structured data validation (per Google Rich Results docs) ---
+
+interface SchemaRule {
+  required: string[];
+  recommended: string[];
+  imageFields: string[];
+}
+
+// Required/recommended fields sourced from Google's Rich Results documentation
+// https://developers.google.com/search/docs/appearance/structured-data
+const SCHEMA_RULES: Record<string, SchemaRule> = {
+  WebSite: {
+    required: ["name", "url"],
+    recommended: ["potentialAction"],
+    imageFields: [],
+  },
+  Organization: {
+    required: ["name", "url"],
+    recommended: ["logo", "sameAs", "contactPoint"],
+    imageFields: ["logo"],
+  },
+  Article: {
+    required: ["headline", "image", "datePublished", "author"],
+    recommended: ["dateModified", "publisher"],
+    imageFields: ["image"],
+  },
+  NewsArticle: {
+    required: ["headline", "image", "datePublished", "author"],
+    recommended: ["dateModified", "publisher"],
+    imageFields: ["image"],
+  },
+  Product: {
+    required: ["name", "image"],
+    recommended: ["description", "offers", "brand", "review", "aggregateRating"],
+    imageFields: ["image"],
+  },
+  LocalBusiness: {
+    required: ["name", "address"],
+    recommended: ["telephone", "openingHoursSpecification", "image", "url"],
+    imageFields: ["image"],
+  },
+  FAQPage: {
+    required: ["mainEntity"],
+    recommended: [],
+    imageFields: [],
+  },
+  BreadcrumbList: {
+    required: ["itemListElement"],
+    recommended: [],
+    imageFields: [],
+  },
+  Event: {
+    required: ["name", "startDate", "location"],
+    recommended: ["endDate", "image", "description", "offers", "organizer"],
+    imageFields: ["image"],
+  },
+  Recipe: {
+    required: ["name", "image"],
+    recommended: ["author", "datePublished", "description", "recipeIngredient", "recipeInstructions"],
+    imageFields: ["image"],
+  },
+  VideoObject: {
+    required: ["name", "description", "thumbnailUrl", "uploadDate"],
+    recommended: ["duration", "contentUrl", "embedUrl"],
+    imageFields: ["thumbnailUrl"],
+  },
+};
+
+interface ValidationIssue {
+  type: string;
+  level: "required" | "recommended";
+  field: string;
+}
+
+function getNestedValue(obj: Record<string, unknown>, field: string): unknown {
+  const val = obj[field];
+  if (val !== undefined && val !== null && val !== "") return val;
+  // Check if it's a nested object with a value (e.g., logo might be {url: "..."} or a string)
+  if (typeof val === "object" && val !== null) return val;
+  return undefined;
+}
+
+function validateJsonLd(blocks: unknown[]): { issues: ValidationIssue[]; imageUrls: string[] } {
+  const issues: ValidationIssue[] = [];
+  const imageUrls: string[] = [];
+
+  function validateBlock(data: unknown) {
+    if (Array.isArray(data)) {
+      for (const item of data) validateBlock(item);
+      return;
+    }
+    if (!data || typeof data !== "object") return;
+
+    const obj = data as Record<string, unknown>;
+    const rawType = obj["@type"];
+    const types = Array.isArray(rawType) ? rawType : rawType ? [rawType] : [];
+
+    for (const type of types) {
+      const rule = SCHEMA_RULES[String(type)];
+      if (!rule) continue;
+
+      for (const field of rule.required) {
+        if (getNestedValue(obj, field) === undefined) {
+          issues.push({ type: String(type), level: "required", field });
+        }
+      }
+
+      for (const field of rule.recommended) {
+        if (getNestedValue(obj, field) === undefined) {
+          issues.push({ type: String(type), level: "recommended", field });
+        }
+      }
+
+      // Collect image URLs for validation
+      for (const field of rule.imageFields) {
+        const val = obj[field];
+        if (typeof val === "string" && val.startsWith("http")) {
+          imageUrls.push(val);
+        } else if (val && typeof val === "object") {
+          const nested = val as Record<string, unknown>;
+          const url = nested.url ?? nested.contentUrl;
+          if (typeof url === "string" && url.startsWith("http")) {
+            imageUrls.push(url);
+          }
+        }
+      }
+    }
+
+    // Recurse into nested objects
+    for (const val of Object.values(obj)) {
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        const nested = val as Record<string, unknown>;
+        if (nested["@type"]) validateBlock(nested);
+      }
+    }
+  }
+
+  for (const block of blocks) validateBlock(block);
+  return { issues, imageUrls };
+}
+
+function formatValidation(issues: ValidationIssue[]): string[] {
+  if (issues.length === 0) return ["All validated types have their required fields."];
+
+  const lines: string[] = [];
+  const required = issues.filter((i) => i.level === "required");
+  const recommended = issues.filter((i) => i.level === "recommended");
+
+  if (required.length > 0) {
+    for (const i of required) {
+      lines.push(`MISSING  ${i.type}.${i.field} (required for Rich Results)`);
+    }
+  }
+  if (recommended.length > 0) {
+    for (const i of recommended) {
+      lines.push(`OPTIONAL ${i.type}.${i.field} (recommended)`);
+    }
+  }
+
+  return lines;
+}
+
 interface RedirectHop {
   url: string;
   status: number;
@@ -375,6 +537,31 @@ export function registerMetatagsTool(server: McpServer): void {
                 const hn = Number(h);
                 if (wn && hn && (wn < 1200 || hn < 630)) {
                   output.push(`  Note: recommended minimum for og:image is 1200x630`);
+                }
+              }
+            }
+          }
+        }
+
+        // Structured data validation
+        if (parsed.jsonLd.length > 0) {
+          const { issues, imageUrls } = validateJsonLd(parsed.jsonLd);
+          if (issues.length > 0 || imageUrls.length > 0) {
+            output.push("", "--- Structured Data Validation ---", "");
+            output.push(...formatValidation(issues));
+
+            // HEAD-check image URLs from structured data
+            if (imageUrls.length > 0) {
+              const deduped = [...new Set(imageUrls)];
+              const imgChecks = await Promise.all(deduped.map((u) => checkImage(u, "schema")));
+              for (const check of imgChecks) {
+                if (check.error) {
+                  output.push(`BROKEN   Image: ${check.url} — ${check.error}`);
+                } else if (check.status && check.status >= 400) {
+                  output.push(`BROKEN   Image: ${check.url} — HTTP ${check.status}`);
+                } else {
+                  const sizeKB = check.contentLength ? Math.round(check.contentLength / 1024) : null;
+                  output.push(`OK       Image: ${check.url}${sizeKB ? ` (${sizeKB} KB)` : ""}`);
                 }
               }
             }
