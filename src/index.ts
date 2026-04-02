@@ -7,6 +7,7 @@ import { registerMetatagsTool } from "./tools/metatags.js";
 import { registerPagespeedTool } from "./tools/pagespeed.js";
 import { registerPerformanceTool } from "./tools/performance.js";
 import { registerRobotsTool } from "./tools/robots.js";
+import { registerSampleInspectTool } from "./tools/sample-inspect.js";
 import { registerSetupTool } from "./tools/setup.js";
 import { registerSitemapsTool } from "./tools/sitemaps.js";
 
@@ -23,6 +24,7 @@ registerMetatagsTool(server);
 registerPagespeedTool(server);
 registerPerformanceTool(server);
 registerRobotsTool(server);
+registerSampleInspectTool(server);
 registerSitemapsTool(server);
 registerSetupTool(server);
 
