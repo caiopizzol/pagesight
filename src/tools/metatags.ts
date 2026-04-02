@@ -275,6 +275,26 @@ function validateJsonLd(blocks: unknown[]): { issues: ValidationIssue[]; imageUr
   return { issues, imageUrls };
 }
 
+// What each recommended field enables (sourced from Google Rich Results docs)
+const FIELD_HINTS: Record<string, string> = {
+  "WebSite.potentialAction": "enables sitelinks searchbox",
+  "Organization.logo": "appears in knowledge panel",
+  "Organization.contactPoint": "may appear in knowledge panel",
+  "Organization.sameAs": "links social profiles in knowledge panel",
+  "Article.dateModified": "shows freshness in search results",
+  "Article.publisher": "required for some article rich results",
+  "Product.offers": "enables price display in search",
+  "Product.review": "enables star ratings in search",
+  "Product.aggregateRating": "enables aggregate star ratings",
+  "Product.brand": "shown in product rich results",
+  "LocalBusiness.openingHoursSpecification": "shows business hours in maps",
+  "LocalBusiness.image": "shown in local pack results",
+  "Event.image": "shown in event rich results",
+  "Event.offers": "shows ticket prices in search",
+  "Recipe.author": "shown in recipe rich results",
+  "VideoObject.duration": "shown in video rich results",
+};
+
 function formatValidation(issues: ValidationIssue[]): string[] {
   if (issues.length === 0) return ["All validated types have their required fields."];
 
@@ -289,7 +309,8 @@ function formatValidation(issues: ValidationIssue[]): string[] {
   }
   if (recommended.length > 0) {
     for (const i of recommended) {
-      lines.push(`OPTIONAL ${i.type}.${i.field} (recommended)`);
+      const hint = FIELD_HINTS[`${i.type}.${i.field}`];
+      lines.push(`OPTIONAL ${i.type}.${i.field}${hint ? ` — ${hint}` : ""}`);
     }
   }
 
