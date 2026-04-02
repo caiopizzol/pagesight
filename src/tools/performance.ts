@@ -2,6 +2,28 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { querySearchAnalytics, type SearchAnalyticsFilter, type SearchAnalyticsResponse } from "../lib/gsc.js";
 
+interface Totals {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+function computeTotals(rows: SearchAnalyticsResponse["rows"]): Totals {
+  const r = rows ?? [];
+  const clicks = r.reduce((sum, row) => sum + row.clicks, 0);
+  const impressions = r.reduce((sum, row) => sum + row.impressions, 0);
+  const ctr = impressions > 0 ? clicks / impressions : 0;
+  const position = impressions > 0 ? r.reduce((sum, row) => sum + row.position * row.impressions, 0) / impressions : 0;
+  return { clicks, impressions, ctr, position };
+}
+
+function pctChange(current: number, previous: number): string {
+  if (previous === 0) return current > 0 ? "+∞" : "0%";
+  const change = ((current - previous) / previous) * 100;
+  return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
+}
+
 function formatPerformance(
   siteUrl: string,
   result: SearchAnalyticsResponse,
@@ -32,19 +54,15 @@ function formatPerformance(
     return lines.join("\n");
   }
 
-  const totalClicks = rows.reduce((sum, r) => sum + r.clicks, 0);
-  const totalImpressions = rows.reduce((sum, r) => sum + r.impressions, 0);
-  const avgCtr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
-  const avgPosition =
-    totalImpressions > 0 ? rows.reduce((sum, r) => sum + r.position * r.impressions, 0) / totalImpressions : 0;
+  const totals = computeTotals(rows);
 
   lines.push(
     `--- Summary (${rows.length} rows returned) ---`,
     "",
-    `Clicks: ${totalClicks.toLocaleString()}`,
-    `Impressions: ${totalImpressions.toLocaleString()}`,
-    `Avg CTR: ${(avgCtr * 100).toFixed(1)}%`,
-    `Avg Position: ${avgPosition.toFixed(1)}`,
+    `Clicks: ${totals.clicks.toLocaleString()}`,
+    `Impressions: ${totals.impressions.toLocaleString()}`,
+    `Avg CTR: ${(totals.ctr * 100).toFixed(1)}%`,
+    `Avg Position: ${totals.position.toFixed(1)}`,
     "",
     "--- Top Results ---",
     "",
@@ -61,6 +79,103 @@ function formatPerformance(
 
   if (rows.length > 25) {
     lines.push("", `... and ${rows.length - 25} more rows`);
+  }
+
+  return lines.join("\n");
+}
+
+function formatComparison(
+  siteUrl: string,
+  current: SearchAnalyticsResponse,
+  previous: SearchAnalyticsResponse,
+  dimensions: string[],
+  currentStart: string,
+  currentEnd: string,
+  previousStart: string,
+  previousEnd: string,
+): string {
+  const curRows = current.rows ?? [];
+  const prevRows = previous.rows ?? [];
+  const cur = computeTotals(curRows);
+  const prev = computeTotals(prevRows);
+
+  const lines: string[] = [
+    `=== Search Performance: ${siteUrl} ===`,
+    `Current:  ${currentStart} to ${currentEnd}`,
+    `Previous: ${previousStart} to ${previousEnd}`,
+    `Dimensions: ${dimensions.join(", ")}`,
+    "",
+    "--- Summary ---",
+    "",
+    `             Current     Previous    Change`,
+    `Clicks:      ${String(cur.clicks.toLocaleString()).padEnd(12)} ${String(prev.clicks.toLocaleString()).padEnd(12)} ${pctChange(cur.clicks, prev.clicks)}`,
+    `Impressions: ${String(cur.impressions.toLocaleString()).padEnd(12)} ${String(prev.impressions.toLocaleString()).padEnd(12)} ${pctChange(cur.impressions, prev.impressions)}`,
+    `Avg CTR:     ${`${(cur.ctr * 100).toFixed(1)}%`.padEnd(12)} ${`${(prev.ctr * 100).toFixed(1)}%`.padEnd(12)} ${((cur.ctr - prev.ctr) * 100).toFixed(1)}pp`,
+    `Avg Position:${String(cur.position.toFixed(1)).padEnd(13)} ${String(prev.position.toFixed(1)).padEnd(12)} ${cur.position < prev.position ? "improved" : cur.position > prev.position ? "regressed" : "stable"} (${(cur.position - prev.position).toFixed(1)})`,
+    "",
+  ];
+
+  // Build lookup for previous period rows
+  const prevMap = new Map<string, (typeof prevRows)[0]>();
+  for (const row of prevRows) {
+    prevMap.set(row.keys.join("|"), row);
+  }
+
+  // Find biggest movers (by click change)
+  const movers: Array<{ keys: string[]; curClicks: number; prevClicks: number; curPos: number; prevPos: number }> = [];
+  for (const row of curRows) {
+    const key = row.keys.join("|");
+    const prevRow = prevMap.get(key);
+    movers.push({
+      keys: row.keys,
+      curClicks: row.clicks,
+      prevClicks: prevRow?.clicks ?? 0,
+      curPos: row.position,
+      prevPos: prevRow?.position ?? 0,
+    });
+  }
+
+  // Also include rows that disappeared (were in previous but not in current)
+  const curKeys = new Set(curRows.map((r) => r.keys.join("|")));
+  for (const row of prevRows) {
+    const key = row.keys.join("|");
+    if (!curKeys.has(key)) {
+      movers.push({
+        keys: row.keys,
+        curClicks: 0,
+        prevClicks: row.clicks,
+        curPos: 0,
+        prevPos: row.position,
+      });
+    }
+  }
+
+  // Sort by absolute click change descending
+  movers.sort((a, b) => Math.abs(b.curClicks - b.prevClicks) - Math.abs(a.curClicks - a.prevClicks));
+
+  const improved = movers.filter((m) => m.curClicks > m.prevClicks).slice(0, 10);
+  const regressed = movers.filter((m) => m.curClicks < m.prevClicks).slice(0, 10);
+
+  if (improved.length > 0) {
+    lines.push("--- Improved ---", "");
+    for (const m of improved) {
+      const keys = m.keys.map((k, i) => `${dimensions[i] ?? "key"}=${k}`).join(" | ");
+      const posChange = m.prevPos > 0 ? ` | Position: ${m.prevPos.toFixed(1)} → ${m.curPos.toFixed(1)}` : "";
+      lines.push(`${keys}`);
+      lines.push(`  Clicks: ${m.prevClicks} → ${m.curClicks} (${pctChange(m.curClicks, m.prevClicks)})${posChange}`);
+    }
+    lines.push("");
+  }
+
+  if (regressed.length > 0) {
+    lines.push("--- Regressed ---", "");
+    for (const m of regressed) {
+      const keys = m.keys.map((k, i) => `${dimensions[i] ?? "key"}=${k}`).join(" | ");
+      const posChange = m.prevPos > 0 ? ` | Position: ${m.prevPos.toFixed(1)} → ${m.curPos.toFixed(1)}` : "";
+      lines.push(`${keys}`);
+      lines.push(`  Clicks: ${m.prevClicks} → ${m.curClicks} (${pctChange(m.curClicks, m.prevClicks)})${posChange}`);
+    }
+    lines.push("");
   }
 
   return lines.join("\n");
@@ -121,6 +236,12 @@ export function registerPerformanceTool(server: McpServer): void {
         .describe("Dimension filters. Combined with AND logic."),
       row_limit: z.number().optional().describe("Max rows (1-25000). Default: 1000."),
       start_row: z.number().optional().describe("Zero-based offset for pagination. Default: 0."),
+      compare: z
+        .boolean()
+        .optional()
+        .describe(
+          "Compare against the previous period of equal length. Shows click/impression/CTR/position deltas and top movers.",
+        ),
     },
     async ({
       site_url,
@@ -133,6 +254,7 @@ export function registerPerformanceTool(server: McpServer): void {
       filters,
       row_limit,
       start_row,
+      compare,
     }) => {
       const startDate = start_date ?? daysAgo(28);
       const endDate = end_date ?? daysAgo(3);
@@ -143,19 +265,54 @@ export function registerPerformanceTool(server: McpServer): void {
           ? [{ groupType: "and" as const, filters: filters as SearchAnalyticsFilter[] }]
           : undefined;
 
-      try {
-        const result = await querySearchAnalytics(site_url, {
-          startDate,
-          endDate,
-          dimensions: dims,
-          type: search_type,
-          dataState: data_state,
-          aggregationType: aggregation_type,
-          rowLimit: row_limit ?? 1000,
-          startRow: start_row,
-          dimensionFilterGroups: filterGroups,
-        });
+      const queryOpts = {
+        startDate,
+        endDate,
+        dimensions: dims,
+        type: search_type,
+        dataState: data_state,
+        aggregationType: aggregation_type,
+        rowLimit: row_limit ?? 1000,
+        startRow: start_row,
+        dimensionFilterGroups: filterGroups,
+      };
 
+      try {
+        if (compare) {
+          // Calculate previous period of equal length
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          const durationMs = end.getTime() - start.getTime();
+          const prevEnd = new Date(start.getTime() - 1 * 24 * 60 * 60 * 1000); // day before current start
+          const prevStart = new Date(prevEnd.getTime() - durationMs);
+          const prevStartDate = prevStart.toISOString().split("T")[0];
+          const prevEndDate = prevEnd.toISOString().split("T")[0];
+
+          const [current, previous] = await Promise.all([
+            querySearchAnalytics(site_url, queryOpts),
+            querySearchAnalytics(site_url, { ...queryOpts, startDate: prevStartDate, endDate: prevEndDate }),
+          ]);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: formatComparison(
+                  site_url,
+                  current,
+                  previous,
+                  dims,
+                  startDate,
+                  endDate,
+                  prevStartDate,
+                  prevEndDate,
+                ),
+              },
+            ],
+          };
+        }
+
+        const result = await querySearchAnalytics(site_url, queryOpts);
         return {
           content: [{ type: "text", text: formatPerformance(site_url, result, dims, startDate, endDate) }],
         };
