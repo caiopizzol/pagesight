@@ -322,11 +322,15 @@ export function registerMetatagsTool(server: McpServer): void {
         // Redirect chain (only if there were redirects)
         if (chain.length > 1) {
           output.push("--- Redirect Chain ---", "");
-          for (let i = 0; i < chain.length; i++) {
-            const hop = chain[i];
-            const prefix = i === chain.length - 1 ? "" : `${hop.status} → `;
-            output.push(`${i + 1}. ${prefix}${hop.url}`);
+          const parts: string[] = [];
+          for (const hop of chain) {
+            parts.push(hop.url);
+            parts.push(String(hop.status));
           }
+          // Format: URL → status → URL → status (drop trailing status)
+          parts.pop();
+          output.push(parts.join(" → "));
+          output.push(`Hops: ${chain.length - 1}`);
           output.push("");
         }
 
@@ -352,9 +356,27 @@ export function registerMetatagsTool(server: McpServer): void {
               output.push(`${check.tag}: BROKEN — HTTP ${check.status}`);
               output.push(`  URL: ${check.url}`);
             } else {
-              const size = check.contentLength ? ` (${Math.round(check.contentLength / 1024)} KB)` : "";
+              const sizeKB = check.contentLength ? Math.round(check.contentLength / 1024) : null;
+              const size = sizeKB ? ` (${sizeKB} KB)` : "";
               const type = check.contentType ? ` ${check.contentType}` : "";
               output.push(`${check.tag}: OK —${type}${size}`);
+              if (sizeKB && sizeKB > 1024) {
+                output.push(`  Warning: ${sizeKB} KB is large for social previews — consider compressing below 1 MB`);
+              }
+            }
+
+            // Check declared dimensions from meta tags
+            if (check.tag === "og:image") {
+              const w = getMeta(parsed.meta, "og:image:width");
+              const h = getMeta(parsed.meta, "og:image:height");
+              if (w && h) {
+                output.push(`  Declared dimensions: ${w}x${h}`);
+                const wn = Number(w);
+                const hn = Number(h);
+                if (wn && hn && (wn < 1200 || hn < 630)) {
+                  output.push(`  Note: recommended minimum for og:image is 1200x630`);
+                }
+              }
             }
           }
         }
