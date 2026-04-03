@@ -927,8 +927,8 @@ export function registerPageTool(server: McpServer): void {
             results.push({
               url: finalUrl,
               title: parsed.title
-                ? parsed.title.length > 40
-                  ? `${parsed.title.slice(0, 40)}...`
+                ? parsed.title.length > 60
+                  ? `${parsed.title.slice(0, parsed.title.lastIndexOf(" ", 60) > 20 ? parsed.title.lastIndexOf(" ", 60) : 60)}...`
                   : parsed.title
                 : "(missing)",
               description: getMeta(parsed.meta, "description") ? "yes" : "no",
