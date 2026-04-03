@@ -140,6 +140,7 @@ interface SchemaRule {
   required: string[];
   recommended: string[];
   imageFields: string[];
+  nestedRequired?: Record<string, string[]>;
 }
 
 // Required/recommended fields sourced from Google's Rich Results documentation
@@ -169,6 +170,7 @@ const SCHEMA_RULES: Record<string, SchemaRule> = {
     required: ["name", "image"],
     recommended: ["description", "offers", "brand", "review", "aggregateRating"],
     imageFields: ["image"],
+    nestedRequired: { offers: ["price", "priceCurrency"] },
   },
   LocalBusiness: {
     required: ["name", "address"],
@@ -200,6 +202,43 @@ const SCHEMA_RULES: Record<string, SchemaRule> = {
     recommended: ["duration", "contentUrl", "embedUrl"],
     imageFields: ["thumbnailUrl"],
   },
+  SoftwareApplication: {
+    required: ["name", "offers"],
+    recommended: ["applicationCategory", "operatingSystem", "review", "aggregateRating"],
+    imageFields: ["image"],
+    nestedRequired: { offers: ["price", "priceCurrency"] },
+  },
+  Dataset: {
+    required: ["name", "description"],
+    recommended: ["distribution", "creator", "license"],
+    imageFields: [],
+    nestedRequired: { distribution: ["contentUrl", "encodingFormat"] },
+  },
+  TechArticle: {
+    required: ["headline", "image", "datePublished", "author"],
+    recommended: ["dateModified", "publisher"],
+    imageFields: ["image"],
+  },
+  BlogPosting: {
+    required: ["headline", "image", "datePublished", "author"],
+    recommended: ["dateModified", "publisher"],
+    imageFields: ["image"],
+  },
+  HowTo: {
+    required: ["name", "step"],
+    recommended: ["image", "totalTime", "estimatedCost"],
+    imageFields: ["image"],
+  },
+  Course: {
+    required: ["name", "description"],
+    recommended: ["provider", "offers"],
+    imageFields: [],
+  },
+  JobPosting: {
+    required: ["title", "description", "datePosted", "hiringOrganization"],
+    recommended: ["employmentType", "jobLocation", "baseSalary", "validThrough"],
+    imageFields: [],
+  },
 };
 
 interface ValidationIssue {
@@ -216,9 +255,14 @@ function getNestedValue(obj: Record<string, unknown>, field: string): unknown {
   return undefined;
 }
 
-function validateJsonLd(blocks: unknown[]): { issues: ValidationIssue[]; imageUrls: string[] } {
+function validateJsonLd(blocks: unknown[]): {
+  issues: ValidationIssue[];
+  imageUrls: string[];
+  validatedTypes: Set<string>;
+} {
   const issues: ValidationIssue[] = [];
   const imageUrls: string[] = [];
+  const validatedTypes = new Set<string>();
 
   function validateBlock(data: unknown) {
     if (Array.isArray(data)) {
@@ -234,6 +278,7 @@ function validateJsonLd(blocks: unknown[]): { issues: ValidationIssue[]; imageUr
     for (const type of types) {
       const rule = SCHEMA_RULES[String(type)];
       if (!rule) continue;
+      validatedTypes.add(String(type));
 
       for (const field of rule.required) {
         if (getNestedValue(obj, field) === undefined) {
@@ -244,6 +289,27 @@ function validateJsonLd(blocks: unknown[]): { issues: ValidationIssue[]; imageUr
       for (const field of rule.recommended) {
         if (getNestedValue(obj, field) === undefined) {
           issues.push({ type: String(type), level: "recommended", field });
+        }
+      }
+
+      // Check nested required fields (e.g., offers.price inside Product)
+      if (rule.nestedRequired) {
+        for (const [parent, fields] of Object.entries(rule.nestedRequired)) {
+          const parentVal = obj[parent];
+          if (parentVal && typeof parentVal === "object") {
+            const targets = Array.isArray(parentVal) ? parentVal : [parentVal];
+            for (const target of targets) {
+              if (target && typeof target === "object") {
+                const nested = target as Record<string, unknown>;
+                for (const field of fields) {
+                  if (nested[field] === undefined || nested[field] === null || nested[field] === "") {
+                    issues.push({ type: String(type), level: "required", field: `${parent}.${field}` });
+                  }
+                }
+                break; // Only check the first item in arrays
+              }
+            }
+          }
         }
       }
 
@@ -262,17 +328,18 @@ function validateJsonLd(blocks: unknown[]): { issues: ValidationIssue[]; imageUr
       }
     }
 
-    // Recurse into nested objects
+    // Recurse into nested objects and arrays (e.g., @graph)
     for (const val of Object.values(obj)) {
-      if (val && typeof val === "object" && !Array.isArray(val)) {
-        const nested = val as Record<string, unknown>;
-        if (nested["@type"]) validateBlock(nested);
+      if (Array.isArray(val)) {
+        for (const item of val) validateBlock(item);
+      } else if (val && typeof val === "object") {
+        validateBlock(val);
       }
     }
   }
 
   for (const block of blocks) validateBlock(block);
-  return { issues, imageUrls };
+  return { issues, imageUrls, validatedTypes };
 }
 
 // What each recommended field enables (sourced from Google Rich Results docs)
@@ -293,12 +360,31 @@ const FIELD_HINTS: Record<string, string> = {
   "Event.offers": "shows ticket prices in search",
   "Recipe.author": "shown in recipe rich results",
   "VideoObject.duration": "shown in video rich results",
+  "SoftwareApplication.applicationCategory": "shown in software rich results",
+  "SoftwareApplication.operatingSystem": "shown in software rich results",
+  "SoftwareApplication.review": "enables star ratings",
+  "SoftwareApplication.aggregateRating": "enables aggregate star ratings",
+  "Dataset.distribution": "enables dataset download in search",
+  "Dataset.creator": "shown in dataset rich results",
+  "Dataset.license": "shown in dataset rich results",
+  "Course.provider": "shown in course rich results",
+  "Course.offers": "enables price display for courses",
+  "JobPosting.employmentType": "shown in job search results",
+  "JobPosting.jobLocation": "shown in job search results",
+  "JobPosting.baseSalary": "enables salary display in job search",
 };
 
-function formatValidation(issues: ValidationIssue[]): string[] {
-  if (issues.length === 0) return ["All validated types have their required fields."];
-
+function formatValidation(issues: ValidationIssue[], validatedTypes: Set<string>): string[] {
   const lines: string[] = [];
+
+  // Show PASS for types with no required issues
+  const typesWithRequiredIssues = new Set(issues.filter((i) => i.level === "required").map((i) => i.type));
+  for (const type of validatedTypes) {
+    if (!typesWithRequiredIssues.has(type)) {
+      lines.push(`PASS     ${type} — all required fields present`);
+    }
+  }
+
   const required = issues.filter((i) => i.level === "required");
   const recommended = issues.filter((i) => i.level === "recommended");
 
@@ -404,6 +490,20 @@ function formatMetatags(url: string, parsed: ParsedHead): string {
   if (robots) lines.push(`Robots: ${robots}`);
   const author = getMeta(parsed.meta, "author");
   if (author) lines.push(`Author: ${author}`);
+
+  // HTML entity warnings
+  const entityCheck = [
+    { label: "title", value: parsed.title },
+    { label: "description", value: getMeta(parsed.meta, "description") },
+    { label: "og:title", value: getMeta(parsed.meta, "og:title") },
+    { label: "og:description", value: getMeta(parsed.meta, "og:description") },
+  ];
+  for (const { label, value } of entityCheck) {
+    if (value && /&(?:amp|lt|gt|quot|apos|#\d+|#x[\da-f]+);/i.test(value)) {
+      lines.push(`WARN: ${label} contains HTML entities — may render incorrectly in social previews`);
+    }
+  }
+
   lines.push("");
 
   // Open Graph
@@ -566,10 +666,10 @@ export function registerMetatagsTool(server: McpServer): void {
 
         // Structured data validation
         if (parsed.jsonLd.length > 0) {
-          const { issues, imageUrls } = validateJsonLd(parsed.jsonLd);
-          if (issues.length > 0 || imageUrls.length > 0) {
+          const { issues, imageUrls, validatedTypes } = validateJsonLd(parsed.jsonLd);
+          if (validatedTypes.size > 0 || imageUrls.length > 0) {
             output.push("", "--- Structured Data Validation ---", "");
-            output.push(...formatValidation(issues));
+            output.push(...formatValidation(issues, validatedTypes));
 
             // HEAD-check image URLs from structured data
             if (imageUrls.length > 0) {

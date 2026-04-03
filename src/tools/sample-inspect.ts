@@ -2,13 +2,13 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { inspectUrl, listSitemaps } from "../lib/gsc.js";
 
-interface SitemapParseResult {
+export interface SitemapParseResult {
   urls: string[];
   isSitemapIndex: boolean;
   childSitemaps: string[];
 }
 
-function parseSitemapXml(xml: string): SitemapParseResult {
+export function parseSitemapXml(xml: string): SitemapParseResult {
   const urls: string[] = [];
   const childSitemaps: string[] = [];
 
@@ -28,7 +28,7 @@ function parseSitemapXml(xml: string): SitemapParseResult {
   return { urls, isSitemapIndex, childSitemaps };
 }
 
-async function fetchSitemap(sitemapUrl: string): Promise<SitemapParseResult> {
+export async function fetchSitemap(sitemapUrl: string): Promise<SitemapParseResult> {
   const res = await fetch(sitemapUrl, {
     headers: { "User-Agent": "Pagesight/1.0" },
   });
@@ -41,7 +41,7 @@ async function fetchSitemap(sitemapUrl: string): Promise<SitemapParseResult> {
   return parseSitemapXml(xml);
 }
 
-function sampleUrls(urls: string[], count: number, strategy: string): string[] {
+export function sampleUrls(urls: string[], count: number, strategy: string): string[] {
   if (urls.length <= count) return [...urls];
 
   if (strategy === "first") {
@@ -66,7 +66,7 @@ function sampleUrls(urls: string[], count: number, strategy: string): string[] {
   return shuffled.slice(0, count);
 }
 
-interface InspectionSummary {
+export interface InspectionSummary {
   url: string;
   verdict: string;
   coverageState: string;
@@ -78,7 +78,7 @@ interface InspectionSummary {
   error: string | null;
 }
 
-async function inspectSingle(url: string, siteUrl: string): Promise<InspectionSummary> {
+export async function inspectSingle(url: string, siteUrl: string): Promise<InspectionSummary> {
   try {
     const r = await inspectUrl(url, siteUrl);
     const idx = r.indexStatusResult;

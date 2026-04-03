@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerAuditTool } from "./tools/audit.js";
 import { registerCruxTool } from "./tools/crux.js";
 import { registerInspectTool } from "./tools/inspect.js";
+import { registerLinksTool } from "./tools/links.js";
 import { registerMetatagsTool } from "./tools/metatags.js";
 import { registerPagespeedTool } from "./tools/pagespeed.js";
 import { registerPerformanceTool } from "./tools/performance.js";
@@ -22,6 +23,7 @@ const server = new McpServer({
 registerAuditTool(server);
 registerCruxTool(server);
 registerInspectTool(server);
+registerLinksTool(server);
 registerMetatagsTool(server);
 registerPagespeedTool(server);
 registerPerformanceTool(server);

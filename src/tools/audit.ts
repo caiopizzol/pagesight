@@ -3,6 +3,7 @@ import { z } from "zod";
 import { inspectUrl, listSitemaps } from "../lib/gsc.js";
 import { type PsiCategoryType, type PsiResult, runPagespeed } from "../lib/psi.js";
 import { auditAiCrawlers, fetchRobotsTxt, isAllowed } from "../lib/robots.js";
+import { fetchSitemap, inspectSingle, sampleUrls } from "./sample-inspect.js";
 
 type Severity = "HIGH" | "MEDIUM" | "LOW";
 
@@ -128,9 +129,11 @@ function addPagespeedFindings(result: PsiResult, findings: Finding[]) {
     const fontItems = renderBlocking.details.items.filter((i) => i.url && String(i.url).includes("fonts"));
     if (fontItems.length > 0) {
       const wastedMs = fontItems.reduce((sum, i) => sum + (i.wastedMs ? Number(i.wastedMs) : 0), 0);
+      const isGoogleFonts = fontItems.some((i) => String(i.url).includes("fonts.googleapis.com"));
+      const label = isGoogleFonts ? "Render-blocking Google Fonts" : "Render-blocking font CSS";
       findings.push({
         severity: "MEDIUM",
-        message: `Render-blocking Google Fonts (${Math.round(wastedMs)}ms wasted)`,
+        message: `${label} (${Math.round(wastedMs)}ms wasted)`,
         source: "pagespeed",
       });
     }
@@ -206,6 +209,36 @@ function addSitemapFindings(sitemapCount: number, totalSubmitted: number, totalI
       });
     }
   }
+}
+
+function formatDrillDown(
+  inspections: Array<{ url: string; verdict: string; coverageState: string; error: string | null }>,
+): string {
+  const valid = inspections.filter((r) => !r.error);
+  if (valid.length === 0) return "";
+
+  const indexed = valid.filter((r) => r.verdict === "PASS").length;
+  const lines: string[] = [`        Auto-inspected ${valid.length} URLs:`];
+  lines.push(`        - ${indexed}/${valid.length} indexed`);
+
+  const stateCounts: Record<string, { count: number; urls: string[] }> = {};
+  for (const r of valid) {
+    if (r.verdict !== "PASS") {
+      const path = new URL(r.url).pathname;
+      const existing = stateCounts[r.coverageState];
+      if (existing) {
+        existing.count++;
+        existing.urls.push(path);
+      } else {
+        stateCounts[r.coverageState] = { count: 1, urls: [path] };
+      }
+    }
+  }
+  for (const [state, { count, urls }] of Object.entries(stateCounts)) {
+    lines.push(`        - ${count}/${valid.length} ${state}: ${urls.join(", ")}`);
+  }
+
+  return lines.join("\n");
 }
 
 function addInspectFindings(verdict: string, coverageState: string, findings: Finding[]) {
@@ -310,6 +343,33 @@ export function registerAuditTool(server: McpServer): void {
           }
         }
         addSitemapFindings(sitemaps.length, totalSubmitted, totalIndexed, findings);
+
+        // Auto-drill-down: when indexing is low, sample-inspect to explain why
+        const indexPct = totalSubmitted > 0 ? (totalIndexed / totalSubmitted) * 100 : 100;
+        if (site_url && indexPct < 50 && sitemaps.length > 0) {
+          try {
+            const sitemapPath = (sitemaps.find((s) => !s.isSitemapsIndex) ?? sitemaps[0]).path;
+            let parsed = await fetchSitemap(sitemapPath);
+            if (parsed.isSitemapIndex && parsed.childSitemaps.length > 0) {
+              parsed = await fetchSitemap(parsed.childSitemaps[0]);
+            }
+            if (parsed.urls.length > 0) {
+              const sampled = sampleUrls(parsed.urls, 5, "spread");
+              const inspections = [];
+              for (const u of sampled) {
+                inspections.push(await inspectSingle(u, site_url));
+              }
+              const drillDown = formatDrillDown(inspections);
+              // Append drill-down to the sitemap finding
+              const sitemapFinding = findings.find((f) => f.source === "sitemaps" && f.severity === "HIGH");
+              if (sitemapFinding) {
+                sitemapFinding.message += `\n${drillDown}`;
+              }
+            }
+          } catch {
+            // Drill-down is best-effort — don't fail the audit
+          }
+        }
       } else if (sitemapResult.status === "rejected") {
         errors.push(`Sitemaps: ${sitemapResult.reason}`);
       }
