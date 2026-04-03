@@ -1,12 +1,16 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
+  hasApiKey,
   type PsiAudit,
   type PsiAuditDetailItem,
   type PsiCategoryType,
   type PsiResult,
   runPagespeed,
 } from "../lib/psi.js";
+
+const QUOTA_NOTE =
+  "\n\nNote: No GOOGLE_API_KEY configured — using shared quota (400 req/day). Set your own key to avoid rate limits.";
 
 function scoreLabel(score: number | null): string {
   if (score === null) return "N/A";
@@ -536,7 +540,8 @@ export function registerPagespeedTool(server: McpServer): void {
       if (url) {
         try {
           const result = await runPagespeed(url, opts);
-          return { content: [{ type: "text", text: formatPagespeed(url, result) }] };
+          const text = formatPagespeed(url, result) + (hasApiKey() ? "" : QUOTA_NOTE);
+          return { content: [{ type: "text", text }] };
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           return { content: [{ type: "text", text: `Error running PageSpeed analysis: ${msg}` }] };
@@ -568,6 +573,8 @@ export function registerPagespeedTool(server: McpServer): void {
         const errorLines = failures.map((f) => `${f.url}: ${f.error}`);
         output += `\n\n--- Errors ---\n${errorLines.join("\n")}`;
       }
+
+      if (!hasApiKey()) output += QUOTA_NOTE;
 
       return { content: [{ type: "text", text: output }] };
     },

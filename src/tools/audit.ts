@@ -252,23 +252,25 @@ function addInspectFindings(verdict: string, coverageState: string, findings: Fi
 function formatAudit(url: string, findings: Finding[], errors: string[]): string {
   const lines: string[] = [`=== Site Audit: ${url} ===`, ""];
 
+  // Lead with errors so partial results are obvious
+  if (errors.length > 0) {
+    lines.push(`${errors.length} check${errors.length > 1 ? "s" : ""} failed — results below are partial:`, "");
+    for (const e of errors) {
+      lines.push(`  FAIL  ${e}`);
+    }
+    lines.push("");
+  }
+
   // Sort: HIGH first, then MEDIUM, then LOW
   const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
   findings.sort((a, b) => order[a.severity] - order[b.severity]);
 
-  if (findings.length === 0) {
+  if (findings.length === 0 && errors.length === 0) {
     lines.push("No issues found.");
-  } else {
-    lines.push(`${findings.length} findings:`, "");
+  } else if (findings.length > 0) {
+    lines.push(`${findings.length} finding${findings.length > 1 ? "s" : ""}:`, "");
     for (const f of findings) {
       lines.push(`${f.severity.padEnd(6)}  ${f.message}`);
-    }
-  }
-
-  if (errors.length > 0) {
-    lines.push("", "--- Errors (partial audit) ---", "");
-    for (const e of errors) {
-      lines.push(`- ${e}`);
     }
   }
 

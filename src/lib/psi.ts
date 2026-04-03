@@ -79,6 +79,10 @@ export interface PsiResult {
 export type PsiStrategy = "mobile" | "desktop";
 export type PsiCategoryType = "performance" | "accessibility" | "best-practices" | "seo";
 
+export function hasApiKey(): boolean {
+  return !!process.env.GOOGLE_API_KEY;
+}
+
 export async function runPagespeed(
   url: string,
   options?: {
