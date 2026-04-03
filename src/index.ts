@@ -1,17 +1,12 @@
 #!/usr/bin/env bun
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { registerAiTool } from "./tools/ai.js";
 import { registerAuditTool } from "./tools/audit.js";
-import { registerCruxTool } from "./tools/crux.js";
-import { registerInspectTool } from "./tools/inspect.js";
-import { registerLinksTool } from "./tools/links.js";
-import { registerMetatagsTool } from "./tools/metatags.js";
-import { registerPagespeedTool } from "./tools/pagespeed.js";
-import { registerPerformanceTool } from "./tools/performance.js";
-import { registerRobotsTool } from "./tools/robots.js";
-import { registerSampleInspectTool } from "./tools/sample-inspect.js";
+import { registerPageTool } from "./tools/page.js";
+import { registerSearchTool } from "./tools/search.js";
 import { registerSetupTool } from "./tools/setup.js";
-import { registerSitemapsTool } from "./tools/sitemaps.js";
+import { registerSpeedTool } from "./tools/speed.js";
 
 const pkg = await Bun.file(new URL("../package.json", import.meta.url)).json();
 
@@ -20,17 +15,12 @@ const server = new McpServer({
   version: pkg.version,
 });
 
+registerAiTool(server);
 registerAuditTool(server);
-registerCruxTool(server);
-registerInspectTool(server);
-registerLinksTool(server);
-registerMetatagsTool(server);
-registerPagespeedTool(server);
-registerPerformanceTool(server);
-registerRobotsTool(server);
-registerSampleInspectTool(server);
-registerSitemapsTool(server);
+registerPageTool(server);
+registerSearchTool(server);
 registerSetupTool(server);
+registerSpeedTool(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

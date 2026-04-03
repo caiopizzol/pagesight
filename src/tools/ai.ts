@@ -117,10 +117,10 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
   return lines.join("\n");
 }
 
-export function registerRobotsTool(server: McpServer): void {
+export function registerAiTool(server: McpServer): void {
   server.tool(
-    "robots",
-    "Fetch and analyze a site's robots.txt. Validates syntax per RFC 9309, audits AI crawler access (139+ bots), lists sitemaps. Shows blocked bots in detail, summarizes allowed.",
+    "ai",
+    "Analyze your site's AI visibility. Fetches robots.txt, audits which AI crawlers (training, search, assistant, agent) can access your content, validates syntax per RFC 9309, and checks specific paths. Shows how AI systems see your site.",
     {
       url: z
         .string()

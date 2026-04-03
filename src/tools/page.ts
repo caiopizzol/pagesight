@@ -1,6 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+// --- Types ---
+
 interface MetaTag {
   name?: string;
   property?: string;
@@ -15,6 +17,43 @@ interface ParsedHead {
   hreflang: Array<{ lang: string; href: string }>;
   jsonLd: unknown[];
 }
+
+interface SchemaRule {
+  required: string[];
+  recommended: string[];
+  imageFields: string[];
+  nestedRequired?: Record<string, string[]>;
+}
+
+interface ValidationIssue {
+  type: string;
+  level: "required" | "recommended";
+  field: string;
+}
+
+interface RedirectHop {
+  url: string;
+  status: number;
+}
+
+interface ImageCheck {
+  url: string;
+  tag: string;
+  status: number | null;
+  contentType: string | null;
+  contentLength: number | null;
+  error: string | null;
+}
+
+interface LinkResult {
+  href: string;
+  status: number | null;
+  redirectChain: Array<{ url: string; status: number }>;
+  finalUrl: string | null;
+  error: string | null;
+}
+
+// --- Meta tags helpers ---
 
 function parseHead(html: string): ParsedHead {
   // Extract <head> content (case-insensitive, handles attributes on <head>)
@@ -136,13 +175,6 @@ function formatJsonLd(data: unknown, indent = 0): string[] {
 
 // --- Structured data validation (per Google Rich Results docs) ---
 
-interface SchemaRule {
-  required: string[];
-  recommended: string[];
-  imageFields: string[];
-  nestedRequired?: Record<string, string[]>;
-}
-
 // Required/recommended fields sourced from Google's Rich Results documentation
 // https://developers.google.com/search/docs/appearance/structured-data
 const SCHEMA_RULES: Record<string, SchemaRule> = {
@@ -240,12 +272,6 @@ const SCHEMA_RULES: Record<string, SchemaRule> = {
     imageFields: [],
   },
 };
-
-interface ValidationIssue {
-  type: string;
-  level: "required" | "recommended";
-  field: string;
-}
 
 function getNestedValue(obj: Record<string, unknown>, field: string): unknown {
   const val = obj[field];
@@ -403,20 +429,6 @@ function formatValidation(issues: ValidationIssue[], validatedTypes: Set<string>
   return lines;
 }
 
-interface RedirectHop {
-  url: string;
-  status: number;
-}
-
-interface ImageCheck {
-  url: string;
-  tag: string;
-  status: number | null;
-  contentType: string | null;
-  contentLength: number | null;
-  error: string | null;
-}
-
 async function followRedirects(
   url: string,
   ua: string,
@@ -490,6 +502,15 @@ function formatMetatags(url: string, parsed: ParsedHead): string {
   if (robots) lines.push(`Robots: ${robots}`);
   const author = getMeta(parsed.meta, "author");
   if (author) lines.push(`Author: ${author}`);
+
+  // Length warnings
+  if (parsed.title && parsed.title.length > 60) {
+    lines.push(`WARN: title is ${parsed.title.length} chars — may truncate in search results (recommended: ≤60)`);
+  }
+  const desc = getMeta(parsed.meta, "description");
+  if (desc && desc.length > 155) {
+    lines.push(`WARN: description is ${desc.length} chars — may truncate in search results (recommended: ≤155)`);
+  }
 
   // HTML entity warnings
   const entityCheck = [
@@ -574,130 +595,458 @@ function formatMetatags(url: string, parsed: ParsedHead): string {
   return lines.join("\n");
 }
 
-export function registerMetatagsTool(server: McpServer): void {
-  server.tool(
-    "metatags",
-    "Fetch a page and report its meta tags, Open Graph, Twitter Card, canonical URL, structured data (JSON-LD), and hreflang. Shows what search engines and social platforms see.",
-    {
-      url: z.string().url().describe("The URL to fetch and analyze."),
-      user_agent: z.string().optional().describe("Custom User-Agent string. Default: Googlebot-compatible."),
-    },
-    async ({ url, user_agent }) => {
-      try {
-        const ua = user_agent ?? "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
-        const { chain, response: res } = await followRedirects(url, ua);
+// --- Links helpers ---
 
-        if (!res.ok) {
+async function checkLink(href: string): Promise<LinkResult> {
+  const chain: Array<{ url: string; status: number }> = [];
+  let current = href;
+
+  try {
+    for (let i = 0; i < 10; i++) {
+      const res = await fetch(current, {
+        method: "GET",
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)", Accept: "text/html" },
+        redirect: "manual",
+      });
+
+      chain.push({ url: current, status: res.status });
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        if (!location) break;
+        current = new URL(location, current).href;
+        continue;
+      }
+
+      return {
+        href,
+        status: res.status,
+        redirectChain: chain,
+        finalUrl: chain.length > 1 ? current : null,
+        error: null,
+      };
+    }
+
+    return {
+      href,
+      status: chain[chain.length - 1]?.status ?? null,
+      redirectChain: chain,
+      finalUrl: current,
+      error: "Too many redirects",
+    };
+  } catch (err) {
+    return {
+      href,
+      status: null,
+      redirectChain: chain,
+      finalUrl: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+function extractInternalLinks(html: string, origin: string): string[] {
+  const links = new Set<string>();
+
+  for (const match of html.matchAll(/<a\s[^>]*href=["']([^"'#]+)/gi)) {
+    const raw = match[1].trim();
+    if (!raw || raw.startsWith("javascript:") || raw.startsWith("mailto:") || raw.startsWith("tel:")) continue;
+
+    try {
+      const resolved = new URL(raw, origin).href;
+      if (resolved.startsWith(origin) && !resolved.includes("/cdn-cgi/")) {
+        links.add(resolved);
+      }
+    } catch {
+      // Invalid URL, skip
+    }
+  }
+
+  return [...links];
+}
+
+function formatLinkResults(url: string, results: LinkResult[]): string {
+  const lines: string[] = [`=== Internal Links: ${url} ===`, `Found ${results.length} internal links`, ""];
+
+  const broken = results.filter((r) => r.error || (r.status && r.status >= 400));
+  const redirected = results.filter((r) => !r.error && r.redirectChain.length > 1 && r.status && r.status < 400);
+  const ok = results.filter((r) => !r.error && r.redirectChain.length === 1 && r.status && r.status < 400);
+
+  // Summary
+  lines.push("--- Summary ---", "");
+  lines.push(`OK: ${ok.length}`);
+  if (redirected.length > 0) lines.push(`Redirected: ${redirected.length}`);
+  if (broken.length > 0) lines.push(`Broken: ${broken.length}`);
+  lines.push("");
+
+  // Broken links
+  if (broken.length > 0) {
+    lines.push("--- Broken Links ---", "");
+    for (const r of broken) {
+      if (r.error) {
+        lines.push(`FAIL  ${r.href}`);
+        lines.push(`      Error: ${r.error}`);
+      } else {
+        lines.push(`FAIL  ${r.href} → ${r.status}`);
+      }
+    }
+    lines.push("");
+  }
+
+  // Redirect chains
+  if (redirected.length > 0) {
+    lines.push("--- Redirect Chains ---", "");
+    for (const r of redirected) {
+      const hops = r.redirectChain.length - 1;
+      const chainStr = r.redirectChain.map((h) => `${h.status}`).join(" → ");
+      lines.push(`REDIRECT  ${r.href}`);
+      lines.push(`          ${chainStr} → ${r.finalUrl} (${hops} hop${hops > 1 ? "s" : ""})`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+// --- Contrast helpers ---
+
+function parseHex(hex: string): [number, number, number] | null {
+  const clean = hex.replace(/^#/, "");
+  if (clean.length === 3) {
+    const r = Number.parseInt(clean[0] + clean[0], 16);
+    const g = Number.parseInt(clean[1] + clean[1], 16);
+    const b = Number.parseInt(clean[2] + clean[2], 16);
+    return [r, g, b];
+  }
+  if (clean.length === 6) {
+    const r = Number.parseInt(clean.slice(0, 2), 16);
+    const g = Number.parseInt(clean.slice(2, 4), 16);
+    const b = Number.parseInt(clean.slice(4, 6), 16);
+    return [r, g, b];
+  }
+  return null;
+}
+
+function toHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function relativeLuminance(r: number, g: number, b: number): number {
+  const [rs, gs, bs] = [r, g, b].map((c) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function contrastRatio(l1: number, l2: number): number {
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function wcagLevel(ratio: number, isLargeText: boolean): string {
+  if (isLargeText) {
+    if (ratio >= 4.5) return "AAA";
+    if (ratio >= 3) return "AA";
+    return "FAIL";
+  }
+  if (ratio >= 7) return "AAA";
+  if (ratio >= 4.5) return "AA";
+  return "FAIL";
+}
+
+function findNearestPassing(fg: [number, number, number], bg: [number, number, number], targetRatio: number): string {
+  const bgLum = relativeLuminance(...bg);
+
+  // Try both directions: darken and lighten, pick the one closest to original
+  let bestDarken: [number, number, number] | null = null;
+  let bestLighten: [number, number, number] | null = null;
+
+  for (let step = 0; step <= 100; step++) {
+    const t = step / 100;
+    const dark: [number, number, number] = [fg[0] * (1 - t), fg[1] * (1 - t), fg[2] * (1 - t)];
+    if (!bestDarken && contrastRatio(relativeLuminance(...dark), bgLum) >= targetRatio) {
+      bestDarken = dark;
+    }
+    const light: [number, number, number] = [
+      fg[0] + (255 - fg[0]) * t,
+      fg[1] + (255 - fg[1]) * t,
+      fg[2] + (255 - fg[2]) * t,
+    ];
+    if (!bestLighten && contrastRatio(relativeLuminance(...light), bgLum) >= targetRatio) {
+      bestLighten = light;
+    }
+    if (bestDarken && bestLighten) break;
+  }
+
+  // Pick the direction that changes the color least
+  if (bestDarken && bestLighten) {
+    const darkDist =
+      Math.abs(fg[0] - bestDarken[0]) + Math.abs(fg[1] - bestDarken[1]) + Math.abs(fg[2] - bestDarken[2]);
+    const lightDist =
+      Math.abs(fg[0] - bestLighten[0]) + Math.abs(fg[1] - bestLighten[1]) + Math.abs(fg[2] - bestLighten[2]);
+    return toHex(...(darkDist <= lightDist ? bestDarken : bestLighten));
+  }
+  return toHex(...(bestDarken ?? bestLighten ?? fg));
+}
+
+// --- Tool registration ---
+
+export function registerPageTool(server: McpServer): void {
+  server.tool(
+    "page",
+    "Analyze what's on a page — meta tags, Open Graph, Twitter Card, structured data (JSON-LD), internal links, and redirect chains. Also includes a WCAG contrast checker for accessibility fixes.",
+    {
+      url: z
+        .string()
+        .url()
+        .optional()
+        .describe("Page URL to analyze. Returns meta tags, structured data, and optionally internal links."),
+      check_links: z
+        .boolean()
+        .optional()
+        .describe("Also check all internal links for broken links and redirect chains. Default: false."),
+      user_agent: z.string().optional().describe("Custom User-Agent for page fetch. Default: Googlebot-compatible."),
+      foreground: z
+        .string()
+        .optional()
+        .describe("Foreground (text) hex color for WCAG contrast check (e.g., '#D4594C'). Use with background."),
+      background: z.string().optional().describe("Background hex color for contrast check (e.g., '#FFFFFF')."),
+      large_text: z
+        .boolean()
+        .optional()
+        .describe("Whether text is large (≥18pt or ≥14pt bold). Lowers AA threshold to 3:1."),
+    },
+    async ({ url, check_links, user_agent, foreground, background, large_text }) => {
+      // --- Contrast-only mode (no URL) ---
+      if (foreground && background && !url) {
+        const fg = parseHex(foreground);
+        const bg = parseHex(background);
+
+        if (!fg) return { content: [{ type: "text", text: `Invalid foreground color: ${foreground}` }] };
+        if (!bg) return { content: [{ type: "text", text: `Invalid background color: ${background}` }] };
+
+        const fgLum = relativeLuminance(...fg);
+        const bgLum = relativeLuminance(...bg);
+        const ratio = contrastRatio(fgLum, bgLum);
+        const isLarge = large_text ?? false;
+        const level = wcagLevel(ratio, isLarge);
+
+        const aaThreshold = isLarge ? 3 : 4.5;
+        const aaaThreshold = isLarge ? 4.5 : 7;
+
+        const lines: string[] = [
+          "=== Contrast Check ===",
+          "",
+          `Foreground: ${toHex(...fg)}`,
+          `Background: ${toHex(...bg)}`,
+          `Text size: ${isLarge ? "large (≥18pt)" : "normal"}`,
+          "",
+          `Contrast ratio: ${ratio.toFixed(2)}:1`,
+          `WCAG AA (${aaThreshold}:1): ${ratio >= aaThreshold ? "PASS" : "FAIL"}`,
+          `WCAG AAA (${aaaThreshold}:1): ${ratio >= aaaThreshold ? "PASS" : "FAIL"}`,
+          `Result: ${level}`,
+        ];
+
+        if (ratio < aaThreshold) {
+          const suggested = findNearestPassing(fg, bg, aaThreshold);
+          lines.push("", `Nearest AA-passing foreground: ${suggested}`);
+
+          const sugParsed = parseHex(suggested);
+          if (sugParsed) {
+            const sugRatio = contrastRatio(relativeLuminance(...sugParsed), bgLum);
+            lines.push(`New ratio: ${sugRatio.toFixed(2)}:1`);
+          }
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      }
+
+      // --- Page analysis mode ---
+      if (url) {
+        try {
+          const ua = user_agent ?? "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+          const { chain, response: res } = await followRedirects(url, ua);
+
+          if (!res.ok) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Error fetching ${url}: HTTP ${res.status} ${res.statusText}`,
+                },
+              ],
+            };
+          }
+
+          const html = await res.text();
+          const parsed = parseHead(html);
+          const output: string[] = [];
+
+          // Redirect chain (only if there were redirects)
+          if (chain.length > 1) {
+            output.push("--- Redirect Chain ---", "");
+            const parts: string[] = [];
+            for (const hop of chain) {
+              parts.push(hop.url);
+              parts.push(String(hop.status));
+            }
+            // Format: URL → status → URL → status (drop trailing status)
+            parts.pop();
+            output.push(parts.join(" → "));
+            output.push(`Hops: ${chain.length - 1}`);
+            output.push("");
+          }
+
+          // Main meta tag report
+          const finalUrl = chain.length > 1 ? chain[chain.length - 1].url : url;
+          output.push(formatMetatags(finalUrl, parsed));
+
+          // OG/Twitter image validation
+          const ogImage = getMeta(parsed.meta, "og:image");
+          const twitterImage = getMeta(parsed.meta, "twitter:image");
+          const imagesToCheck: Array<{ url: string; tag: string }> = [];
+          if (ogImage) imagesToCheck.push({ url: ogImage, tag: "og:image" });
+          if (twitterImage && twitterImage !== ogImage) imagesToCheck.push({ url: twitterImage, tag: "twitter:image" });
+
+          if (imagesToCheck.length > 0) {
+            const checks = await Promise.all(imagesToCheck.map((img) => checkImage(img.url, img.tag)));
+            output.push("", "--- Image Validation ---", "");
+            for (const check of checks) {
+              if (check.error) {
+                output.push(`${check.tag}: FAILED — ${check.error}`);
+                output.push(`  URL: ${check.url}`);
+              } else if (check.status && check.status >= 400) {
+                output.push(`${check.tag}: BROKEN — HTTP ${check.status}`);
+                output.push(`  URL: ${check.url}`);
+              } else {
+                const sizeKB = check.contentLength ? Math.round(check.contentLength / 1024) : null;
+                const size = sizeKB ? ` (${sizeKB} KB)` : "";
+                const type = check.contentType ? ` ${check.contentType}` : "";
+                output.push(`${check.tag}: OK —${type}${size}`);
+                if (sizeKB && sizeKB > 1024) {
+                  output.push(`  Warning: ${sizeKB} KB is large for social previews — consider compressing below 1 MB`);
+                }
+              }
+
+              // Check declared dimensions from meta tags
+              if (check.tag === "og:image") {
+                const w = getMeta(parsed.meta, "og:image:width");
+                const h = getMeta(parsed.meta, "og:image:height");
+                if (w && h) {
+                  output.push(`  Declared dimensions: ${w}x${h}`);
+                  const wn = Number(w);
+                  const hn = Number(h);
+                  if (wn && hn && (wn < 1200 || hn < 630)) {
+                    output.push("  Note: recommended minimum for og:image is 1200x630");
+                  }
+                }
+              }
+            }
+          }
+
+          // Structured data validation
+          if (parsed.jsonLd.length > 0) {
+            const { issues, imageUrls, validatedTypes } = validateJsonLd(parsed.jsonLd);
+            if (validatedTypes.size > 0 || imageUrls.length > 0) {
+              output.push("", "--- Structured Data Validation ---", "");
+              output.push(...formatValidation(issues, validatedTypes));
+
+              // HEAD-check image URLs from structured data
+              if (imageUrls.length > 0) {
+                const deduped = [...new Set(imageUrls)];
+                const imgChecks = await Promise.all(deduped.map((u) => checkImage(u, "schema")));
+                for (const check of imgChecks) {
+                  if (check.error) {
+                    output.push(`BROKEN   Image: ${check.url} — ${check.error}`);
+                  } else if (check.status && check.status >= 400) {
+                    output.push(`BROKEN   Image: ${check.url} — HTTP ${check.status}`);
+                  } else {
+                    const sizeKB = check.contentLength ? Math.round(check.contentLength / 1024) : null;
+                    output.push(`OK       Image: ${check.url}${sizeKB ? ` (${sizeKB} KB)` : ""}`);
+                  }
+                }
+              }
+            }
+          }
+
+          // --- Link check (appended after metatags output) ---
+          if (check_links) {
+            const origin = new URL(url).origin;
+            const links = extractInternalLinks(html, origin);
+
+            if (links.length === 0) {
+              output.push(
+                "",
+                "--- Internal Links ---",
+                "",
+                "No internal links found.",
+                "Note: this page may use client-side rendering (SPA). Only static <a href> links in the HTML are detected.",
+              );
+            } else {
+              // Check links with concurrency 5
+              const concurrency = 5;
+              const results: LinkResult[] = [];
+              let i = 0;
+
+              while (i < links.length) {
+                const batch = links.slice(i, i + concurrency);
+                const settled = await Promise.all(batch.map((href) => checkLink(href)));
+                results.push(...settled);
+                i += concurrency;
+              }
+
+              output.push("", formatLinkResults(url, results));
+            }
+          }
+
+          // Append contrast check if colors were also provided
+          if (foreground && background) {
+            const fg = parseHex(foreground);
+            const bg = parseHex(background);
+            if (fg && bg) {
+              const fgLum = relativeLuminance(...fg);
+              const bgLum = relativeLuminance(...bg);
+              const ratio = contrastRatio(fgLum, bgLum);
+              const isLarge = large_text ?? false;
+              const level = wcagLevel(ratio, isLarge);
+              const aaThreshold = isLarge ? 3 : 4.5;
+              const aaaThreshold = isLarge ? 4.5 : 7;
+              output.push(
+                "",
+                "--- Contrast Check ---",
+                "",
+                `Foreground: ${toHex(...fg)}  Background: ${toHex(...bg)}`,
+                `Ratio: ${ratio.toFixed(2)}:1  AA: ${ratio >= aaThreshold ? "PASS" : "FAIL"}  AAA: ${ratio >= aaaThreshold ? "PASS" : "FAIL"}  Result: ${level}`,
+              );
+              if (ratio < aaThreshold) {
+                const suggested = findNearestPassing(fg, bg, aaThreshold);
+                output.push(`Nearest AA-passing foreground: ${suggested}`);
+              }
+            }
+          }
+
           return {
-            content: [
-              {
-                type: "text",
-                text: `Error fetching ${url}: HTTP ${res.status} ${res.statusText}`,
-              },
-            ],
+            content: [{ type: "text", text: output.join("\n") }],
+          };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return {
+            content: [{ type: "text", text: `Error analyzing page: ${msg}` }],
           };
         }
-
-        const html = await res.text();
-        const parsed = parseHead(html);
-        const output: string[] = [];
-
-        // Redirect chain (only if there were redirects)
-        if (chain.length > 1) {
-          output.push("--- Redirect Chain ---", "");
-          const parts: string[] = [];
-          for (const hop of chain) {
-            parts.push(hop.url);
-            parts.push(String(hop.status));
-          }
-          // Format: URL → status → URL → status (drop trailing status)
-          parts.pop();
-          output.push(parts.join(" → "));
-          output.push(`Hops: ${chain.length - 1}`);
-          output.push("");
-        }
-
-        // Main meta tag report
-        const finalUrl = chain.length > 1 ? chain[chain.length - 1].url : url;
-        output.push(formatMetatags(finalUrl, parsed));
-
-        // OG/Twitter image validation
-        const ogImage = getMeta(parsed.meta, "og:image");
-        const twitterImage = getMeta(parsed.meta, "twitter:image");
-        const imagesToCheck: Array<{ url: string; tag: string }> = [];
-        if (ogImage) imagesToCheck.push({ url: ogImage, tag: "og:image" });
-        if (twitterImage && twitterImage !== ogImage) imagesToCheck.push({ url: twitterImage, tag: "twitter:image" });
-
-        if (imagesToCheck.length > 0) {
-          const checks = await Promise.all(imagesToCheck.map((img) => checkImage(img.url, img.tag)));
-          output.push("", "--- Image Validation ---", "");
-          for (const check of checks) {
-            if (check.error) {
-              output.push(`${check.tag}: FAILED — ${check.error}`);
-              output.push(`  URL: ${check.url}`);
-            } else if (check.status && check.status >= 400) {
-              output.push(`${check.tag}: BROKEN — HTTP ${check.status}`);
-              output.push(`  URL: ${check.url}`);
-            } else {
-              const sizeKB = check.contentLength ? Math.round(check.contentLength / 1024) : null;
-              const size = sizeKB ? ` (${sizeKB} KB)` : "";
-              const type = check.contentType ? ` ${check.contentType}` : "";
-              output.push(`${check.tag}: OK —${type}${size}`);
-              if (sizeKB && sizeKB > 1024) {
-                output.push(`  Warning: ${sizeKB} KB is large for social previews — consider compressing below 1 MB`);
-              }
-            }
-
-            // Check declared dimensions from meta tags
-            if (check.tag === "og:image") {
-              const w = getMeta(parsed.meta, "og:image:width");
-              const h = getMeta(parsed.meta, "og:image:height");
-              if (w && h) {
-                output.push(`  Declared dimensions: ${w}x${h}`);
-                const wn = Number(w);
-                const hn = Number(h);
-                if (wn && hn && (wn < 1200 || hn < 630)) {
-                  output.push(`  Note: recommended minimum for og:image is 1200x630`);
-                }
-              }
-            }
-          }
-        }
-
-        // Structured data validation
-        if (parsed.jsonLd.length > 0) {
-          const { issues, imageUrls, validatedTypes } = validateJsonLd(parsed.jsonLd);
-          if (validatedTypes.size > 0 || imageUrls.length > 0) {
-            output.push("", "--- Structured Data Validation ---", "");
-            output.push(...formatValidation(issues, validatedTypes));
-
-            // HEAD-check image URLs from structured data
-            if (imageUrls.length > 0) {
-              const deduped = [...new Set(imageUrls)];
-              const imgChecks = await Promise.all(deduped.map((u) => checkImage(u, "schema")));
-              for (const check of imgChecks) {
-                if (check.error) {
-                  output.push(`BROKEN   Image: ${check.url} — ${check.error}`);
-                } else if (check.status && check.status >= 400) {
-                  output.push(`BROKEN   Image: ${check.url} — HTTP ${check.status}`);
-                } else {
-                  const sizeKB = check.contentLength ? Math.round(check.contentLength / 1024) : null;
-                  output.push(`OK       Image: ${check.url}${sizeKB ? ` (${sizeKB} KB)` : ""}`);
-                }
-              }
-            }
-          }
-        }
-
-        return {
-          content: [{ type: "text", text: output.join("\n") }],
-        };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        return {
-          content: [{ type: "text", text: `Error fetching meta tags: ${msg}` }],
-        };
       }
+
+      // --- No valid input ---
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Provide 'url' for page analysis or 'foreground' + 'background' for contrast check.",
+          },
+        ],
+      };
     },
   );
 }

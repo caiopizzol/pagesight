@@ -1,6 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
+  type CruxFormFactor,
+  type CruxHistoryResponse,
+  type CruxResponse,
+  queryCrux,
+  queryCruxHistory,
+} from "../lib/crux.js";
+import {
   hasApiKey,
   type PsiAudit,
   type PsiAuditDetailItem,
@@ -8,6 +15,8 @@ import {
   type PsiResult,
   runPagespeed,
 } from "../lib/psi.js";
+
+// --- PageSpeed helpers ---
 
 const QUOTA_NOTE =
   "\n\nNote: No GOOGLE_API_KEY configured — using shared quota (400 req/day). Set your own key to avoid rate limits.";
@@ -198,8 +207,6 @@ function formatFailingAudits(audits: Record<string, PsiAudit>, categoryRefs: str
   return lines;
 }
 
-// --- Single URL formatting (existing) ---
-
 function formatPagespeed(url: string, result: PsiResult): string {
   const lhr = result.lighthouseResult;
   const lines: string[] = [
@@ -283,8 +290,6 @@ function formatPagespeed(url: string, result: PsiResult): string {
 
   return lines.join("\n");
 }
-
-// --- Batch formatting ---
 
 function shortUrl(url: string, allUrls: string[]): string {
   try {
@@ -452,6 +457,39 @@ function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, st
     lines.push("");
   }
 
+  // A11y failures deduplicated across pages
+  const a11yFailures = new Map<string, { title: string; count: number; pages: string[] }>();
+  for (const { url, result } of results) {
+    const lhr = result.lighthouseResult;
+    const a11yCat = lhr.categories.accessibility;
+    if (!a11yCat?.auditRefs) continue;
+
+    for (const ref of a11yCat.auditRefs) {
+      const audit = lhr.audits[ref.id];
+      if (audit && audit.score !== null && audit.score < 1) {
+        const existing = a11yFailures.get(ref.id);
+        const page = shortUrl(url, allUrls);
+        if (existing) {
+          existing.count++;
+          existing.pages.push(page);
+        } else {
+          a11yFailures.set(ref.id, { title: audit.title, count: 1, pages: [page] });
+        }
+      }
+    }
+  }
+
+  const sharedA11y = [...a11yFailures.entries()]
+    .filter(([, v]) => v.count >= 2)
+    .sort((a, b) => b[1].count - a[1].count);
+  if (sharedA11y.length > 0) {
+    lines.push("--- Accessibility Issues (shared) ---", "");
+    for (const [, { title, count, pages }] of sharedA11y.slice(0, 10)) {
+      lines.push(`  ${title} (${count}/${results.length} pages: ${pages.join(", ")})`);
+    }
+    lines.push("");
+  }
+
   const totalTime = results.reduce((sum, r) => sum + r.result.lighthouseResult.timing.total, 0);
   lines.push(`Total analysis time: ${(totalTime / 1000).toFixed(1)}s`);
 
@@ -500,83 +538,366 @@ async function runBatch(
   return results;
 }
 
-export function registerPagespeedTool(server: McpServer): void {
+// --- CrUX helpers ---
+
+const METRIC_LABELS: Record<string, string> = {
+  cumulative_layout_shift: "CLS",
+  first_contentful_paint: "FCP",
+  interaction_to_next_paint: "INP",
+  largest_contentful_paint: "LCP",
+  experimental_time_to_first_byte: "TTFB",
+  round_trip_time: "RTT",
+  navigation_types: "Navigation Types",
+  form_factors: "Form Factors",
+};
+
+function formatDate(d: { year: number; month: number; day: number }): string {
+  return `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
+}
+
+function formatCrux(target: string, result: CruxResponse): string {
+  const r = result.record;
+  const period = r.collectionPeriod;
+  const lines: string[] = [
+    `=== CrUX: ${target} ===`,
+    `Form factor: ${r.key.formFactor ?? "all"}`,
+    `Period: ${formatDate(period.firstDate)} to ${formatDate(period.lastDate)}`,
+    "",
+  ];
+
+  if (result.urlNormalizationDetails) {
+    const norm = result.urlNormalizationDetails;
+    if (norm.originalUrl !== norm.normalizedUrl) {
+      lines.push(`Normalized: ${norm.originalUrl} → ${norm.normalizedUrl}`, "");
+    }
+  }
+
+  lines.push("--- Metrics (p75) ---", "");
+
+  for (const [key, metric] of Object.entries(r.metrics)) {
+    const label = METRIC_LABELS[key] ?? key;
+
+    if (metric.percentiles) {
+      const val = metric.percentiles.p75;
+      const unit = key === "cumulative_layout_shift" ? "" : "ms";
+      lines.push(`${label}: ${val}${unit}`);
+
+      if (metric.histogram) {
+        const buckets = metric.histogram.map((b) => `${Math.round(b.density * 100)}%`).join(" / ");
+        lines.push(`  Distribution (good/needs improvement/poor): ${buckets}`);
+      }
+    } else if (metric.fractions) {
+      lines.push(`${label}:`);
+      for (const [fKey, fVal] of Object.entries(metric.fractions)) {
+        lines.push(`  ${fKey}: ${(fVal * 100).toFixed(1)}%`);
+      }
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function formatCruxHistory(target: string, result: CruxHistoryResponse): string {
+  const r = result.record;
+  const periods = r.collectionPeriods;
+  const lines: string[] = [
+    `=== CrUX History: ${target} ===`,
+    `Form factor: ${r.key.formFactor ?? "all"}`,
+    `Periods: ${periods.length} (${formatDate(periods[0].firstDate)} to ${formatDate(periods[periods.length - 1].lastDate)})`,
+    "",
+  ];
+
+  if (result.urlNormalizationDetails) {
+    const norm = result.urlNormalizationDetails;
+    if (norm.originalUrl !== norm.normalizedUrl) {
+      lines.push(`Normalized: ${norm.originalUrl} → ${norm.normalizedUrl}`, "");
+    }
+  }
+
+  lines.push("--- p75 Trend ---", "");
+
+  for (const [key, metric] of Object.entries(r.metrics)) {
+    const label = METRIC_LABELS[key] ?? key;
+
+    if (metric.percentilesTimeseries) {
+      const values = metric.percentilesTimeseries.p75s;
+      const first = values[0];
+      const last = values[values.length - 1];
+      const unit = key === "cumulative_layout_shift" ? "" : "ms";
+
+      if (first === null && last === null) {
+        lines.push(`${label}: insufficient data`);
+        continue;
+      }
+
+      lines.push(
+        `${label}: ${first ?? "N/A"}${first !== null ? unit : ""} → ${last ?? "N/A"}${last !== null ? unit : ""} (${values.length} points)`,
+      );
+
+      // Show trend direction
+      if (first !== null && last !== null) {
+        const f = Number(first);
+        const l = Number(last);
+        if (!Number.isNaN(f) && !Number.isNaN(l)) {
+          const change = ((l - f) / f) * 100;
+          const dir = change > 5 ? "worse" : change < -5 ? "improved" : "stable";
+          lines.push(`  Trend: ${change > 0 ? "+" : ""}${change.toFixed(1)}% (${dir})`);
+        }
+      }
+    } else if (metric.fractionTimeseries) {
+      lines.push(`${label}: (fraction timeseries, ${periods.length} points)`);
+      for (const [fKey, fData] of Object.entries(metric.fractionTimeseries)) {
+        const fracs = fData.fractions;
+        const first = fracs[0];
+        const last = fracs[fracs.length - 1];
+        if (first !== null && last !== null && !Number.isNaN(first) && !Number.isNaN(last)) {
+          lines.push(`  ${fKey}: ${(first * 100).toFixed(1)}% → ${(last * 100).toFixed(1)}%`);
+        }
+      }
+    }
+  }
+
+  // Show last 5 data points as table for core metrics
+  const coreMetrics = ["largest_contentful_paint", "interaction_to_next_paint", "cumulative_layout_shift"];
+  const available = coreMetrics.filter((m) => r.metrics[m]?.percentilesTimeseries);
+
+  if (available.length > 0 && periods.length >= 5) {
+    lines.push("", "--- Recent Data Points ---", "");
+    const lastN = 5;
+    const startIdx = periods.length - lastN;
+
+    lines.push(`${"Date".padEnd(12)} ${available.map((m) => (METRIC_LABELS[m] ?? m).padEnd(10)).join(" ")}`);
+    for (let i = startIdx; i < periods.length; i++) {
+      const date = formatDate(periods[i].lastDate);
+      const vals = available.map((m) => {
+        const v = r.metrics[m].percentilesTimeseries?.p75s[i];
+        return String(v ?? "N/A").padEnd(10);
+      });
+      lines.push(`${date.padEnd(12)} ${vals.join(" ")}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// --- Unified speed tool ---
+
+export function registerSpeedTool(server: McpServer): void {
   server.tool(
-    "pagespeed",
-    "Analyze page performance using Google PageSpeed Insights. Accepts a single URL or multiple URLs (batch mode). With 2 URLs, returns a side-by-side comparison with deltas. With 3-10 URLs, returns a summary table with shared opportunities.",
+    "speed",
+    "Analyze site performance. Run PageSpeed Insights (lab metrics, Lighthouse scores, opportunities) for single or multiple URLs, or query Chrome UX Report for real-world field data and historical trends.",
     {
-      url: z.string().url().optional().describe("Single URL to analyze. Use this OR urls, not both."),
+      action: z
+        .enum(["pagespeed", "crux", "crux_history"])
+        .optional()
+        .describe(
+          "Which analysis to run. Auto-detected: 'pagespeed' when url/urls provided, 'crux' when origin provided.",
+        ),
+      url: z.string().url().optional().describe("URL to analyze (PageSpeed or CrUX)."),
       urls: z
         .array(z.string().url())
         .min(2)
         .max(10)
         .optional()
-        .describe("Multiple URLs (2-10) for batch analysis. 2 URLs = compare mode, 3+ = summary table."),
-      strategy: z.enum(["mobile", "desktop"]).optional().describe("Device strategy. Default: 'mobile'."),
+        .describe("Multiple URLs (2-10) for batch PageSpeed. 2 = compare, 3+ = summary table."),
+      strategy: z.enum(["mobile", "desktop"]).optional().describe("Device strategy for PageSpeed. Default: 'mobile'."),
       categories: z
         .array(z.enum(["performance", "accessibility", "best-practices", "seo"]))
         .optional()
-        .describe("Lighthouse categories to run. Default: all four."),
-      locale: z.string().optional().describe("Locale for localized results (e.g., 'pt-BR', 'en')."),
+        .describe("Lighthouse categories. Default: all four."),
+      locale: z.string().optional().describe("Locale for PageSpeed results."),
+      origin: z.string().optional().describe("Origin for CrUX data (e.g., 'https://example.com'). Triggers CrUX mode."),
+      form_factor: z.enum(["DESKTOP", "PHONE", "TABLET"]).optional().describe("CrUX device filter."),
+      metrics: z
+        .array(
+          z.enum([
+            "cumulative_layout_shift",
+            "first_contentful_paint",
+            "interaction_to_next_paint",
+            "largest_contentful_paint",
+            "experimental_time_to_first_byte",
+            "round_trip_time",
+            "navigation_types",
+            "form_factors",
+          ]),
+        )
+        .optional()
+        .describe("CrUX metrics to query."),
+      periods: z.number().min(1).max(40).optional().describe("CrUX history periods (1-40). Default: 25."),
     },
-    async ({ url, urls, strategy, categories, locale }) => {
-      const strat = (strategy as "mobile" | "desktop") ?? "mobile";
-      const cats = categories as PsiCategoryType[] | undefined;
-      const opts = { strategy: strat, categories: cats, locale };
-
-      // Validate: must provide url or urls, not both
-      if (url && urls) {
-        return {
-          content: [{ type: "text", text: "Error: provide either 'url' (single) or 'urls' (batch), not both." }],
-        };
-      }
-      if (!url && !urls) {
-        return {
-          content: [{ type: "text", text: "Error: provide 'url' for single analysis or 'urls' for batch analysis." }],
-        };
-      }
-
-      // Single URL — existing behavior
-      if (url) {
-        try {
-          const result = await runPagespeed(url, opts);
-          const text = formatPagespeed(url, result) + (hasApiKey() ? "" : QUOTA_NOTE);
-          return { content: [{ type: "text", text }] };
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          return { content: [{ type: "text", text: `Error running PageSpeed analysis: ${msg}` }] };
+    async ({ action, url, urls, strategy, categories, locale, origin, form_factor, metrics, periods }) => {
+      // Determine which action to run
+      let resolvedAction = action;
+      if (!resolvedAction) {
+        if (urls) {
+          resolvedAction = "pagespeed";
+        } else if (origin && !url) {
+          resolvedAction = "crux";
+        } else if (periods) {
+          resolvedAction = "crux_history";
+        } else {
+          resolvedAction = "pagespeed";
         }
       }
 
-      // Batch mode
-      const batchUrls = urls as string[];
-      const results = await runBatch(batchUrls, opts);
+      // --- PageSpeed action ---
+      if (resolvedAction === "pagespeed") {
+        const strat = (strategy as "mobile" | "desktop") ?? "mobile";
+        const cats = categories as PsiCategoryType[] | undefined;
+        const opts = { strategy: strat, categories: cats, locale };
 
-      // Separate successes and failures
-      const successes = results.filter((r): r is { url: string; result: PsiResult } => !!r.result);
-      const failures = results.filter((r): r is { url: string; error: string } => !!r.error);
+        if (url && urls) {
+          return {
+            content: [
+              { type: "text" as const, text: "Error: provide either 'url' (single) or 'urls' (batch), not both." },
+            ],
+          };
+        }
+        if (!url && !urls) {
+          return {
+            content: [
+              { type: "text" as const, text: "Error: provide 'url' for single analysis or 'urls' for batch analysis." },
+            ],
+          };
+        }
 
-      if (successes.length === 0) {
-        const errorLines = failures.map((f) => `${f.url}: ${f.error}`);
-        return { content: [{ type: "text", text: `All URLs failed:\n${errorLines.join("\n")}` }] };
+        // Single URL
+        if (url) {
+          try {
+            const result = await runPagespeed(url, opts);
+            const text = formatPagespeed(url, result) + (hasApiKey() ? "" : QUOTA_NOTE);
+            return { content: [{ type: "text" as const, text }] };
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            return { content: [{ type: "text" as const, text: `Error running PageSpeed analysis: ${msg}` }] };
+          }
+        }
+
+        // Batch mode
+        const batchUrls = urls as string[];
+        const results = await runBatch(batchUrls, opts);
+
+        const successes = results.filter((r): r is { url: string; result: PsiResult } => !!r.result);
+        const failures = results.filter((r): r is { url: string; error: string } => !!r.error);
+
+        if (successes.length === 0) {
+          const errorLines = failures.map((f) => `${f.url}: ${f.error}`);
+          return { content: [{ type: "text" as const, text: `All URLs failed:\n${errorLines.join("\n")}` }] };
+        }
+
+        let output: string;
+        if (successes.length === 2) {
+          output = formatBatchCompare(successes, strat);
+        } else {
+          output = formatBatchTable(successes, strat);
+        }
+
+        if (failures.length > 0) {
+          const errorLines = failures.map((f) => `${f.url}: ${f.error}`);
+          output += `\n\n--- Errors ---\n${errorLines.join("\n")}`;
+        }
+
+        if (!hasApiKey()) output += QUOTA_NOTE;
+
+        return { content: [{ type: "text" as const, text: output }] };
       }
 
-      let output: string;
-      if (successes.length === 2) {
-        output = formatBatchCompare(successes, strat);
-      } else {
-        output = formatBatchTable(successes, strat);
+      // --- CrUX action ---
+      if (resolvedAction === "crux") {
+        const cruxUrl = url;
+        const cruxOrigin = origin;
+
+        if (!cruxUrl && !cruxOrigin) {
+          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+        }
+        if (cruxUrl && cruxOrigin) {
+          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+        }
+
+        try {
+          const result = await queryCrux({
+            url: cruxUrl,
+            origin: cruxOrigin,
+            formFactor: form_factor as CruxFormFactor | undefined,
+            metrics,
+          });
+          return { content: [{ type: "text" as const, text: formatCrux(cruxUrl ?? cruxOrigin ?? "", result) }] };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes("404")) {
+            const target = cruxUrl ?? cruxOrigin ?? "";
+            const lines = [`No CrUX data for ${target}.`, ""];
+            lines.push("CrUX requires sufficient Chrome user traffic (roughly 1,000+ monthly visits).");
+            if (cruxUrl) {
+              const originUrl = new URL(cruxUrl).origin;
+              lines.push(`Try origin-level data instead: origin "${originUrl}"`);
+            }
+            lines.push("For lab metrics without traffic requirements, use the speed tool with action 'pagespeed'.");
+            return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+          }
+          if (msg.includes("SERVICE_DISABLED") || msg.includes("API_KEY_SERVICE_BLOCKED")) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: "Chrome UX Report API is not enabled or the API key doesn't have access. Enable the API at: https://console.cloud.google.com/apis/library/chromeuxreport.googleapis.com — and ensure your API key allows it (Credentials > API key > API restrictions).",
+                },
+              ],
+            };
+          }
+          return { content: [{ type: "text" as const, text: `Error querying CrUX: ${msg}` }] };
+        }
       }
 
-      // Append any failures
-      if (failures.length > 0) {
-        const errorLines = failures.map((f) => `${f.url}: ${f.error}`);
-        output += `\n\n--- Errors ---\n${errorLines.join("\n")}`;
+      // --- CrUX History action ---
+      if (resolvedAction === "crux_history") {
+        const histUrl = url;
+        const histOrigin = origin;
+
+        if (!histUrl && !histOrigin) {
+          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+        }
+        if (histUrl && histOrigin) {
+          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+        }
+
+        try {
+          const result = await queryCruxHistory({
+            url: histUrl,
+            origin: histOrigin,
+            formFactor: form_factor as CruxFormFactor | undefined,
+            metrics,
+            collectionPeriodCount: periods,
+          });
+          return { content: [{ type: "text" as const, text: formatCruxHistory(histUrl ?? histOrigin ?? "", result) }] };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes("404")) {
+            const target = histUrl ?? histOrigin ?? "";
+            const lines = [`No CrUX history data for ${target}.`, ""];
+            lines.push("CrUX requires sufficient Chrome user traffic (roughly 1,000+ monthly visits).");
+            if (histUrl) {
+              const originUrl = new URL(histUrl).origin;
+              lines.push(`Try origin-level data instead: origin "${originUrl}"`);
+            }
+            lines.push("For lab metrics without traffic requirements, use the speed tool with action 'pagespeed'.");
+            return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+          }
+          if (msg.includes("SERVICE_DISABLED")) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: "Chrome UX Report API is not enabled. Enable it at: https://console.cloud.google.com/apis/library/chromeuxreport.googleapis.com",
+                },
+              ],
+            };
+          }
+          return { content: [{ type: "text" as const, text: `Error querying CrUX History: ${msg}` }] };
+        }
       }
 
-      if (!hasApiKey()) output += QUOTA_NOTE;
-
-      return { content: [{ type: "text", text: output }] };
+      return { content: [{ type: "text" as const, text: `Unknown action: ${resolvedAction}` }] };
     },
   );
 }

@@ -12,25 +12,24 @@ MCP server for SEO, GEO, and web performance analysis. npm package: `pagesight`.
 
 ## Architecture
 
+6 tools organized by developer intent, not data source.
+
 ```
 src/
-  index.ts              # MCP server entry, registers all tools
+  index.ts              # MCP server entry, registers 6 tools
   lib/
     auth.ts             # OAuth 2.0 + Service Account auth for GSC
     gsc.ts              # Google Search Console API client
     psi.ts              # PageSpeed Insights API client
     crux.ts             # Chrome UX Report API client
     robots.ts           # robots.txt parser + AI crawler registry
+    sitemap.ts          # Sitemap XML parser + URL inspection utilities
   tools/
-    audit.ts            # Cross-tool site audit (orchestrates all tools)
-    inspect.ts          # URL Inspection tool
-    metatags.ts         # Meta tags, OG, Twitter, JSON-LD, redirect chain
-    pagespeed.ts        # PageSpeed Insights + failing audit details
-    crux.ts             # CrUX + CrUX History tools
-    performance.ts      # Search Analytics + period comparison
-    robots.ts           # robots.txt + AI crawler audit
-    sample-inspect.ts   # Batch sitemap URL inspection
-    sitemaps.ts         # Sites + Sitemaps tool
+    audit.ts            # "How's my site?" — orchestrates all tools
+    page.ts             # "What's on this URL?" — meta tags, links, structured data, contrast
+    speed.ts            # "How fast is it?" — PageSpeed (single/batch/compare) + CrUX (snapshot/history)
+    search.ts           # "How's Google seeing me?" — inspect, sample inspect, sitemaps, analytics
+    ai.ts               # "How's AI seeing me?" — AI crawler audit, robots.txt validation
     setup.ts            # Auth setup helper
 ```
 

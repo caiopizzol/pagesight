@@ -3,7 +3,7 @@ import { z } from "zod";
 import { inspectUrl, listSitemaps } from "../lib/gsc.js";
 import { type PsiCategoryType, type PsiResult, runPagespeed } from "../lib/psi.js";
 import { auditAiCrawlers, fetchRobotsTxt, isAllowed } from "../lib/robots.js";
-import { fetchSitemap, inspectSingle, sampleUrls } from "./sample-inspect.js";
+import { fetchSitemap, inspectSingle, sampleUrls } from "../lib/sitemap.js";
 
 type Severity = "HIGH" | "MEDIUM" | "LOW";
 
