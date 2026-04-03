@@ -105,6 +105,15 @@ function parseHead(html: string): ParsedHead {
     hreflang.push({ lang: hm[2], href: hm[1] });
   }
 
+  // Dedup hreflang entries
+  const seen = new Set<string>();
+  const dedupedHreflang = hreflang.filter((h) => {
+    const key = `${h.lang}:${h.href}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   // JSON-LD
   const jsonLd: unknown[] = [];
   for (const ld of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
@@ -115,7 +124,7 @@ function parseHead(html: string): ParsedHead {
     }
   }
 
-  return { title, charset, canonical, meta, hreflang, jsonLd };
+  return { title, charset, canonical, meta, hreflang: dedupedHreflang, jsonLd };
 }
 
 function getMeta(meta: MetaTag[], key: string): string | null {
@@ -276,8 +285,6 @@ const SCHEMA_RULES: Record<string, SchemaRule> = {
 function getNestedValue(obj: Record<string, unknown>, field: string): unknown {
   const val = obj[field];
   if (val !== undefined && val !== null && val !== "") return val;
-  // Check if it's a nested object with a value (e.g., logo might be {url: "..."} or a string)
-  if (typeof val === "object" && val !== null) return val;
   return undefined;
 }
 
@@ -438,10 +445,14 @@ async function followRedirects(
   let current = url;
 
   for (let i = 0; i < maxHops; i++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
     const res = await fetch(current, {
       headers: { "User-Agent": ua, Accept: "text/html" },
       redirect: "manual",
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     chain.push({ url: current, status: res.status });
 
@@ -465,7 +476,10 @@ async function followRedirects(
 
 async function checkImage(imageUrl: string, tag: string): Promise<ImageCheck> {
   try {
-    const res = await fetch(imageUrl, { method: "HEAD", redirect: "follow" });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const res = await fetch(imageUrl, { method: "HEAD", redirect: "follow", signal: controller.signal });
+    clearTimeout(timeout);
     return {
       url: imageUrl,
       tag,
@@ -614,11 +628,15 @@ async function checkLink(href: string): Promise<LinkResult> {
 
   try {
     for (let i = 0; i < 10; i++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
       const res = await fetch(current, {
         method: "HEAD",
         headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)", Accept: "text/html" },
         redirect: "manual",
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       chain.push({ url: current, status: res.status });
 
@@ -935,9 +953,20 @@ export function registerPageTool(server: McpServer): void {
         const lines: string[] = [`=== Batch Page Analysis (${results.length} URLs) ===`, ""];
 
         for (const r of results) {
-          const u = new URL(r.url);
-          const allSameHost = results.every((x) => new URL(x.url).hostname === u.hostname);
-          const label = allSameHost ? u.pathname : `${u.hostname}${u.pathname}`;
+          let label: string;
+          try {
+            const u = new URL(r.url);
+            const allSameHost = results.every((x) => {
+              try {
+                return new URL(x.url).hostname === u.hostname;
+              } catch {
+                return false;
+              }
+            });
+            label = allSameHost ? u.pathname : `${u.hostname}${u.pathname}`;
+          } catch {
+            label = r.url;
+          }
           lines.push(label);
           lines.push(`  Title: ${r.title}`);
           lines.push(`  Description: ${r.description}  Canonical: ${r.canonical}  JSON-LD: ${r.jsonLd}`);

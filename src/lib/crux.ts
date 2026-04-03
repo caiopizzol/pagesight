@@ -68,14 +68,18 @@ export interface CruxHistoryResponse {
   urlNormalizationDetails?: { originalUrl: string; normalizedUrl: string };
 }
 
-// --- CrUX Daily API ---
+// --- Shared fetch helper ---
 
-export async function queryCrux(options: {
-  url?: string;
-  origin?: string;
-  formFactor?: CruxFormFactor;
-  metrics?: string[];
-}): Promise<CruxResponse> {
+async function cruxFetch<T>(
+  endpoint: string,
+  options: {
+    url?: string;
+    origin?: string;
+    formFactor?: CruxFormFactor;
+    metrics?: string[];
+    collectionPeriodCount?: number;
+  },
+): Promise<T> {
   const key = getApiKey();
 
   const body: Record<string, unknown> = {};
@@ -83,8 +87,11 @@ export async function queryCrux(options: {
   if (options.origin) body.origin = options.origin;
   if (options.formFactor) body.formFactor = options.formFactor;
   if (options.metrics) body.metrics = options.metrics;
+  if (options.collectionPeriodCount !== undefined && options.collectionPeriodCount !== 0) {
+    body.collectionPeriodCount = options.collectionPeriodCount;
+  }
 
-  const res = await fetch(`${CRUX_API}:queryRecord?key=${key}`, {
+  const res = await fetch(`${CRUX_API}:${endpoint}?key=${key}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -95,37 +102,28 @@ export async function queryCrux(options: {
     throw new Error(`CrUX API error (${res.status}): ${err}`);
   }
 
-  return res.json() as Promise<CruxResponse>;
+  return res.json() as Promise<T>;
+}
+
+// --- CrUX Daily API ---
+
+export function queryCrux(options: {
+  url?: string;
+  origin?: string;
+  formFactor?: CruxFormFactor;
+  metrics?: string[];
+}): Promise<CruxResponse> {
+  return cruxFetch<CruxResponse>("queryRecord", options);
 }
 
 // --- CrUX History API ---
 
-export async function queryCruxHistory(options: {
+export function queryCruxHistory(options: {
   url?: string;
   origin?: string;
   formFactor?: CruxFormFactor;
   metrics?: string[];
   collectionPeriodCount?: number;
 }): Promise<CruxHistoryResponse> {
-  const key = getApiKey();
-
-  const body: Record<string, unknown> = {};
-  if (options.url) body.url = options.url;
-  if (options.origin) body.origin = options.origin;
-  if (options.formFactor) body.formFactor = options.formFactor;
-  if (options.metrics) body.metrics = options.metrics;
-  if (options.collectionPeriodCount) body.collectionPeriodCount = options.collectionPeriodCount;
-
-  const res = await fetch(`${CRUX_API}:queryHistoryRecord?key=${key}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`CrUX History API error (${res.status}): ${err}`);
-  }
-
-  return res.json() as Promise<CruxHistoryResponse>;
+  return cruxFetch<CruxHistoryResponse>("queryHistoryRecord", options);
 }

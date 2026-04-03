@@ -636,6 +636,13 @@ export function registerSearchTool(server: McpServer): void {
 
           const startDate = start_date ?? daysAgo(28);
           const endDate = end_date ?? daysAgo(3);
+
+          if (start_date && Number.isNaN(new Date(start_date).getTime())) {
+            return textResult(`Error: invalid start_date "${start_date}". Use YYYY-MM-DD format.`);
+          }
+          if (end_date && Number.isNaN(new Date(end_date).getTime())) {
+            return textResult(`Error: invalid end_date "${end_date}". Use YYYY-MM-DD format.`);
+          }
           const dims = dimensions ?? ["query", "page"];
 
           const filterGroups =

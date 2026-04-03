@@ -157,6 +157,13 @@ export function parseRobotsTxt(raw: string): RobotsTxt {
 function pathMatches(pattern: string, path: string): boolean {
   if (!pattern) return false;
 
+  // RFC 9309 §2.2.2: decode percent-encoded characters for comparison
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // malformed encoding, use as-is
+  }
+
   let regex = "^";
   for (let i = 0; i < pattern.length; i++) {
     const c = pattern[i];

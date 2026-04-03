@@ -15,6 +15,9 @@ let cachedToken: { token: string; expiresAt: number } | null = null;
 
 async function getServiceAccountToken(keyPath: string): Promise<string> {
   const keyFile = JSON.parse(await Bun.file(keyPath).text());
+  if (!keyFile.client_email || !keyFile.private_key) {
+    throw new Error("Service account key file missing client_email or private_key");
+  }
   const now = Math.floor(Date.now() / 1000);
 
   const header = toBase64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));

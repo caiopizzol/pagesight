@@ -115,5 +115,9 @@ export async function runPagespeed(
     throw new Error(`PageSpeed API error (${res.status}): ${err}`);
   }
 
-  return res.json() as Promise<PsiResult>;
+  try {
+    return (await res.json()) as PsiResult;
+  } catch {
+    throw new Error(`PageSpeed API returned invalid JSON (${res.status})`);
+  }
 }

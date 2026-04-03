@@ -21,7 +21,11 @@ async function gscFetch(url: string, body?: unknown): Promise<Record<string, unk
     throw new Error(`GSC API error (${res.status}): ${err}`);
   }
 
-  return res.json();
+  try {
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    throw new Error(`GSC API returned invalid JSON (${res.status})`);
+  }
 }
 
 // --- URL Inspection ---
@@ -62,6 +66,9 @@ export async function inspectUrl(inspectionUrl: string, siteUrl: string): Promis
     inspectionUrl,
     siteUrl,
   });
+  if (!data.inspectionResult) {
+    throw new Error("GSC API returned no inspection result");
+  }
   return data.inspectionResult as InspectionResult;
 }
 

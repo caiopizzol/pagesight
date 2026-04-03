@@ -27,14 +27,22 @@ export function parseSitemapXml(xml: string): SitemapParseResult {
 
 export async function fetchSitemap(sitemapUrl: string): Promise<SitemapParseResult> {
   const res = await fetch(sitemapUrl, {
-    headers: { "User-Agent": "Pagesight/1.0" },
+    headers: { "User-Agent": "Pagesight/1.0", "Accept-Encoding": "gzip, deflate" },
   });
 
   if (!res.ok) {
     throw new Error(`Failed to fetch sitemap ${sitemapUrl}: HTTP ${res.status}`);
   }
 
-  const xml = await res.text();
+  let xml: string;
+  const contentType = res.headers.get("content-type") ?? "";
+  if (sitemapUrl.endsWith(".gz") || contentType.includes("gzip") || contentType.includes("application/x-gzip")) {
+    const buffer = await res.arrayBuffer();
+    const decompressed = Bun.gunzipSync(new Uint8Array(buffer));
+    xml = new TextDecoder().decode(decompressed);
+  } else {
+    xml = await res.text();
+  }
   return parseSitemapXml(xml);
 }
 

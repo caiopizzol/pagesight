@@ -224,7 +224,12 @@ function formatDrillDown(
   const stateCounts: Record<string, { count: number; urls: string[] }> = {};
   for (const r of valid) {
     if (r.verdict !== "PASS") {
-      const path = new URL(r.url).pathname;
+      let path: string;
+      try {
+        path = new URL(r.url).pathname;
+      } catch {
+        path = r.url;
+      }
       const existing = stateCounts[r.coverageState];
       if (existing) {
         existing.count++;
@@ -357,10 +362,7 @@ export function registerAuditTool(server: McpServer): void {
             }
             if (parsed.urls.length > 0) {
               const sampled = sampleUrls(parsed.urls, 5, "spread");
-              const inspections = [];
-              for (const u of sampled) {
-                inspections.push(await inspectSingle(u, site_url));
-              }
+              const inspections = await Promise.all(sampled.map((u) => inspectSingle(u, site_url)));
               const drillDown = formatDrillDown(inspections);
               // Append drill-down to the sitemap finding
               const sitemapFinding = findings.find((f) => f.source === "sitemaps" && f.severity === "HIGH");

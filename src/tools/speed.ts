@@ -312,6 +312,7 @@ function formatDelta(a: number | null, b: number | null): string {
 }
 
 function formatBatchCompare(results: Array<{ url: string; result: PsiResult }>, strategy: string): string {
+  if (results.length < 2) return "Error: compare requires at least 2 results.";
   const [a, b] = results;
   const lhrA = a.result.lighthouseResult;
   const lhrB = b.result.lighthouseResult;
@@ -395,6 +396,7 @@ function formatBatchCompare(results: Array<{ url: string; result: PsiResult }>, 
 }
 
 function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, strategy: string): string {
+  if (results.length === 0) return "Error: no results to display.";
   const lines: string[] = [`=== Batch PageSpeed (${results.length} URLs, ${strategy}) ===`, ""];
 
   // Collect all category IDs from first result
