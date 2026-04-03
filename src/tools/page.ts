@@ -924,6 +924,29 @@ export function registerPageTool(server: McpServer): void {
               })
               .filter(Boolean);
 
+            // Run structured data validation for batch summary
+            let jsonLdSummary = "none";
+            if (parsed.jsonLd.length > 0) {
+              const { issues: valIssues, validatedTypes } = validateJsonLd(parsed.jsonLd);
+              const requiredMissing = valIssues.filter((i) => i.level === "required").length;
+              if (jsonLdTypes.length > 0) {
+                jsonLdSummary = jsonLdTypes.join(", ");
+                if (requiredMissing > 0) {
+                  jsonLdSummary += ` (${requiredMissing} required missing)`;
+                  issues.push(`${requiredMissing} missing required fields in JSON-LD`);
+                }
+              }
+            }
+
+            // Description with length
+            const descVal = getMeta(parsed.meta, "description");
+            let descSummary: string;
+            if (descVal) {
+              descSummary = descVal.length > 155 ? `yes (${descVal.length} chars ⚠)` : `yes (${descVal.length})`;
+            } else {
+              descSummary = "no";
+            }
+
             results.push({
               url: finalUrl,
               title: parsed.title
@@ -931,9 +954,9 @@ export function registerPageTool(server: McpServer): void {
                   ? `${parsed.title.slice(0, parsed.title.lastIndexOf(" ", 60) > 20 ? parsed.title.lastIndexOf(" ", 60) : 60)}...`
                   : parsed.title
                 : "(missing)",
-              description: getMeta(parsed.meta, "description") ? "yes" : "no",
+              description: descSummary,
               canonical: parsed.canonical ? "yes" : "no",
-              jsonLd: jsonLdTypes.length > 0 ? jsonLdTypes.join(", ") : "none",
+              jsonLd: jsonLdSummary,
               links: linkSummary,
               issues,
             });

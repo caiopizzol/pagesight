@@ -438,14 +438,17 @@ function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, st
   lines.push("");
 
   // Shared opportunities across pages
-  const oppCounts = new Map<string, { title: string; count: number }>();
+  const oppCounts = new Map<string, { title: string; count: number; maxSavings: string }>();
   for (const { result } of results) {
     for (const id of collectOpportunityIds(result.lighthouseResult.audits)) {
+      const audit = result.lighthouseResult.audits[id];
+      const savings = audit.displayValue ?? "";
       const existing = oppCounts.get(id);
       if (existing) {
         existing.count++;
+        if (savings && (!existing.maxSavings || savings > existing.maxSavings)) existing.maxSavings = savings;
       } else {
-        oppCounts.set(id, { title: result.lighthouseResult.audits[id].title, count: 1 });
+        oppCounts.set(id, { title: audit.title, count: 1, maxSavings: savings });
       }
     }
   }
@@ -453,14 +456,15 @@ function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, st
   const sharedOpps = [...oppCounts.entries()].filter(([, v]) => v.count >= 2).sort((a, b) => b[1].count - a[1].count);
   if (sharedOpps.length > 0) {
     lines.push("--- Shared Opportunities ---", "");
-    for (const [, { title, count }] of sharedOpps.slice(0, 10)) {
-      lines.push(`  ${title} (${count}/${results.length} pages)`);
+    for (const [, { title, count, maxSavings }] of sharedOpps.slice(0, 10)) {
+      const savingsStr = maxSavings ? `, up to ${maxSavings}` : "";
+      lines.push(`  ${title} (${count}/${results.length} pages${savingsStr})`);
     }
     lines.push("");
   }
 
   // A11y failures deduplicated across pages
-  const a11yFailures = new Map<string, { title: string; count: number; pages: string[] }>();
+  const a11yFailures = new Map<string, { title: string; count: number; pages: string[]; selectors: string[] }>();
   for (const { url, result } of results) {
     const lhr = result.lighthouseResult;
     const a11yCat = lhr.categories.accessibility;
@@ -469,13 +473,20 @@ function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, st
     for (const ref of a11yCat.auditRefs) {
       const audit = lhr.audits[ref.id];
       if (audit && audit.score !== null && audit.score < 1) {
-        const existing = a11yFailures.get(ref.id);
         const page = shortUrl(url, allUrls);
+        const selector = audit.details?.items?.[0]?.node?.selector ?? null;
+        const existing = a11yFailures.get(ref.id);
         if (existing) {
           existing.count++;
           existing.pages.push(page);
+          if (selector && !existing.selectors.includes(selector)) existing.selectors.push(selector);
         } else {
-          a11yFailures.set(ref.id, { title: audit.title, count: 1, pages: [page] });
+          a11yFailures.set(ref.id, {
+            title: audit.title,
+            count: 1,
+            pages: [page],
+            selectors: selector ? [selector] : [],
+          });
         }
       }
     }
@@ -486,8 +497,11 @@ function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, st
     .sort((a, b) => b[1].count - a[1].count);
   if (sharedA11y.length > 0) {
     lines.push("--- Accessibility Issues (shared) ---", "");
-    for (const [, { title, count, pages }] of sharedA11y.slice(0, 10)) {
+    for (const [, { title, count, pages, selectors }] of sharedA11y.slice(0, 10)) {
       lines.push(`  ${title} (${count}/${results.length} pages: ${pages.join(", ")})`);
+      if (selectors.length > 0) {
+        lines.push(`    Elements: ${selectors.slice(0, 3).join(", ")}`);
+      }
     }
     lines.push("");
   }
@@ -598,6 +612,37 @@ function formatCrux(target: string, result: CruxResponse): string {
       for (const [fKey, fVal] of Object.entries(metric.fractions)) {
         lines.push(`  ${fKey}: ${(fVal * 100).toFixed(1)}%`);
       }
+    }
+  }
+
+  // Core Web Vitals assessment (Google ranking signal)
+  const cwvMetrics = r.metrics;
+  const lcp = cwvMetrics.largest_contentful_paint?.percentiles?.p75 as number | undefined;
+  const inp = cwvMetrics.interaction_to_next_paint?.percentiles?.p75 as number | undefined;
+  const cls = cwvMetrics.cumulative_layout_shift?.percentiles?.p75 as number | undefined;
+
+  if (lcp !== undefined || inp !== undefined || cls !== undefined) {
+    lines.push("", "--- Core Web Vitals Assessment ---", "");
+    const lcpPass = lcp !== undefined && lcp <= 2500;
+    const inpPass = inp !== undefined && inp <= 200;
+    const clsPass = cls !== undefined && cls <= 0.1;
+
+    if (lcp !== undefined)
+      lines.push(`LCP: ${lcp}ms ${lcpPass ? "GOOD" : lcp <= 4000 ? "NEEDS IMPROVEMENT" : "POOR"} (threshold: 2500ms)`);
+    if (inp !== undefined)
+      lines.push(`INP: ${inp}ms ${inpPass ? "GOOD" : inp <= 500 ? "NEEDS IMPROVEMENT" : "POOR"} (threshold: 200ms)`);
+    if (cls !== undefined)
+      lines.push(`CLS: ${cls} ${clsPass ? "GOOD" : cls <= 0.25 ? "NEEDS IMPROVEMENT" : "POOR"} (threshold: 0.1)`);
+
+    const allPresent = lcp !== undefined && inp !== undefined && cls !== undefined;
+    if (allPresent) {
+      const allPass = lcpPass && inpPass && clsPass;
+      lines.push(
+        "",
+        allPass
+          ? "Overall: PASS — all Core Web Vitals are good (positive ranking signal)"
+          : "Overall: FAIL — not all Core Web Vitals pass (may affect rankings)",
+      );
     }
   }
 

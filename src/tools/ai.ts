@@ -8,6 +8,9 @@ interface LlmsTxtResult {
   exists: boolean;
   size: number | null;
   firstLine: string | null;
+  lineCount: number | null;
+  sections: string[];
+  linkCount: number | null;
 }
 
 async function checkLlmsTxt(origin: string, path: string): Promise<LlmsTxtResult> {
@@ -20,24 +23,37 @@ async function checkLlmsTxt(origin: string, path: string): Promise<LlmsTxtResult
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    if (!res.ok) return { exists: false, size: null, firstLine: null };
+    if (!res.ok) return { exists: false, size: null, firstLine: null, lineCount: null, sections: [], linkCount: null };
     // Cap at 1MB to avoid OOM on large responses
     const contentLength = Number(res.headers.get("content-length") ?? 0);
     if (contentLength > 1_048_576) {
-      return { exists: true, size: contentLength, firstLine: "(file too large to preview)" };
+      return {
+        exists: true,
+        size: contentLength,
+        firstLine: "(file too large to preview)",
+        lineCount: null,
+        sections: [],
+        linkCount: null,
+      };
     }
     const text = await res.text();
     if (text.length > 1_048_576) {
-      return { exists: true, size: text.length, firstLine: "(file too large to preview)" };
+      return {
+        exists: true,
+        size: text.length,
+        firstLine: "(file too large to preview)",
+        lineCount: null,
+        sections: [],
+        linkCount: null,
+      };
     }
-    const firstLine =
-      text
-        .split("\n")
-        .find((l) => l.trim().length > 0)
-        ?.trim() ?? null;
-    return { exists: true, size: text.length, firstLine };
+    const textLines = text.split("\n");
+    const firstLine = textLines.find((l) => l.trim().length > 0)?.trim() ?? null;
+    const sections = textLines.filter((l) => /^##\s/.test(l)).map((l) => l.replace(/^##\s+/, "").trim());
+    const linkCount = (text.match(/\[.*?\]\(https?:\/\/[^)]+\)/g) ?? []).length;
+    return { exists: true, size: text.length, firstLine, lineCount: textLines.length, sections, linkCount };
   } catch {
-    return { exists: false, size: null, firstLine: null };
+    return { exists: false, size: null, firstLine: null, lineCount: null, sections: [], linkCount: null };
   }
 }
 
@@ -46,8 +62,14 @@ function formatLlmsTxt(llmsTxt: LlmsTxtResult, llmsFullTxt: LlmsTxtResult): stri
 
   if (llmsTxt.exists) {
     const sizeKB = llmsTxt.size ? `${(llmsTxt.size / 1024).toFixed(1)} KB` : "unknown size";
-    lines.push(`llms.txt: FOUND (${sizeKB})`);
+    const details = [sizeKB];
+    if (llmsTxt.lineCount) details.push(`${llmsTxt.lineCount} lines`);
+    if (llmsTxt.linkCount) details.push(`${llmsTxt.linkCount} links`);
+    lines.push(`llms.txt: FOUND (${details.join(", ")})`);
     if (llmsTxt.firstLine) lines.push(`  ${llmsTxt.firstLine}`);
+    if (llmsTxt.sections.length > 0) {
+      lines.push(`  Sections: ${llmsTxt.sections.join(", ")}`);
+    }
   } else {
     lines.push("llms.txt: NOT FOUND — consider adding one for AI-friendly documentation");
   }

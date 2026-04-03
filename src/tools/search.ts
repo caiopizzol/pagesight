@@ -302,6 +302,10 @@ function formatPerformance(
 
   const totals = computeTotals(rows);
 
+  if (totals.impressions < 10) {
+    lines.push("⚠ Low data volume — trends may not be meaningful.", "");
+  }
+
   lines.push(
     `--- Summary (${rows.length} rows returned) ---`,
     "",
@@ -351,15 +355,35 @@ function formatComparison(
     `Previous: ${previousStart} to ${previousEnd}`,
     `Dimensions: ${dimensions.join(", ")}`,
     "",
-    "--- Summary ---",
-    "",
-    "             Current     Previous    Change",
-    `Clicks:      ${String(cur.clicks.toLocaleString()).padEnd(12)} ${String(prev.clicks.toLocaleString()).padEnd(12)} ${pctChange(cur.clicks, prev.clicks)}`,
-    `Impressions: ${String(cur.impressions.toLocaleString()).padEnd(12)} ${String(prev.impressions.toLocaleString()).padEnd(12)} ${pctChange(cur.impressions, prev.impressions)}`,
-    `Avg CTR:     ${`${(cur.ctr * 100).toFixed(1)}%`.padEnd(12)} ${`${(prev.ctr * 100).toFixed(1)}%`.padEnd(12)} ${((cur.ctr - prev.ctr) * 100).toFixed(1)}pp`,
-    `Avg Position:${String(cur.position.toFixed(1)).padEnd(13)} ${String(prev.position.toFixed(1)).padEnd(12)} ${prev.position === 0 && cur.position > 0 ? "new" : cur.position < prev.position ? "improved" : cur.position > prev.position ? "regressed" : "stable"} (${(cur.position - prev.position).toFixed(1)})`,
-    "",
   ];
+
+  if (cur.impressions < 10 && prev.impressions < 10) {
+    lines.push("⚠ Low data volume — trends may not be meaningful.", "");
+  }
+
+  lines.push("--- Summary ---", "");
+  lines.push("             Current     Previous    Change");
+  lines.push(
+    `Clicks:      ${String(cur.clicks.toLocaleString()).padEnd(12)} ${String(prev.clicks.toLocaleString()).padEnd(12)} ${pctChange(cur.clicks, prev.clicks)}`,
+  );
+  lines.push(
+    `Impressions: ${String(cur.impressions.toLocaleString()).padEnd(12)} ${String(prev.impressions.toLocaleString()).padEnd(12)} ${pctChange(cur.impressions, prev.impressions)}`,
+  );
+  const curCtr = `${(cur.ctr * 100).toFixed(1)}%`;
+  const prevCtr = `${(prev.ctr * 100).toFixed(1)}%`;
+  lines.push(`Avg CTR:     ${curCtr.padEnd(12)} ${prevCtr.padEnd(12)} ${((cur.ctr - prev.ctr) * 100).toFixed(1)}pp`);
+  const posStatus =
+    prev.position === 0 && cur.position > 0
+      ? "new"
+      : cur.position < prev.position
+        ? "improved"
+        : cur.position > prev.position
+          ? "regressed"
+          : "stable";
+  lines.push(
+    `Avg Position:${String(cur.position.toFixed(1)).padEnd(13)} ${String(prev.position.toFixed(1)).padEnd(12)} ${posStatus} (${(cur.position - prev.position).toFixed(1)})`,
+  );
+  lines.push("");
 
   // Build lookup for previous period rows
   const prevMap = new Map<string, (typeof prevRows)[0]>();

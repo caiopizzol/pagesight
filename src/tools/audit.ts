@@ -382,6 +382,21 @@ export function registerAuditTool(server: McpServer): void {
       if (inspectResult.status === "fulfilled" && inspectResult.value) {
         const idx = inspectResult.value.indexStatusResult;
         addInspectFindings(idx.verdict, idx.coverageState, findings);
+
+        // Rich Results check
+        const richResults = inspectResult.value.richResultsResult;
+        if (richResults && richResults.verdict === "FAIL") {
+          const failingTypes = (richResults.detectedItems ?? [])
+            .filter((item) => item.items?.some((i) => (i.issues?.length ?? 0) > 0))
+            .map((item) => item.richResultType);
+          if (failingTypes.length > 0) {
+            findings.push({
+              severity: "MEDIUM",
+              message: `Rich Results failing for: ${failingTypes.join(", ")}`,
+              source: "inspect",
+            });
+          }
+        }
       } else if (inspectResult.status === "rejected") {
         errors.push(`Inspect: ${inspectResult.reason}`);
       }
