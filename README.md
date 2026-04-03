@@ -8,34 +8,40 @@ See your site the way search engines and AI see it.
 npm install pagesight
 ```
 
-Your AI assistant can write your code. Now it can see your site. Index status, performance, real-user metrics, search traffic, meta tags, structured data, AI crawler access — one package, one call.
+Your AI assistant can write your code. Now it can see your site. Index status, performance, real-user metrics, search traffic, meta tags, structured data, AI crawler access, link health — one package, one call.
 
 ```
 === Site Audit: https://example.com ===
 
+2 checks failed — results below are partial:
+
+  FAIL  PageSpeed: quota exceeded
+  FAIL  Sitemaps: permission denied
+
+5 findings:
+
 HIGH    Missing canonical URL
-HIGH    7,772 sitemap URLs submitted, 0 indexed
+HIGH    22 sitemap URLs submitted, 0 indexed
+        Auto-inspected 5 URLs:
+        - 2/5 indexed
+        - 3/5 Discovered - currently not indexed: /docs/, /pricing/, /about/
 MEDIUM  Missing og:image — no social preview image
-MEDIUM  Accessibility score: 89/100
 LOW     Missing Twitter Card tags
-LOW     No structured data (JSON-LD) found
+LOW     6/139 AI crawlers blocked
 ```
 
 ## Tools
 
-| Tool | What it does |
-|------|-------------|
-| `audit` | One-call site audit. Runs all checks in parallel. Returns prioritized findings. |
-| `pagespeed` | Lighthouse scores, Core Web Vitals, opportunities, failing audits with fix links. |
-| `metatags` | OG, Twitter Card, canonical, JSON-LD with schema validation, redirect chain, image validation. |
-| `inspect` | Google index status, canonical choice, crawl state, rich results. |
-| `sample_inspect` | Sample URLs from a sitemap and batch-inspect. Diagnoses indexing patterns. |
-| `performance` | Search analytics — clicks, impressions, CTR, position. `compare: true` for period-over-period. |
-| `crux` | Real-user Core Web Vitals (p75, histograms). |
-| `crux_history` | CWV trends over time — up to 40 weekly data points. |
-| `robots` | robots.txt validation (RFC 9309) + AI crawler audit (139+ bots). |
-| `sitemaps` | Search Console properties and sitemaps with submitted/indexed counts. |
-| `setup` | Auth status and OAuth setup. |
+6 tools organized by intent:
+
+| Tool | Intent | What it does |
+|------|--------|-------------|
+| `audit` | How's my site? | One-call site audit. Runs all checks in parallel. Prioritized findings with auto-drill-down on indexing issues. |
+| `page` | What's on this URL? | Meta tags, OG, Twitter Card, JSON-LD validation (19 schema types), internal link health, redirect chains, WCAG contrast checker. Batch mode for multiple URLs. |
+| `speed` | How fast is it? | PageSpeed single/batch/compare with Lighthouse scores and opportunities. CrUX real-user metrics (snapshot + history trends). |
+| `search` | How's Google seeing me? | URL inspection, sample-inspect from sitemaps, sitemap management, search analytics with period-over-period comparison. |
+| `ai` | How's AI seeing me? | AI crawler audit (139+ bots by category), robots.txt validation (RFC 9309), llms.txt detection, path access checks. |
+| `setup` | Auth config | Auth status check and OAuth setup flow. |
 
 ## Setup
 
@@ -58,7 +64,7 @@ Add to your MCP config:
 }
 ```
 
-`robots`, `metatags`, and `pagespeed` work without credentials.
+`page`, `speed`, and `ai` work without credentials. `search` and `audit` (for GSC checks) require OAuth or a service account.
 
 ### Full setup
 

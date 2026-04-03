@@ -21,15 +21,17 @@ Pagesight is sight.
 
 ### What it does
 
-Three layers of visibility, unified in one package:
+Five questions, five tools, unified in one package:
 
-**Is your site seen?** Index status, sitemap health, robots.txt compliance, AI crawler access. Which pages have been indexed, which haven't, and why. Which AI bots can reach your content.
+**What's on this page?** Meta tags, Open Graph, structured data validation (19 schema types with nested field checks), internal link health, redirect chains, WCAG contrast checking. Batch across multiple URLs.
 
-**How does it perform?** Lab scores, real-user metrics, search analytics. Clicks, impressions, position, CTR — current and compared period-over-period.
+**How fast is it?** Lab scores from Lighthouse (single, batch, side-by-side compare), real-user metrics from Chrome UX Report (snapshot + 10-month trends). Shared accessibility issues deduplicated across pages.
 
-**How does it present itself?** Meta tags, canonical URLs, structured data, redirect chains, image validation. Your page as search engines see it.
+**How's Google seeing me?** Index status, sitemap health with auto-drill-down, search analytics with period-over-period comparison. Sample-inspect from sitemaps to diagnose indexing patterns.
 
-One call runs everything in parallel and returns findings ranked by severity. HIGH first.
+**How's AI seeing me?** 139+ AI crawlers audited by category (training, search, assistant, agent). robots.txt validation per RFC 9309. llms.txt and llms-full.txt detection.
+
+**How's my site overall?** One call runs everything in parallel. Findings ranked by severity. Errors surfaced first. Auto-drill-down when indexing is low.
 
 ```
 === Site Audit: https://example.com ===
@@ -60,9 +62,11 @@ LOW     No structured data (JSON-LD) found
 
 **Structural differentials:**
 - AI-native: designed to be used by AI assistants, not by humans clicking a dashboard
-- Unified: indexing + performance + meta tags + structured data + bot access in one package
-- One-call audit: parallel execution, prioritized findings, seconds not minutes
-- AI crawler awareness: live community registry, categorized by function, checked against your robots.txt
+- Intent-based: 6 tools named for what you're trying to do (page, speed, search, ai, audit, setup), not which API to call
+- Unified: indexing + performance + meta tags + structured data + link health + bot access + accessibility in one package
+- One-call audit: parallel execution, prioritized findings, auto-drill-down, seconds not minutes
+- AI crawler awareness: live community registry of 139+ bots, categorized by function, checked against your robots.txt
+- Batch everything: multiple URLs for page analysis, PageSpeed comparison, competitive benchmarking
 - Evidence-only: if the source doesn't report it, neither does Pagesight
 
 ### Promise
@@ -109,9 +113,9 @@ One call. Prioritized findings. Fix what matters.
 
 Your AI assistant can write code, review PRs, debug, refactor. But ask it about your site's search visibility and it goes blind. Is this page indexed? What do real users experience? Which AI crawlers are hitting your robots.txt? It can't answer.
 
-Pagesight gives it sight. Google Search Console tells you if a page is indexed. PageSpeed Insights tells you how fast it loads. Chrome UX Report tells you how real users experience it. A live registry of 139+ AI crawlers tells you who's accessing your content. Pagesight connects your AI assistant to all of it.
+Pagesight gives it sight. Google Search Console tells you if a page is indexed. PageSpeed Insights tells you how fast it loads. Chrome UX Report tells you how real users experience it. A live registry of 139+ AI crawlers tells you who's accessing your content. Your structured data is validated against what Google requires for Rich Results. Your internal links are checked for broken paths and redirect chains. Your color contrast is checked against WCAG. Pagesight connects your AI assistant to all of it.
 
-One call. Everything checked. Prioritized by severity.
+Six tools. Five questions. One package.
 
 ### Tagline & Slogans
 
@@ -120,8 +124,8 @@ One call. Everything checked. Prioritized by severity.
 
 **Context-specific:**
 - Hero: "Your AI assistant can write your code. Now it can see your site."
-- Technical: "Google Search Console + PageSpeed + CrUX + 139 AI crawlers. One package."
-- Developer pitch: "One call. Prioritized findings. Fix what matters."
+- Technical: "Google Search Console + PageSpeed + CrUX + 139 AI crawlers + link health + accessibility. One package."
+- Developer pitch: "Six tools. Five questions. Fix what matters."
 - AI crawler pitch: "139 AI crawlers. Do you know which ones you've let in?"
 - Trust: "No scores we invented. No rules we can't cite."
 - Install: "`npm install pagesight`"
@@ -132,9 +136,9 @@ Your AI assistant knows your codebase. It can find bugs, write tests, review pul
 
 Google Search Console knows if your page is indexed. PageSpeed Insights knows how fast it loads. Chrome UX Report knows how real users experience it. 139 AI crawlers are visiting your site right now — for training, for search, for answering user questions. Your assistant can't see any of it.
 
-So we built a bridge. Pagesight connects your AI assistant to the systems that actually evaluate your site. It fetches your page as Googlebot sees it. It validates your structured data against what Google requires for Rich Results. It checks if your OG images load. It traces your redirect chains. It samples your sitemap and batch-inspects to find why pages aren't indexed. It compares your search performance period over period.
+So we built a bridge. Pagesight connects your AI assistant to the systems that actually evaluate your site. It fetches your page as Googlebot sees it. It validates your structured data against 19 schema types with nested field checks. It checks if your OG images load. It traces your redirect chains and checks every internal link. It samples your sitemap and batch-inspects to find why pages aren't indexed. It compares your search performance period over period. It audits 139 AI crawlers by category — training, search, assistant, agent — and detects your llms.txt. It checks your color contrast against WCAG and suggests the nearest passing color.
 
-One command. Everything in parallel. Prioritized by severity.
+One command. Six tools. Prioritized by severity.
 
 Every data point has a source. Google's API. Chrome users. RFC 9309. schema.org. A community-maintained registry. Nothing invented. Nothing we can't cite.
 
@@ -145,13 +149,13 @@ That's Pagesight.
 ### Message Pillars
 
 **Sight**
-Your AI assistant is blind to search. Pagesight gives it eyes. Index status, performance, search traffic, bot access, meta tags, structured data, redirect chains — direct from the source, delivered through your assistant.
+Your AI assistant is blind to search. Pagesight gives it eyes. Index status, performance, search traffic, bot access, meta tags, structured data, link health, accessibility, AI visibility — direct from the source, delivered through your assistant.
 
 **Source**
 Every data point has a citation. Official APIs, published standards, community registries. No invented scores. No proprietary rules. What the sources report is what you see.
 
 **Action**
-Seeing isn't enough. One call runs twelve checks in parallel and returns findings ranked by severity. HIGH first. Fix what matters.
+Seeing isn't enough. Six tools, each named for what you're trying to do. Findings ranked by severity. Batch across pages. Compare across periods. Fix what matters.
 
 **Developer-Native**
 `npm install pagesight`. Let your AI assistant use it. No dashboard. No browser. No login. No subscription. Works where you already work.
@@ -160,7 +164,7 @@ Seeing isn't enough. One call runs twelve checks in parallel and returns finding
 
 - "Your AI assistant can write your code. Now it can see your site."
 - "See your site the way search engines and AI see it."
-- "One call. Twelve checks. Prioritized."
+- "Six tools. Five questions. Prioritized."
 - "What Google sees. What AI knows. One tool."
 - "139 AI crawlers. Do you know which ones you've let in?"
 - "No scores we invented. No rules we can't cite."
