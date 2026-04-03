@@ -813,10 +813,10 @@ export function registerSpeedTool(server: McpServer): void {
         const cruxOrigin = origin;
 
         if (!cruxUrl && !cruxOrigin) {
-          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+          return { content: [{ type: "text" as const, text: "Error: provide url or origin for CrUX data." }] };
         }
         if (cruxUrl && cruxOrigin) {
-          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+          return { content: [{ type: "text" as const, text: "Error: provide url or origin, not both." }] };
         }
 
         try {
@@ -860,10 +860,10 @@ export function registerSpeedTool(server: McpServer): void {
         const histOrigin = origin;
 
         if (!histUrl && !histOrigin) {
-          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+          return { content: [{ type: "text" as const, text: "Error: provide url or origin for CrUX history." }] };
         }
         if (histUrl && histOrigin) {
-          return { content: [{ type: "text" as const, text: "Error: provide either url or origin, not both." }] };
+          return { content: [{ type: "text" as const, text: "Error: provide url or origin, not both." }] };
         }
 
         try {

@@ -430,10 +430,16 @@ function formatComparison(
 }
 
 function daysAgo(n: number): string {
-  // GSC dates are in PT (Pacific Time). Use UTC-8 as a stable approximation.
-  const now = new Date(Date.now() - 8 * 60 * 60 * 1000);
-  now.setDate(now.getDate() - n);
-  return now.toISOString().split("T")[0];
+  // GSC dates are in Pacific Time. Use Intl to handle DST correctly.
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+  return parts; // en-CA formats as YYYY-MM-DD
 }
 
 // ── Tool registration ──

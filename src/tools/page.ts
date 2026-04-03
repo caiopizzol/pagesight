@@ -615,7 +615,7 @@ async function checkLink(href: string): Promise<LinkResult> {
   try {
     for (let i = 0; i < 10; i++) {
       const res = await fetch(current, {
-        method: "GET",
+        method: "HEAD",
         headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)", Accept: "text/html" },
         redirect: "manual",
       });

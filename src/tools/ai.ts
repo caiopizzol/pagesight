@@ -12,12 +12,24 @@ interface LlmsTxtResult {
 
 async function checkLlmsTxt(origin: string, path: string): Promise<LlmsTxtResult> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
     const res = await fetch(`${origin}${path}`, {
       headers: { "User-Agent": "Pagesight/1.0" },
       redirect: "follow",
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!res.ok) return { exists: false, size: null, firstLine: null };
+    // Cap at 1MB to avoid OOM on large responses
+    const contentLength = Number(res.headers.get("content-length") ?? 0);
+    if (contentLength > 1_048_576) {
+      return { exists: true, size: contentLength, firstLine: "(file too large to preview)" };
+    }
     const text = await res.text();
+    if (text.length > 1_048_576) {
+      return { exists: true, size: text.length, firstLine: "(file too large to preview)" };
+    }
     const firstLine =
       text
         .split("\n")
@@ -215,6 +227,7 @@ export function registerAiTool(server: McpServer): void {
     {
       url: z
         .string()
+        .url()
         .describe("Site URL or origin (e.g., 'https://example.com'). Fetches /robots.txt from this origin."),
       check_path: z
         .string()
