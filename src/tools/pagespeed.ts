@@ -16,6 +16,10 @@ function scoreLabel(score: number | null): string {
   return `${pct} (poor)`;
 }
 
+function scorePct(score: number | null): number | null {
+  return score === null ? null : Math.round(score * 100);
+}
+
 function cwvRating(category: string): string {
   if (category === "FAST") return "good";
   if (category === "AVERAGE") return "needs improvement";
@@ -190,6 +194,8 @@ function formatFailingAudits(audits: Record<string, PsiAudit>, categoryRefs: str
   return lines;
 }
 
+// --- Single URL formatting (existing) ---
+
 function formatPagespeed(url: string, result: PsiResult): string {
   const lhr = result.lighthouseResult;
   const lines: string[] = [
@@ -274,12 +280,234 @@ function formatPagespeed(url: string, result: PsiResult): string {
   return lines.join("\n");
 }
 
+// --- Batch formatting ---
+
+function shortUrl(url: string, allUrls: string[]): string {
+  try {
+    const u = new URL(url);
+    const path = u.pathname + u.search;
+    const hasDuplicate = allUrls.some(
+      (other) => other !== url && new URL(other).pathname + new URL(other).search === path,
+    );
+    return hasDuplicate ? u.hostname + path : path;
+  } catch {
+    return url;
+  }
+}
+
+function formatDelta(a: number | null, b: number | null): string {
+  if (a === null || b === null) return "";
+  const diff = b - a;
+  if (diff === 0) return "  (=)";
+  return diff > 0 ? `  (+${diff})` : `  (${diff})`;
+}
+
+function formatBatchCompare(results: Array<{ url: string; result: PsiResult }>, strategy: string): string {
+  const [a, b] = results;
+  const lhrA = a.result.lighthouseResult;
+  const lhrB = b.result.lighthouseResult;
+
+  const lines: string[] = [
+    `=== PageSpeed Compare (${strategy}) ===`,
+    ``,
+    `A: ${a.url}`,
+    `B: ${b.url}`,
+    `Lighthouse: ${lhrA.lighthouseVersion}`,
+    "",
+    "--- Scores ---",
+    "",
+  ];
+
+  // Score comparison
+  const catIds = Object.keys(lhrA.categories);
+  for (const id of catIds) {
+    const catA = lhrA.categories[id];
+    const catB = lhrB.categories[id];
+    if (!catA || !catB) continue;
+    const pA = scorePct(catA.score);
+    const pB = scorePct(catB.score);
+    const delta = formatDelta(pA, pB);
+    lines.push(`${catA.title}: ${pA ?? "N/A"} → ${pB ?? "N/A"}${delta}`);
+  }
+  lines.push("");
+
+  // CWV comparison
+  const cwvIds = [
+    "first-contentful-paint",
+    "largest-contentful-paint",
+    "total-blocking-time",
+    "cumulative-layout-shift",
+    "speed-index",
+    "interactive",
+  ];
+  const cwvLines: string[] = [];
+  for (const id of cwvIds) {
+    const auditA = lhrA.audits[id];
+    const auditB = lhrB.audits[id];
+    if (!auditA?.displayValue || !auditB?.displayValue) continue;
+    cwvLines.push(`${auditA.title}: ${auditA.displayValue} → ${auditB.displayValue}`);
+  }
+  if (cwvLines.length > 0) {
+    lines.push("--- Core Web Vitals (Lab) ---", "", ...cwvLines, "");
+  }
+
+  // Opportunities unique to each / shared
+  const oppsA = collectOpportunityIds(lhrA.audits);
+  const oppsB = collectOpportunityIds(lhrB.audits);
+  const onlyA = [...oppsA].filter((id) => !oppsB.has(id));
+  const onlyB = [...oppsB].filter((id) => !oppsA.has(id));
+  const shared = [...oppsA].filter((id) => oppsB.has(id));
+
+  if (onlyA.length > 0) {
+    lines.push(`--- Opportunities (A only) ---`, "");
+    for (const id of onlyA) lines.push(`  ${lhrA.audits[id].title}: ${lhrA.audits[id].displayValue ?? ""}`);
+    lines.push("");
+  }
+  if (onlyB.length > 0) {
+    lines.push(`--- Opportunities (B only) ---`, "");
+    for (const id of onlyB) lines.push(`  ${lhrB.audits[id].title}: ${lhrB.audits[id].displayValue ?? ""}`);
+    lines.push("");
+  }
+  if (shared.length > 0) {
+    lines.push(`--- Shared Opportunities ---`, "");
+    for (const id of shared) {
+      lines.push(
+        `  ${lhrA.audits[id].title}: ${lhrA.audits[id].displayValue ?? ""} → ${lhrB.audits[id].displayValue ?? ""}`,
+      );
+    }
+    lines.push("");
+  }
+
+  const timeA = (lhrA.timing.total / 1000).toFixed(1);
+  const timeB = (lhrB.timing.total / 1000).toFixed(1);
+  lines.push(`Analysis took ${timeA}s + ${timeB}s`);
+
+  return lines.join("\n");
+}
+
+function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, strategy: string): string {
+  const lines: string[] = [`=== Batch PageSpeed (${results.length} URLs, ${strategy}) ===`, ""];
+
+  // Collect all category IDs from first result
+  const catIds = Object.keys(results[0].result.lighthouseResult.categories);
+  const catNames = catIds.map((id) => results[0].result.lighthouseResult.categories[id].title);
+
+  // Score table
+  lines.push("--- Scores ---", "");
+
+  // Header
+  const urlCol = "URL";
+  const allUrls = results.map((r) => r.url);
+  const urlWidth = Math.max(urlCol.length, ...results.map((r) => shortUrl(r.url, allUrls).length));
+  const colWidth = Math.max(...catNames.map((n) => n.length), 4);
+  lines.push(`${urlCol.padEnd(urlWidth)}  ${catNames.map((n) => n.padEnd(colWidth)).join("  ")}`);
+
+  // Rows
+  let bestPerf: { url: string; score: number } | null = null;
+  let worstPerf: { url: string; score: number } | null = null;
+
+  for (const { url, result } of results) {
+    const lhr = result.lighthouseResult;
+    const scores = catIds.map((id) => {
+      const s = scorePct(lhr.categories[id]?.score);
+      return s !== null ? String(s) : "N/A";
+    });
+    lines.push(`${shortUrl(url, allUrls).padEnd(urlWidth)}  ${scores.map((s) => s.padEnd(colWidth)).join("  ")}`);
+
+    const perf = scorePct(lhr.categories.performance?.score);
+    if (perf !== null) {
+      if (!bestPerf || perf > bestPerf.score) bestPerf = { url: shortUrl(url, allUrls), score: perf };
+      if (!worstPerf || perf < worstPerf.score) worstPerf = { url: shortUrl(url, allUrls), score: perf };
+    }
+  }
+
+  lines.push("");
+  if (bestPerf) lines.push(`Best: ${bestPerf.url} (${bestPerf.score})`);
+  if (worstPerf && worstPerf.url !== bestPerf?.url) lines.push(`Worst: ${worstPerf.url} (${worstPerf.score})`);
+  lines.push("");
+
+  // Shared opportunities across pages
+  const oppCounts = new Map<string, { title: string; count: number }>();
+  for (const { result } of results) {
+    for (const id of collectOpportunityIds(result.lighthouseResult.audits)) {
+      const existing = oppCounts.get(id);
+      if (existing) {
+        existing.count++;
+      } else {
+        oppCounts.set(id, { title: result.lighthouseResult.audits[id].title, count: 1 });
+      }
+    }
+  }
+
+  const sharedOpps = [...oppCounts.entries()].filter(([, v]) => v.count >= 2).sort((a, b) => b[1].count - a[1].count);
+  if (sharedOpps.length > 0) {
+    lines.push("--- Shared Opportunities ---", "");
+    for (const [, { title, count }] of sharedOpps.slice(0, 10)) {
+      lines.push(`  ${title} (${count}/${results.length} pages)`);
+    }
+    lines.push("");
+  }
+
+  const totalTime = results.reduce((sum, r) => sum + r.result.lighthouseResult.timing.total, 0);
+  lines.push(`Total analysis time: ${(totalTime / 1000).toFixed(1)}s`);
+
+  return lines.join("\n");
+}
+
+function collectOpportunityIds(audits: Record<string, PsiAudit>): Set<string> {
+  const ids = new Set<string>();
+  for (const [id, audit] of Object.entries(audits)) {
+    if (audit.score === null || audit.score >= 1) continue;
+    const mode = audit.scoreDisplayMode;
+    const hasNumeric = audit.numericValue && audit.numericValue > 0;
+    if (mode === "metricSavings" || ((mode === "numeric" || mode === "binary") && hasNumeric)) {
+      if (hasNumeric || (audit.details?.items?.length ?? 0) > 0) {
+        ids.add(id);
+      }
+    }
+  }
+  return ids;
+}
+
+async function runBatch(
+  urls: string[],
+  options: { strategy?: "mobile" | "desktop"; categories?: PsiCategoryType[]; locale?: string },
+): Promise<Array<{ url: string; result?: PsiResult; error?: string }>> {
+  const concurrency = 2;
+  const results: Array<{ url: string; result?: PsiResult; error?: string }> = [];
+  let i = 0;
+
+  while (i < urls.length) {
+    const batch = urls.slice(i, i + concurrency);
+    const settled = await Promise.all(
+      batch.map(async (url) => {
+        try {
+          const result = await runPagespeed(url, options);
+          return { url, result };
+        } catch (err) {
+          return { url, error: err instanceof Error ? err.message : String(err) };
+        }
+      }),
+    );
+    results.push(...settled);
+    i += concurrency;
+  }
+
+  return results;
+}
+
 export function registerPagespeedTool(server: McpServer): void {
   server.tool(
     "pagespeed",
-    "Analyze a page's performance using Google PageSpeed Insights API. Returns Lighthouse scores, Core Web Vitals (lab + field), opportunities, and diagnostics.",
+    "Analyze page performance using Google PageSpeed Insights. Accepts a single URL or multiple URLs (batch mode). With 2 URLs, returns a side-by-side comparison with deltas. With 3-10 URLs, returns a summary table with shared opportunities.",
     {
-      url: z.string().url().describe("The URL to analyze."),
+      url: z.string().url().optional().describe("Single URL to analyze. Use this OR urls, not both."),
+      urls: z
+        .array(z.string().url())
+        .min(2)
+        .max(10)
+        .optional()
+        .describe("Multiple URLs (2-10) for batch analysis. 2 URLs = compare mode, 3+ = summary table."),
       strategy: z.enum(["mobile", "desktop"]).optional().describe("Device strategy. Default: 'mobile'."),
       categories: z
         .array(z.enum(["performance", "accessibility", "best-practices", "seo"]))
@@ -287,18 +515,61 @@ export function registerPagespeedTool(server: McpServer): void {
         .describe("Lighthouse categories to run. Default: all four."),
       locale: z.string().optional().describe("Locale for localized results (e.g., 'pt-BR', 'en')."),
     },
-    async ({ url, strategy, categories, locale }) => {
-      try {
-        const result = await runPagespeed(url, {
-          strategy: strategy as "mobile" | "desktop" | undefined,
-          categories: categories as PsiCategoryType[] | undefined,
-          locale,
-        });
-        return { content: [{ type: "text", text: formatPagespeed(url, result) }] };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        return { content: [{ type: "text", text: `Error running PageSpeed analysis: ${msg}` }] };
+    async ({ url, urls, strategy, categories, locale }) => {
+      const strat = (strategy as "mobile" | "desktop") ?? "mobile";
+      const cats = categories as PsiCategoryType[] | undefined;
+      const opts = { strategy: strat, categories: cats, locale };
+
+      // Validate: must provide url or urls, not both
+      if (url && urls) {
+        return {
+          content: [{ type: "text", text: "Error: provide either 'url' (single) or 'urls' (batch), not both." }],
+        };
       }
+      if (!url && !urls) {
+        return {
+          content: [{ type: "text", text: "Error: provide 'url' for single analysis or 'urls' for batch analysis." }],
+        };
+      }
+
+      // Single URL — existing behavior
+      if (url) {
+        try {
+          const result = await runPagespeed(url, opts);
+          return { content: [{ type: "text", text: formatPagespeed(url, result) }] };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return { content: [{ type: "text", text: `Error running PageSpeed analysis: ${msg}` }] };
+        }
+      }
+
+      // Batch mode
+      const batchUrls = urls as string[];
+      const results = await runBatch(batchUrls, opts);
+
+      // Separate successes and failures
+      const successes = results.filter((r): r is { url: string; result: PsiResult } => !!r.result);
+      const failures = results.filter((r): r is { url: string; error: string } => !!r.error);
+
+      if (successes.length === 0) {
+        const errorLines = failures.map((f) => `${f.url}: ${f.error}`);
+        return { content: [{ type: "text", text: `All URLs failed:\n${errorLines.join("\n")}` }] };
+      }
+
+      let output: string;
+      if (successes.length === 2) {
+        output = formatBatchCompare(successes, strat);
+      } else {
+        output = formatBatchTable(successes, strat);
+      }
+
+      // Append any failures
+      if (failures.length > 0) {
+        const errorLines = failures.map((f) => `${f.url}: ${f.error}`);
+        output += `\n\n--- Errors ---\n${errorLines.join("\n")}`;
+      }
+
+      return { content: [{ type: "text", text: output }] };
     },
   );
 }

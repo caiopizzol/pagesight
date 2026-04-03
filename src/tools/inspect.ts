@@ -34,6 +34,11 @@ function formatInspection(url: string, siteUrl: string, r: InspectionResult): st
     lines.push(`\nReferring URLs: ${idx.referringUrls.join(", ")}`);
   }
 
+  if (idx.verdict !== "PASS") {
+    const gscUrl = `https://search.google.com/search-console/inspect?resource_id=${encodeURIComponent(siteUrl)}&id=${encodeURIComponent(url)}`;
+    lines.push("", `→ This page is not indexed. Request indexing manually in Google Search Console:`, `  ${gscUrl}`);
+  }
+
   // Rich Results
   if (r.richResultsResult) {
     lines.push("", "--- Rich Results ---", "");
