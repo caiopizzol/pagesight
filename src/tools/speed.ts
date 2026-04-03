@@ -832,7 +832,7 @@ export function registerSpeedTool(server: McpServer): void {
               const originUrl = new URL(cruxUrl).origin;
               lines.push(`Try origin-level data instead: origin "${originUrl}"`);
             }
-            lines.push("For lab metrics without traffic requirements, use the speed tool with action 'pagespeed'.");
+            lines.push("For lab metrics without traffic requirements, use speed with a url instead.");
             return { content: [{ type: "text" as const, text: lines.join("\n") }] };
           }
           if (msg.includes("SERVICE_DISABLED") || msg.includes("API_KEY_SERVICE_BLOCKED")) {
@@ -880,7 +880,7 @@ export function registerSpeedTool(server: McpServer): void {
               const originUrl = new URL(histUrl).origin;
               lines.push(`Try origin-level data instead: origin "${originUrl}"`);
             }
-            lines.push("For lab metrics without traffic requirements, use the speed tool with action 'pagespeed'.");
+            lines.push("For lab metrics without traffic requirements, use speed with a url instead.");
             return { content: [{ type: "text" as const, text: lines.join("\n") }] };
           }
           if (msg.includes("SERVICE_DISABLED")) {
