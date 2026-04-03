@@ -457,7 +457,8 @@ function formatBatchTable(results: Array<{ url: string; result: PsiResult }>, st
   if (sharedOpps.length > 0) {
     lines.push("--- Shared Opportunities ---", "");
     for (const [, { title, count, maxSavings }] of sharedOpps.slice(0, 10)) {
-      const savingsStr = maxSavings ? `, up to ${maxSavings}` : "";
+      const cleaned = maxSavings.replace(/^Est savings of /i, "");
+      const savingsStr = cleaned ? `, up to ${cleaned}` : "";
       lines.push(`  ${title} (${count}/${results.length} pages${savingsStr})`);
     }
     lines.push("");
