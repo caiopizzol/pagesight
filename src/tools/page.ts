@@ -927,7 +927,7 @@ export function registerPageTool(server: McpServer): void {
             // Run structured data validation for batch summary
             let jsonLdSummary = "none";
             if (parsed.jsonLd.length > 0) {
-              const { issues: valIssues, validatedTypes } = validateJsonLd(parsed.jsonLd);
+              const { issues: valIssues } = validateJsonLd(parsed.jsonLd);
               const requiredMissing = valIssues.filter((i) => i.level === "required").length;
               if (jsonLdTypes.length > 0) {
                 jsonLdSummary = jsonLdTypes.join(", ");
