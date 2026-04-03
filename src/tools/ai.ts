@@ -117,11 +117,23 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
 
   if (robots.groups.length > 0) {
     lines.push("", "--- User-Agent Groups ---", "");
-    for (const group of robots.groups) {
-      const agents = group.userAgents.join(", ");
-      const allows = group.rules.filter((r) => r.type === "allow").length;
-      const disallows = group.rules.filter((r) => r.type === "disallow").length;
-      lines.push(`  ${agents}: ${disallows} disallow, ${allows} allow`);
+    if (robots.groups.length > 10) {
+      // Condensed: show count and top groups only
+      const sorted = [...robots.groups].sort((a, b) => b.rules.length - a.rules.length);
+      for (const group of sorted.slice(0, 5)) {
+        const agents = group.userAgents.join(", ");
+        const allows = group.rules.filter((r) => r.type === "allow").length;
+        const disallows = group.rules.filter((r) => r.type === "disallow").length;
+        lines.push(`  ${agents}: ${disallows} disallow, ${allows} allow`);
+      }
+      lines.push(`  ... and ${robots.groups.length - 5} more groups`);
+    } else {
+      for (const group of robots.groups) {
+        const agents = group.userAgents.join(", ");
+        const allows = group.rules.filter((r) => r.type === "allow").length;
+        const disallows = group.rules.filter((r) => r.type === "disallow").length;
+        lines.push(`  ${agents}: ${disallows} disallow, ${allows} allow`);
+      }
     }
   }
 

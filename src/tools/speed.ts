@@ -549,6 +549,11 @@ const METRIC_LABELS: Record<string, string> = {
   round_trip_time: "RTT",
   navigation_types: "Navigation Types",
   form_factors: "Form Factors",
+  largest_contentful_paint_image_element_render_delay: "LCP Image Render Delay",
+  largest_contentful_paint_image_resource_load_delay: "LCP Image Load Delay",
+  largest_contentful_paint_image_resource_load_duration: "LCP Image Load Duration",
+  largest_contentful_paint_image_time_to_first_byte: "LCP Image TTFB",
+  largest_contentful_paint_resource_type: "LCP Resource Type",
 };
 
 function formatDate(d: { year: number; month: number; day: number }): string {
