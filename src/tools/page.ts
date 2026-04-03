@@ -571,6 +571,17 @@ function formatMetatags(url: string, parsed: ParsedHead): string {
       lines.push(`${h.lang}: ${h.href}`);
     }
     lines.push("");
+  } else {
+    // Warn if URL suggests locale-specific content but no hreflang
+    const localePattern =
+      /\/(?:en|es|fr|de|ja|ko|pt|zh|ru|it|nl|sv|da|fi|nb|pl|tr|ar|hi|th|vi|id|ms|uk|cs|ro|hu|el|he|bg|hr|sk|sl|sr|lt|lv|et|ca|gl|eu|cy)(?:[-_][a-z]{2,4})?(?:\/|$)/i;
+    const checkUrl = parsed.canonical ?? url;
+    if (localePattern.test(checkUrl)) {
+      lines.push(
+        "WARN: URL appears locale-specific but no hreflang tags found — search engines may not discover alternate language versions",
+      );
+      lines.push("");
+    }
   }
 
   // Summary of missing tags relevant to search and social
@@ -798,15 +809,19 @@ export function registerPageTool(server: McpServer): void {
     "page",
     "Analyze what's on a page — meta tags, Open Graph, Twitter Card, structured data (JSON-LD), internal links, and redirect chains. Also includes a WCAG contrast checker for accessibility fixes.",
     {
-      url: z
-        .string()
-        .url()
+      url: z.string().url().optional().describe("Single URL to analyze. Use this OR urls, not both."),
+      urls: z
+        .array(z.string().url())
+        .min(2)
+        .max(10)
         .optional()
-        .describe("Page URL to analyze. Returns meta tags, structured data, and optionally internal links."),
+        .describe(
+          "Multiple URLs (2-10) for batch analysis. Returns a summary table of meta tags, structured data, and link health per page.",
+        ),
       check_links: z
         .boolean()
         .optional()
-        .describe("Also check all internal links for broken links and redirect chains. Default: false."),
+        .describe("Check internal links for broken links and redirect chains. Default: true. Set false to skip."),
       user_agent: z.string().optional().describe("Custom User-Agent for page fetch. Default: Googlebot-compatible."),
       foreground: z
         .string()
@@ -818,7 +833,129 @@ export function registerPageTool(server: McpServer): void {
         .optional()
         .describe("Whether text is large (≥18pt or ≥14pt bold). Lowers AA threshold to 3:1."),
     },
-    async ({ url, check_links, user_agent, foreground, background, large_text }) => {
+    async ({ url, urls, check_links, user_agent, foreground, background, large_text }) => {
+      // --- Batch mode ---
+      if (urls) {
+        const ua = user_agent ?? "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+        const results: Array<{
+          url: string;
+          title: string;
+          description: string;
+          canonical: string;
+          jsonLd: string;
+          links: string;
+          issues: string[];
+          error?: string;
+        }> = [];
+
+        for (const pageUrl of urls) {
+          try {
+            const { chain, response: res } = await followRedirects(pageUrl, ua);
+            if (!res.ok) {
+              results.push({
+                url: pageUrl,
+                title: "-",
+                description: "-",
+                canonical: "-",
+                jsonLd: "-",
+                links: "-",
+                issues: [`HTTP ${res.status}`],
+              });
+              continue;
+            }
+            const html = await res.text();
+            const parsed = parseHead(html);
+            const finalUrl = chain.length > 1 ? chain[chain.length - 1].url : pageUrl;
+
+            const issues: string[] = [];
+            if (!parsed.title) issues.push("no title");
+            if (!getMeta(parsed.meta, "description")) issues.push("no description");
+            else if ((getMeta(parsed.meta, "description") ?? "").length > 155) issues.push("description >155 chars");
+            if (!parsed.canonical) issues.push("no canonical");
+            if (parsed.jsonLd.length === 0) issues.push("no JSON-LD");
+            if (chain.length > 2) issues.push(`${chain.length - 1} redirects`);
+
+            // Quick link check
+            let linkSummary = "-";
+            if (check_links !== false) {
+              const origin = new URL(finalUrl).origin;
+              const links = extractInternalLinks(html, origin);
+              if (links.length > 0) {
+                const checked = await Promise.all(links.slice(0, 20).map((href) => checkLink(href)));
+                const broken = checked.filter((r) => r.error || (r.status && r.status >= 400)).length;
+                const redirected = checked.filter(
+                  (r) => !r.error && r.redirectChain.length > 1 && r.status && r.status < 400,
+                ).length;
+                const parts: string[] = [`${links.length} found`];
+                if (broken > 0) parts.push(`${broken} broken`);
+                if (redirected > 0) parts.push(`${redirected} redirected`);
+                if (broken === 0 && redirected === 0) parts.push("all OK");
+                linkSummary = parts.join(", ");
+                if (broken > 0) issues.push(`${broken} broken links`);
+                if (redirected > 0) issues.push(`${redirected} redirect chains`);
+              } else {
+                linkSummary = "0 (SPA?)";
+              }
+            }
+
+            const jsonLdTypes = parsed.jsonLd
+              .map((block) => {
+                if (block && typeof block === "object" && "@type" in block)
+                  return String((block as Record<string, unknown>)["@type"]);
+                return null;
+              })
+              .filter(Boolean);
+
+            results.push({
+              url: finalUrl,
+              title: parsed.title
+                ? parsed.title.length > 40
+                  ? `${parsed.title.slice(0, 40)}...`
+                  : parsed.title
+                : "(missing)",
+              description: getMeta(parsed.meta, "description") ? "yes" : "no",
+              canonical: parsed.canonical ? "yes" : "no",
+              jsonLd: jsonLdTypes.length > 0 ? jsonLdTypes.join(", ") : "none",
+              links: linkSummary,
+              issues,
+            });
+          } catch (err) {
+            results.push({
+              url: pageUrl,
+              title: "-",
+              description: "-",
+              canonical: "-",
+              jsonLd: "-",
+              links: "-",
+              issues: [err instanceof Error ? err.message : String(err)],
+            });
+          }
+        }
+
+        const lines: string[] = [`=== Batch Page Analysis (${results.length} URLs) ===`, ""];
+
+        for (const r of results) {
+          const u = new URL(r.url);
+          const allSameHost = results.every((x) => new URL(x.url).hostname === u.hostname);
+          const label = allSameHost ? u.pathname : `${u.hostname}${u.pathname}`;
+          lines.push(label);
+          lines.push(`  Title: ${r.title}`);
+          lines.push(`  Description: ${r.description}  Canonical: ${r.canonical}  JSON-LD: ${r.jsonLd}`);
+          if (check_links !== false) lines.push(`  Links: ${r.links}`);
+          if (r.issues.length > 0) {
+            lines.push(`  Issues: ${r.issues.join(", ")}`);
+          } else {
+            lines.push("  Issues: none");
+          }
+          lines.push("");
+        }
+
+        const issueCount = results.reduce((sum, r) => sum + r.issues.length, 0);
+        lines.push(`Total: ${results.length} pages, ${issueCount} issues`);
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      }
+
       // --- Contrast-only mode (no URL) ---
       if (foreground && background && !url) {
         const fg = parseHex(foreground);
@@ -971,8 +1108,34 @@ export function registerPageTool(server: McpServer): void {
             }
           }
 
-          // --- Link check (appended after metatags output) ---
-          if (check_links) {
+          // Contrast check (before links, after structured data)
+          if (foreground && background) {
+            const fg = parseHex(foreground);
+            const bg = parseHex(background);
+            if (fg && bg) {
+              const fgLum = relativeLuminance(...fg);
+              const bgLum = relativeLuminance(...bg);
+              const ratio = contrastRatio(fgLum, bgLum);
+              const isLarge = large_text ?? false;
+              const level = wcagLevel(ratio, isLarge);
+              const aaThreshold = isLarge ? 3 : 4.5;
+              const aaaThreshold = isLarge ? 4.5 : 7;
+              output.push(
+                "",
+                "--- Contrast Check ---",
+                "",
+                `Foreground: ${toHex(...fg)}  Background: ${toHex(...bg)}`,
+                `Ratio: ${ratio.toFixed(2)}:1  AA: ${ratio >= aaThreshold ? "PASS" : "FAIL"}  AAA: ${ratio >= aaaThreshold ? "PASS" : "FAIL"}  Result: ${level}`,
+              );
+              if (ratio < aaThreshold) {
+                const suggested = findNearestPassing(fg, bg, aaThreshold);
+                output.push(`Nearest AA-passing foreground: ${suggested}`);
+              }
+            }
+          }
+
+          // --- Link check (last section) ---
+          if (check_links !== false) {
             const origin = new URL(url).origin;
             const links = extractInternalLinks(html, origin);
 
@@ -998,32 +1161,6 @@ export function registerPageTool(server: McpServer): void {
               }
 
               output.push("", formatLinkResults(url, results));
-            }
-          }
-
-          // Append contrast check if colors were also provided
-          if (foreground && background) {
-            const fg = parseHex(foreground);
-            const bg = parseHex(background);
-            if (fg && bg) {
-              const fgLum = relativeLuminance(...fg);
-              const bgLum = relativeLuminance(...bg);
-              const ratio = contrastRatio(fgLum, bgLum);
-              const isLarge = large_text ?? false;
-              const level = wcagLevel(ratio, isLarge);
-              const aaThreshold = isLarge ? 3 : 4.5;
-              const aaaThreshold = isLarge ? 4.5 : 7;
-              output.push(
-                "",
-                "--- Contrast Check ---",
-                "",
-                `Foreground: ${toHex(...fg)}  Background: ${toHex(...bg)}`,
-                `Ratio: ${ratio.toFixed(2)}:1  AA: ${ratio >= aaThreshold ? "PASS" : "FAIL"}  AAA: ${ratio >= aaaThreshold ? "PASS" : "FAIL"}  Result: ${level}`,
-              );
-              if (ratio < aaThreshold) {
-                const suggested = findNearestPassing(fg, bg, aaThreshold);
-                output.push(`Nearest AA-passing foreground: ${suggested}`);
-              }
             }
           }
 

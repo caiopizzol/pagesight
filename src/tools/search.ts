@@ -413,16 +413,18 @@ function formatComparison(
     lines.push("");
   }
 
+  lines.push("--- Regressed ---", "");
   if (regressed.length > 0) {
-    lines.push("--- Regressed ---", "");
     for (const m of regressed) {
       const keys = m.keys.map((k, i) => `${dimensions[i] ?? "key"}=${k}`).join(" | ");
       const posChange = m.prevPos > 0 ? ` | Position: ${m.prevPos.toFixed(1)} → ${m.curPos.toFixed(1)}` : "";
       lines.push(`${keys}`);
       lines.push(`  Clicks: ${m.prevClicks} → ${m.curClicks} (${pctChange(m.curClicks, m.prevClicks)})${posChange}`);
     }
-    lines.push("");
+  } else {
+    lines.push("(none)");
   }
+  lines.push("");
 
   return lines.join("\n");
 }
