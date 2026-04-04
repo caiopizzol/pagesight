@@ -326,7 +326,16 @@ export function registerAuditTool(server: McpServer): void {
       if (pagespeedResult.status === "fulfilled") {
         addPagespeedFindings(pagespeedResult.value, findings);
       } else {
-        errors.push(`PageSpeed: ${pagespeedResult.reason}`);
+        const psiErr = String(pagespeedResult.reason);
+        const statusMatch = psiErr.match(/\((\d{3})\)/);
+        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        if (status === 403) {
+          errors.push("PageSpeed: SKIPPED (API key not authorized — enable PageSpeed Insights API in Google Cloud)");
+        } else if (status === 429) {
+          errors.push("PageSpeed: SKIPPED (rate limited — try again later or set GOOGLE_API_KEY)");
+        } else {
+          errors.push(`PageSpeed: ${psiErr.replace(/:\s*\{[\s\S]*$/, "")}`);
+        }
       }
 
       // Process robots

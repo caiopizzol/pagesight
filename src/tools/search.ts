@@ -105,6 +105,59 @@ function humanizeState(state: string): string {
   return map[state] ?? state;
 }
 
+// ── Coverage helpers ──
+
+const COVERAGE_FILTERS = [
+  "not_indexed",
+  "server_error",
+  "redirect",
+  "soft_404",
+  "blocked",
+  "duplicate",
+  "discovered",
+  "crawled_not_indexed",
+] as const;
+
+type CoverageFilter = (typeof COVERAGE_FILTERS)[number];
+
+function matchesCoverageFilter(result: InspectionSummary, filter: CoverageFilter): boolean {
+  if (result.error) return false;
+  const cs = result.coverageState.toLowerCase();
+  const pf = result.pageFetchState.toLowerCase();
+  switch (filter) {
+    case "not_indexed":
+      return result.verdict !== "PASS";
+    case "server_error":
+      return cs.includes("server error") || pf === "server_error";
+    case "redirect":
+      return cs.includes("redirect") || pf.includes("redirect");
+    case "soft_404":
+      return cs.includes("soft 404") || pf === "soft_404";
+    case "blocked":
+      return cs.includes("blocked");
+    case "duplicate":
+      return cs.includes("duplicate");
+    case "discovered":
+      return cs.includes("discovered");
+    case "crawled_not_indexed":
+      return cs.includes("crawled - currently not indexed");
+    default:
+      return false;
+  }
+}
+
+function filterNameForState(state: string): string | null {
+  const s = state.toLowerCase();
+  if (s.includes("server error")) return "server_error";
+  if (s.includes("blocked")) return "blocked";
+  if (s.includes("redirect")) return "redirect";
+  if (s.includes("soft 404")) return "soft_404";
+  if (s.includes("duplicate")) return "duplicate";
+  if (s.includes("discovered - currently not indexed")) return "discovered";
+  if (s.includes("crawled - currently not indexed")) return "crawled_not_indexed";
+  return null;
+}
+
 function formatSampleResults(
   siteUrl: string,
   sitemapUrl: string,
@@ -182,6 +235,90 @@ function formatSampleResults(
       }
     }
     lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+// ── Coverage formatter ──
+
+function formatCoverage(siteUrl: string, sitemapUrl: string, totalUrls: number, results: InspectionSummary[]): string {
+  const inspected = results.filter((r) => !r.error);
+  const errors = results.filter((r) => r.error);
+  const indexed = inspected.filter((r) => r.verdict === "PASS");
+  const notIndexed = inspected.filter((r) => r.verdict !== "PASS");
+
+  const lines: string[] = [
+    `=== Index Coverage: ${siteUrl} ===`,
+    `Sitemap: ${sitemapUrl} (${totalUrls.toLocaleString()} URLs)`,
+    `Inspected: ${results.length}`,
+    "",
+  ];
+
+  const total = inspected.length;
+  if (total === 0) {
+    lines.push("No URLs could be inspected.");
+    if (errors.length > 0) {
+      lines.push("");
+      for (const e of errors) lines.push(`  ${e.url}: ${e.error}`);
+    }
+    return lines.join("\n");
+  }
+
+  // Group not-indexed by coverageState
+  const issueGroups: Record<string, InspectionSummary[]> = {};
+  for (const r of notIndexed) {
+    const key = r.coverageState;
+    if (!issueGroups[key]) issueGroups[key] = [];
+    issueGroups[key].push(r);
+  }
+  const sortedIssues = Object.entries(issueGroups).sort((a, b) => b[1].length - a[1].length);
+
+  // Breakdown
+  lines.push("--- Breakdown ---", "");
+  lines.push(`Indexed: ${indexed.length}/${total} (${Math.round((indexed.length / total) * 100)}%)`);
+  lines.push(`Not indexed: ${notIndexed.length}/${total} (${Math.round((notIndexed.length / total) * 100)}%)`);
+  for (const [state, urls] of sortedIssues) {
+    lines.push(`  ${state}: ${urls.length}`);
+  }
+  if (errors.length > 0) {
+    lines.push(`Inspection errors: ${errors.length}`);
+  }
+
+  // Extrapolated estimates
+  if (totalUrls > total) {
+    lines.push("", "--- Estimated Totals ---", "");
+    const indexedEst = Math.round((indexed.length / total) * totalUrls);
+    const notIndexedEst = Math.round((notIndexed.length / total) * totalUrls);
+    lines.push(`~${indexedEst.toLocaleString()} indexed (of ${totalUrls.toLocaleString()})`);
+    lines.push(`~${notIndexedEst.toLocaleString()} not indexed`);
+    for (const [state, urls] of sortedIssues) {
+      const est = Math.round((urls.length / total) * totalUrls);
+      lines.push(`  ~${est.toLocaleString()} ${state}`);
+    }
+    lines.push("", `Estimates based on ${total}-URL sample — actual numbers may vary.`);
+  }
+
+  // Example URLs per issue
+  if (sortedIssues.length > 0) {
+    lines.push("", "--- URLs by Issue ---", "");
+    for (const [state, urls] of sortedIssues) {
+      lines.push(`${state}:`);
+      for (const u of urls.slice(0, 3)) {
+        lines.push(`  ${u.url}`);
+        if (u.lastCrawlTime) lines.push(`    Last crawled: ${u.lastCrawlTime}`);
+        if (u.pageFetchState !== "SUCCESSFUL") lines.push(`    Fetch: ${humanizeState(u.pageFetchState)}`);
+      }
+      if (urls.length > 3) lines.push(`  ... and ${urls.length - 3} more in sample`);
+      lines.push("");
+    }
+  }
+
+  // Suggest drill-down
+  const filterSuggestions = sortedIssues.map(([state]) => filterNameForState(state)).filter(Boolean);
+  if (filterSuggestions.length > 0) {
+    lines.push(`Drill deeper: search(action='sample', filter='...') to investigate specific issues.`);
+    lines.push(`  Available filters: ${filterSuggestions.join(", ")}`);
   }
 
   return lines.join("\n");
@@ -559,20 +696,48 @@ function formatGapAnalysis(
 export function registerSearchTool(server: McpServer): void {
   server.tool(
     "search",
-    "Query Google Search Console. Inspect URL indexing status, sample-inspect sitemap URLs, list properties and sitemaps, analyze search traffic, or find keyword gaps (queries with impressions but missing from page content).",
+    "Query Google Search Console. Inspect URL indexing, get coverage breakdown by issue type, sample-inspect with filters, list properties and sitemaps, analyze search traffic, or find keyword gaps.",
     {
       action: z
-        .enum(["inspect", "sample", "sitemaps", "analytics", "gaps", "list_sites", "get_site", "get_sitemap"])
+        .enum([
+          "inspect",
+          "sample",
+          "coverage",
+          "sitemaps",
+          "analytics",
+          "gaps",
+          "list_sites",
+          "get_site",
+          "get_sitemap",
+        ])
         .optional()
         .describe("Action to perform. Auto-detected from params when unambiguous."),
       site_url: z.string().optional().describe("GSC property (e.g., 'sc-domain:example.com')."),
       url: z.string().url().optional().describe("URL to inspect in Google's index."),
-      sitemap_url: z.string().url().optional().describe("Sitemap URL for sample inspection or get_sitemap."),
-      sample_size: z.number().min(1).max(10).optional().describe("URLs to sample-inspect (1-10). Default: 5."),
+      sitemap_url: z.string().url().optional().describe("Sitemap URL for sample/coverage inspection or get_sitemap."),
+      sample_size: z
+        .number()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("URLs to inspect (1-50). Default: 5 for sample, 20 for coverage."),
       sample_strategy: z
         .enum(["random", "first", "spread"])
         .optional()
-        .describe("Sampling strategy. Default: 'random'."),
+        .describe("Sampling strategy. Default: 'spread' for coverage, 'random' for sample."),
+      filter: z
+        .enum([
+          "not_indexed",
+          "server_error",
+          "redirect",
+          "soft_404",
+          "blocked",
+          "duplicate",
+          "discovered",
+          "crawled_not_indexed",
+        ])
+        .optional()
+        .describe("Filter sample results by coverage issue type. Inspects more URLs internally to find matches."),
       start_date: z.string().optional().describe("Start date (YYYY-MM-DD) for analytics. Default: 28 days ago."),
       end_date: z.string().optional().describe("End date (YYYY-MM-DD) for analytics. Default: 3 days ago."),
       dimensions: z
@@ -609,6 +774,7 @@ export function registerSearchTool(server: McpServer): void {
         sitemap_url,
         sample_size,
         sample_strategy,
+        filter,
         start_date,
         end_date,
         dimensions,
@@ -628,7 +794,7 @@ export function registerSearchTool(server: McpServer): void {
         params.action ??
         (url && site_url && !hasAnalyticsParams
           ? "inspect"
-          : sample_size
+          : sample_size || filter
             ? "sample"
             : hasAnalyticsParams
               ? "analytics"
@@ -683,7 +849,6 @@ export function registerSearchTool(server: McpServer): void {
             if (sitemaps.length === 0) {
               return textResult(`No sitemaps found for ${site_url} in GSC. Provide a sitemap_url directly.`);
             }
-            // Pick the first non-index sitemap, or the first one
             const nonIndex = sitemaps.find((s) => !s.isSitemapsIndex);
             resolvedSitemapUrl = (nonIndex ?? sitemaps[0]).path;
           }
@@ -691,7 +856,6 @@ export function registerSearchTool(server: McpServer): void {
           // Fetch and parse sitemap
           let parsed = await fetchSitemap(resolvedSitemapUrl);
 
-          // If it's a sitemap index, fetch the first child
           if (parsed.isSitemapIndex && parsed.childSitemaps.length > 0) {
             const childUrl = parsed.childSitemaps[0];
             parsed = await fetchSitemap(childUrl);
@@ -702,16 +866,118 @@ export function registerSearchTool(server: McpServer): void {
             return textResult(`Sitemap ${resolvedSitemapUrl} contains no URLs.`);
           }
 
-          // Sample URLs
+          if (filter) {
+            // Filtered sample: inspect more URLs, return only matches
+            const scanLimit = Math.min(count * 5, 50, parsed.urls.length);
+            const pool = sampleUrls(parsed.urls, scanLimit, strategy);
+            const matched: InspectionSummary[] = [];
+            let scanned = 0;
+
+            for (const u of pool) {
+              const result = await inspectSingle(u, site_url);
+              scanned++;
+              if (matchesCoverageFilter(result, filter)) {
+                matched.push(result);
+                if (matched.length >= count) break;
+              }
+            }
+
+            if (matched.length === 0) {
+              return textResult(
+                [
+                  `=== Filtered Sample: ${site_url} ===`,
+                  `Sitemap: ${resolvedSitemapUrl} (${parsed.urls.length.toLocaleString()} URLs)`,
+                  `Filter: ${filter}`,
+                  `Scanned: ${scanned} | Matched: 0`,
+                  "",
+                  `No URLs matching "${filter}" found in ${scanned} inspected URLs.`,
+                  "Try a larger sample_size or a different filter.",
+                ].join("\n"),
+              );
+            }
+
+            const lines: string[] = [
+              `=== Filtered Sample: ${site_url} ===`,
+              `Sitemap: ${resolvedSitemapUrl} (${parsed.urls.length.toLocaleString()} URLs)`,
+              `Filter: ${filter}`,
+              `Scanned: ${scanned} | Matched: ${matched.length}`,
+              "",
+              "--- Matching URLs ---",
+              "",
+            ];
+
+            for (let i = 0; i < matched.length; i++) {
+              const r = matched[i];
+              lines.push(`${i + 1}. ${r.url}`);
+              lines.push(`   Coverage: ${r.coverageState}`);
+              lines.push(`   Page fetch: ${humanizeState(r.pageFetchState)}`);
+              if (r.robotsTxtState !== "ALLOWED") lines.push(`   Robots.txt: ${humanizeState(r.robotsTxtState)}`);
+              if (r.indexingState !== "INDEXING_ALLOWED") lines.push(`   Indexing: ${humanizeState(r.indexingState)}`);
+              if (r.lastCrawlTime) lines.push(`   Last crawled: ${r.lastCrawlTime}`);
+              if (r.googleCanonical && r.googleCanonical !== r.url) {
+                lines.push(`   Google canonical: ${r.googleCanonical}`);
+              }
+              lines.push("");
+            }
+
+            if (matched.length < count && scanned >= scanLimit) {
+              lines.push(
+                `Found ${matched.length}/${count} requested — scanned ${scanned} URLs (limit ${scanLimit}). Increase sample_size for a wider scan.`,
+              );
+            }
+
+            return textResult(lines.join("\n"));
+          }
+
+          // Unfiltered sample (original behavior)
           const sampled = sampleUrls(parsed.urls, count, strategy);
 
-          // Inspect each URL sequentially (API rate limits)
           const results: InspectionSummary[] = [];
           for (const u of sampled) {
             results.push(await inspectSingle(u, site_url));
           }
 
           return textResult(formatSampleResults(site_url, resolvedSitemapUrl, parsed.urls.length, results));
+        }
+
+        // ── coverage ──
+        if (resolvedAction === "coverage") {
+          if (!site_url) return textResult("Error: site_url is required for coverage.");
+
+          const count = sample_size ?? 20;
+          const strategy = sample_strategy ?? "spread";
+
+          // Discover sitemap URL if not provided
+          let resolvedSitemapUrl = sitemap_url;
+          if (!resolvedSitemapUrl) {
+            const sitemaps = await listSitemaps(site_url);
+            if (sitemaps.length === 0) {
+              return textResult(`No sitemaps found for ${site_url} in GSC. Provide a sitemap_url directly.`);
+            }
+            const nonIndex = sitemaps.find((s) => !s.isSitemapsIndex);
+            resolvedSitemapUrl = (nonIndex ?? sitemaps[0]).path;
+          }
+
+          let parsed = await fetchSitemap(resolvedSitemapUrl);
+
+          if (parsed.isSitemapIndex && parsed.childSitemaps.length > 0) {
+            const childUrl = parsed.childSitemaps[0];
+            parsed = await fetchSitemap(childUrl);
+            resolvedSitemapUrl = `${resolvedSitemapUrl} → ${childUrl}`;
+          }
+
+          if (parsed.urls.length === 0) {
+            return textResult(`Sitemap ${resolvedSitemapUrl} contains no URLs.`);
+          }
+
+          const sampled = sampleUrls(parsed.urls, count, strategy);
+
+          const results: InspectionSummary[] = [];
+          for (const u of sampled) {
+            results.push(await inspectSingle(u, site_url));
+          }
+
+          return textResult(formatCoverage(site_url, resolvedSitemapUrl, parsed.urls.length, results));
         }
 
         // ── list_sites ──

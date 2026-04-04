@@ -17,7 +17,33 @@ export function registerSetupTool(server: McpServer): void {
     async ({ action, client_id, client_secret, code }) => {
       if (action === "status") {
         const method = getAuthMethod();
-        if (method === "none") {
+        if (method !== "none") {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `=== Pagesight Auth Status ===\n\nStatus: CONFIGURED\nMethod: ${method}`,
+              },
+            ],
+          };
+        }
+
+        // Check for partial OAuth config
+        const hasClientId = !!process.env.GSC_CLIENT_ID;
+        const hasClientSecret = !!process.env.GSC_CLIENT_SECRET;
+        const hasPartial = hasClientId || hasClientSecret;
+
+        if (hasPartial) {
+          const present = [hasClientId && "GSC_CLIENT_ID", hasClientSecret && "GSC_CLIENT_SECRET"]
+            .filter(Boolean)
+            .join(", ");
+          const missing = [
+            !hasClientId && "GSC_CLIENT_ID",
+            !hasClientSecret && "GSC_CLIENT_SECRET",
+            "GSC_REFRESH_TOKEN",
+          ]
+            .filter(Boolean)
+            .join(", ");
           return {
             content: [
               {
@@ -25,34 +51,47 @@ export function registerSetupTool(server: McpServer): void {
                 text: [
                   "=== Pagesight Auth Status ===",
                   "",
-                  "Status: NOT CONFIGURED",
+                  "Status: PARTIAL",
+                  `  Present: ${present}`,
+                  `  Missing: ${missing}`,
                   "",
-                  "To use Pagesight, configure one of:",
-                  "",
-                  "Option 1: OAuth 2.0 (recommended for personal use)",
-                  "  1. Create a Google Cloud project",
-                  "  2. Enable 'Google Search Console API'",
-                  "  3. Create OAuth 2.0 credentials (Desktop app)",
-                  "  4. Call: setup(action='get_auth_url', client_id='YOUR_ID')",
-                  "  5. Visit the URL, authorize, copy the code",
-                  "  6. Call: setup(action='exchange_code', client_id='YOUR_ID', client_secret='YOUR_SECRET', code='THE_CODE')",
-                  "  7. Set env vars: GSC_CLIENT_ID, GSC_CLIENT_SECRET, GSC_REFRESH_TOKEN",
-                  "",
-                  "Option 2: Service Account",
-                  "  1. Create a service account in Google Cloud",
-                  "  2. Download the JSON key file",
-                  "  3. Add the service account email as a user in Search Console",
-                  "  4. Set env var: GSC_SERVICE_ACCOUNT_KEY=/path/to/key.json",
+                  "Complete OAuth setup:",
+                  "  1. Call: setup(action='get_auth_url', client_id='YOUR_ID')",
+                  "  2. Visit the URL, authorize, copy the code",
+                  "  3. Call: setup(action='exchange_code', client_id='YOUR_ID', client_secret='YOUR_SECRET', code='THE_CODE')",
+                  "  4. Set GSC_REFRESH_TOKEN from the response",
                 ].join("\n"),
               },
             ],
           };
         }
+
         return {
           content: [
             {
               type: "text",
-              text: `=== Pagesight Auth Status ===\n\nStatus: CONFIGURED\nMethod: ${method}`,
+              text: [
+                "=== Pagesight Auth Status ===",
+                "",
+                "Status: NOT CONFIGURED",
+                "",
+                "To use Pagesight, configure one of:",
+                "",
+                "Option 1: OAuth 2.0 (recommended for personal use)",
+                "  1. Create a Google Cloud project",
+                "  2. Enable 'Google Search Console API'",
+                "  3. Create OAuth 2.0 credentials (Desktop app)",
+                "  4. Call: setup(action='get_auth_url', client_id='YOUR_ID')",
+                "  5. Visit the URL, authorize, copy the code",
+                "  6. Call: setup(action='exchange_code', client_id='YOUR_ID', client_secret='YOUR_SECRET', code='THE_CODE')",
+                "  7. Set env vars: GSC_CLIENT_ID, GSC_CLIENT_SECRET, GSC_REFRESH_TOKEN",
+                "",
+                "Option 2: Service Account",
+                "  1. Create a service account in Google Cloud",
+                "  2. Download the JSON key file",
+                "  3. Add the service account email as a user in Search Console",
+                "  4. Set env var: GSC_SERVICE_ACCOUNT_KEY=/path/to/key.json",
+              ].join("\n"),
             },
           ],
         };
