@@ -13,6 +13,7 @@ pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight cloudflare audit --zone ZONE_ID --hostname example.com --start UTC_TIME --end UTC_TIME [--limit 50]
 
+pagesight change evaluate --record change.json --baseline before.json [--current after.json] [--max-rows 20]
 pagesight technical compare --current current.json [--baseline previous.json]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
@@ -74,6 +75,7 @@ export async function runCli(args: string[]): Promise<number> {
         zone: { type: "string" },
         hostname: { type: "string" },
         limit: { type: "string" },
+        record: { type: "string" },
         port: { type: "string" },
         help: { type: "boolean", short: "h" },
         json: { type: "boolean" },
@@ -110,14 +112,15 @@ export async function runCli(args: string[]): Promise<number> {
     const [family, action] = positionals;
     if (
       positionals.length >
-      (["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "technical"].includes(family) ? 2 : 1)
+      (["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "change", "technical"].includes(family) ? 2 : 1)
     )
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "technical"].includes(family)
+    const operation = ["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "change", "technical"].includes(family)
       ? `${family}.${action ?? ""}`
       : family;
     const flags: Record<string, string[]> = {
       "cloudflare.audit": ["zone", "hostname", "start", "end", "limit"],
+      "change.evaluate": ["record", "baseline", "current", "max-rows"],
       "technical.compare": ["baseline", "current"],
       "evidence.import": ["request"],
       crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
@@ -182,6 +185,14 @@ export async function runCli(args: string[]): Promise<number> {
         startTime: values.start,
         endTime: values.end,
         limit: Number(values.limit ?? 50),
+      };
+    else if (operation === "change.evaluate")
+      input = {
+        operation,
+        record: await jsonFile(values.record, "record"),
+        baseline: await jsonFile(values.baseline, "baseline"),
+        ...(values.current ? { current: await jsonFile(values.current, "current") } : {}),
+        maxRows: Number(values["max-rows"] ?? 20),
       };
     else if (operation === "crawl")
       input = {
