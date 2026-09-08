@@ -14,12 +14,10 @@ const deadline = setTimeout(() => {
 const { values } = parseArgs({
   args: Bun.argv.slice(2),
   strict: true,
-  options: { config: { type: "string" }, state: { type: "string" }, "cloudflare-zone": { type: "string" } },
+  options: { config: { type: "string" }, state: { type: "string" } },
 });
 if (!values.config || !values.state)
-  throw new Error(
-    "Usage: bun --env-file PRIVATE scripts/observe-site.ts --config FILE --state PRIVATE_DIR [--cloudflare-zone ZONE]",
-  );
+  throw new Error("Usage: bun --env-file PRIVATE scripts/observe-site.ts --config FILE --state PRIVATE_DIR");
 const state = resolve(values.state);
 await mkdir(state, { recursive: true, mode: 0o700 });
 if ((await stat(state)).mode & 0o077) throw new Error("State directory must be private (0700)");
@@ -28,12 +26,22 @@ let staleLock = false;
 try {
   const lock = await stat(lockPath);
   if (Date.now() - lock.mtimeMs > 2_400_000) {
-    const old = JSON.parse(await readFile(lockPath, "utf8")) as { pid: number };
+    let old: { pid: number };
+    try {
+      old = JSON.parse(await readFile(lockPath, "utf8"));
+      if (!Number.isSafeInteger(old?.pid) || old.pid <= 0) throw new Error("Invalid lock PID");
+    } catch {
+      clearTimeout(deadline);
+      process.stderr.write(
+        "Stale runner.lock is unreadable; confirm no runner is active before manually removing it.\n",
+      );
+      process.exit(3);
+    }
     let alive = true;
     try {
       process.kill(old.pid, 0);
-    } catch {
-      alive = false;
+    } catch (error) {
+      if ((error as { code?: string }).code === "ESRCH") alive = false;
     }
     if (!alive) {
       await rm(lockPath);
@@ -72,7 +80,6 @@ try {
     startedAt,
     staleLockRecovered: staleLock,
     artifacts: {},
-    cloudflare: values["cloudflare-zone"] ? "selected" : "not-configured",
   };
   const artifacts: Record<string, { path: string; sha256: string; status: string }> = {};
   let exitCode = 0;
@@ -135,21 +142,6 @@ try {
     }
     if (!parsed.success || snapshot.status === "error") exitCode = 1;
     else if (snapshot.status === "partial") exitCode = 3;
-    if (values["cloudflare-zone"]) {
-      const endTime = startedAt.slice(0, 10) + "T00:00:00Z";
-      const startTime = new Date(Date.parse(endTime) - 86400000).toISOString();
-      const cloudflare = await execute({
-        operation: "cloudflare.audit",
-        zone: values["cloudflare-zone"],
-        hostname: config.productionHostname,
-        startTime,
-        endTime,
-        limit: 50,
-      });
-      await save("cloudflare", cloudflare, cloudflare.status);
-      manifest.cloudflareWindow = { startTime, endTime, timezone: "UTC" };
-      if (cloudflare.status !== "ok" && exitCode === 0) exitCode = cloudflare.status === "partial" ? 3 : 1;
-    }
   } catch {
     manifest.error = "Configuration or collection failed; inspect private artifacts and provider availability";
     exitCode = 1;

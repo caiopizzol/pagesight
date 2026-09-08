@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 test("recurring runner retains immutable runs, detects technical change and serializes callers", async () => {
@@ -50,6 +50,14 @@ test("recurring runner retains immutable runs, detects technical change and seri
     expect(await Bun.file(firstInfo.manifest).exists()).toBe(true);
     await Bun.write(join(state, "runner.lock"), JSON.stringify({ pid: process.pid }));
     expect((await run()).code).toBe(3);
+    await rm(join(state, "runner.lock"));
+    await Bun.write(join(state, "runner.lock"), "{");
+    const expired = new Date(Date.now() - 2_500_000);
+    await utimes(join(state, "runner.lock"), expired, expired);
+    const malformed = await run();
+    expect(malformed.code).toBe(3);
+    expect(malformed.error).toContain("confirm no runner is active");
+    expect(await Bun.file(join(state, "runner.lock")).text()).toBe("{");
     await rm(join(state, "runner.lock"));
     await Bun.write(config, "{}");
     const bad = await run();

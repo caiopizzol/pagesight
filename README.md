@@ -57,7 +57,8 @@ bun --env-file /absolute/private.env scripts/observe-site.ts \
 The state directory must be private (0700). The runner writes unique dated run
 directories with 0600 raw snapshot, alerts JSON/text and a manifest containing hashes,
 source statuses and calendar windows. A lock serializes manual and scheduled calls;
-a dead lock older than 40 minutes can be recovered. The process has a 20-minute
+a dead lock older than 40 minutes can be recovered. Malformed locks require
+manual inspection: confirm no runner is active before removing `runner.lock`. The process has a 20-minute
 maximum runtime. A timeout can leave an incomplete run and stale lock; inspect
 those artifacts, not just the previous successful run. Missing UTC days since the
 last usable snapshot are explicit gaps, never zero traffic.
@@ -70,14 +71,13 @@ and technical changes rather than traffic deltas. Weekly outcome analysis requir
 separate, comparable windows. Exit 0 means collection completed, 3 means partial
 or locked, and 1 means failure; inspect alerts independently of process status.
 
-Optional `--cloudflare-zone ZONE` also saves a bounded audit of the previous UTC
-day when the installed Pagesight version supports `cloudflare.audit`. Cloudflare
-failure does not erase an already saved snapshot. These sampled groups/events are
-retained without count deltas or disappearance alerts. Credentials come from the
-private environment file, never scheduler arguments or tracked configuration.
-
 Use absolute paths in launchd/cron, pin a verified checkout, and redirect runner
 stdout/stderr to private local files. After installation inspect scheduler state
 and force one run, then read its manifest and alerts. A sleeping/offline laptop
 cannot provide always-on collection; provider retention can prevent recovery of
 missed windows. The runner sends no email, chat message or external notification.
+
+For agents planning and verifying SEO improvements, follow the
+[SEO agent workflow](docs/seo-agent-workflow.md): demand and content decisions,
+site architecture, rendered-template/mobile checks, performance evidence,
+authority research and a recurring observation cadence.
