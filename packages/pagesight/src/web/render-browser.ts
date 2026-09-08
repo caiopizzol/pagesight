@@ -9,9 +9,13 @@ export interface RenderOptions {
   timeoutMs: number;
   viewport: { width: number; height: number };
 }
-export async function launchRenderer() {
+export async function launchRenderer(proxy: string) {
   try {
-    return await chromium.launch({ timeout: 15000 });
+    return await chromium.launch({
+      timeout: 15000,
+      proxy: { server: proxy, bypass: "<-loopback>" },
+      args: ["--disable-quic", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"],
+    });
   } catch {
     throw new RequestError(
       "Chromium unavailable. Run bunx playwright install chromium in the Pagesight installation and check browser OS dependencies.",
@@ -29,10 +33,35 @@ export async function parseServer(browser: Browser, html: string, url: string) {
     await context.close();
   }
 }
+async function isolated<T, I>(page: Page, fn: (input: I) => T, input: I): Promise<T> {
+  const session = await page.context().newCDPSession(page);
+  try {
+    const { frameTree } = await session.send("Page.getFrameTree");
+    const { executionContextId } = await session.send("Page.createIsolatedWorld", {
+      frameId: frameTree.frame.id,
+      worldName: "pagesight-evidence",
+    });
+    const result = await session.send("Runtime.callFunctionOn", {
+      functionDeclaration: fn.toString(),
+      executionContextId,
+      arguments: [{ value: input }],
+      returnByValue: true,
+    });
+    if (result.exceptionDetails) throw new Error("Isolated extraction failed");
+    return result.result.value as T;
+  } finally {
+    await session.detach();
+  }
+}
 function documentResponse(page: Page) {
   const documents: Array<{ url: string; status: number; location: string | null; xRobotsTag: string | null }> = [];
+  const history = { documents, documentsTruncated: false };
   page.on("response", (response) => {
-    if (response.request().isNavigationRequest() && response.frame() === page.mainFrame() && documents.length < 20) {
+    if (response.request().isNavigationRequest() && response.frame() === page.mainFrame()) {
+      if (documents.length === 20) {
+        history.documentsTruncated = true;
+        return;
+      }
       const headers = response.headers();
       documents.push({
         url: response.url(),
@@ -42,7 +71,7 @@ function documentResponse(page: Page) {
       });
     }
   });
-  return documents;
+  return history;
 }
 export async function captureRendered(browser: Browser, options: RenderOptions, navigate: boolean) {
   const origin = new URL(options.url).origin;
@@ -80,7 +109,7 @@ export async function captureRendered(browser: Browser, options: RenderOptions, 
     });
     const page = await context.newPage();
     page.setDefaultTimeout(options.timeoutMs);
-    const documents = documentResponse(page);
+    const history = documentResponse(page);
     const consoleErrors: string[] = [];
     page.on("pageerror", (error) => {
       if (consoleErrors.length < 20) consoleErrors.push(error.name);
@@ -93,16 +122,23 @@ export async function captureRendered(browser: Browser, options: RenderOptions, 
     let clickedLink: { selector: string; href: string } | null = null;
     let source: SeoDom | null = null;
     if (navigate) {
-      source = await page.evaluate(extractSeo, { url: page.url() });
+      source = await isolated(page, extractSeo, { url: page.url() });
       const link = page.locator(`css=${options.navigation!.linkSelector}`);
       if ((await link.count()) !== 1)
         throw new RequestError("Navigation selector must identify exactly one anchor.", null, "ambiguous_link");
-      const selected = await link.evaluate((element) => ({
-        tag: element.tagName,
-        href: (element as HTMLAnchorElement).href,
-        target: element.getAttribute("target"),
-        download: element.hasAttribute("download"),
-      }));
+      const selected = await isolated(
+        page,
+        (selector: string) => {
+          const element = document.querySelector(selector)!;
+          return {
+            tag: element.tagName,
+            href: (element as HTMLAnchorElement).href,
+            target: element.getAttribute("target"),
+            download: element.hasAttribute("download"),
+          };
+        },
+        options.navigation!.linkSelector,
+      );
       if (
         selected.tag !== "A" ||
         selected.href !== options.url ||
@@ -119,7 +155,7 @@ export async function captureRendered(browser: Browser, options: RenderOptions, 
       await page.waitForURL((url) => url.href === options.url, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(options.settleMs);
     }
-    const dom = await page.evaluate(extractSeo, { url: page.url() });
+    const dom = await isolated(page, extractSeo, { url: page.url() });
     return {
       path: navigate ? "internal_navigation" : "direct",
       initialUrl,
@@ -130,12 +166,13 @@ export async function captureRendered(browser: Browser, options: RenderOptions, 
       domSha256: Bun.CryptoHasher.hash("sha256", JSON.stringify(dom), "hex"),
       source,
       clickedLink,
-      documents,
+      ...history,
       blockedRequests,
       requests,
       pageErrorNames: consoleErrors,
-      targetDocumentResponse:
-        [...documents].reverse().find((d) => d.url === (navigate ? page.url() : page.url().split("#")[0])) ?? null,
+      targetDocumentResponse: history.documentsTruncated
+        ? null
+        : ([...history.documents].reverse().find((d) => d.url === page.url().split("#")[0]) ?? null),
     };
   } catch (error) {
     if (error instanceof RequestError) throw error;

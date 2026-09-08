@@ -5,6 +5,7 @@ import { startHttpApi } from "../src/http.js";
 
 test("render operation works through installed-style CLI, HTTP and MCP; missing Chromium is actionable", async () => {
   const fixture = Bun.serve({
+    hostname: "127.0.0.1",
     port: 0,
     fetch: () => new Response("<title>Rendered</title><h1>Rendered</h1>", { headers: { "content-type": "text/html" } }),
   });

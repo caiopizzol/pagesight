@@ -5,6 +5,7 @@ const html = (title: string, body: string, extra = "") =>
   `<!doctype html><html><head><title>${title}</title><meta name="description" content="${title}"><link rel="canonical" href="/target">${extra}</head><body><h1>${title}</h1>${body}</body></html>`;
 const start = () =>
   Bun.serve({
+    hostname: "127.0.0.1",
     port: 0,
     fetch(request) {
       const path = new URL(request.url).pathname;
@@ -86,6 +87,7 @@ test("duplicates and invalid JSON survive extraction; absent link is failure rat
 
 test("bounded capture timeout and truncated evidence cannot masquerade as an equal comparison", async () => {
   const server = Bun.serve({
+    hostname: "127.0.0.1",
     port: 0,
     fetch(request) {
       if (new URL(request.url).pathname === "/source")
@@ -118,6 +120,7 @@ test("bounded capture timeout and truncated evidence cannot masquerade as an equ
 
 test("DOM equality does not hide differing HTTP evidence and fragment captures remain comparable", async () => {
   const server = Bun.serve({
+    hostname: "127.0.0.1",
     port: 0,
     fetch(request) {
       const isServer = request.headers.get("user-agent")?.startsWith("Pagesight/");
@@ -141,5 +144,109 @@ test("DOM equality does not hide differing HTTP evidence and fragment captures r
     expect((normal.pages[0]!.response as any).documentComparison.status).toBe("different");
   } finally {
     await server.stop(true);
+  }
+}, 10000);
+
+test("page scripts cannot replace extraction primitives", async () => {
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: () =>
+      new Response(
+        html(
+          "Actual",
+          "",
+          `<script type="application/ld+json">{broken</script><script>JSON.parse=()=>({}); Document.prototype.querySelectorAll=()=>[];</script>`,
+        ),
+        { headers: { "content-type": "text/html" } },
+      ),
+  });
+  try {
+    const result = await execute({ operation: "page.verify", url: server.url.href, settleMs: 0 });
+    const data = result.pages[0]!.response as any;
+    expect(data.observations.direct.pages[0].response.dom.titles).toEqual(["Actual"]);
+    expect(data.observations.direct.pages[0].response.dom.jsonLd[0].validJson).toBe(false);
+    expect(data.comparisons.serverToDirect.status).toBe("equal");
+  } finally {
+    await server.stop(true);
+  }
+}, 10000);
+
+test("fragment document navigation retains target HTTP evidence and reports capped history", async () => {
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch(request) {
+      const path = new URL(request.url).pathname;
+      if (path.startsWith("/hop/")) {
+        const hop = Number(path.split("/")[2]);
+        if (hop < 19) return new Response(null, { status: 302, headers: { location: `/hop/${hop + 1}` } });
+      }
+      return new Response(html("Target", '<a id="go" href="/target#section">Target</a>'), {
+        headers: { "content-type": "text/html", "x-robots-tag": "noindex" },
+      });
+    },
+  });
+  try {
+    const request = {
+      operation: "page.verify",
+      url: new URL("target#section", server.url).href,
+      settleMs: 0,
+      navigation: { fromUrl: server.url.href, linkSelector: "#go" },
+    };
+    const result = await execute(request);
+    expect(
+      (result.pages[0]!.response as any).observations.navigation.pages[0].response.targetDocumentResponse.xRobotsTag,
+    ).toBe("noindex");
+    const capped = await execute({
+      ...request,
+      navigation: { ...request.navigation, fromUrl: new URL("hop/0", server.url).href },
+    });
+    const data = capped.pages[0]!.response as any;
+    expect(data.observations.navigation.pages[0].response.documentsTruncated).toBe(true);
+    expect(capped.status).toBe("partial");
+  } finally {
+    await server.stop(true);
+  }
+}, 15000);
+
+test("a rendered fixture cannot reach other local services by subresource or hostname alias", async () => {
+  let privateHits = 0;
+  const privateService = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: () => {
+      privateHits++;
+      return new Response("private");
+    },
+  });
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: () =>
+      new Response(
+        html(
+          "Safe",
+          `<img src="${privateService.url}image"><iframe src="${privateService.url}frame"></iframe><script>fetch('${privateService.url}fetch');fetch('${privateService.url.href.replace("127.0.0.1", "localhost")}alias')</script>`,
+        ),
+        { headers: { "content-type": "text/html" } },
+      ),
+  });
+  try {
+    const result = await execute({ operation: "page.verify", url: server.url.href, settleMs: 100 });
+    const data = result.pages[0]!.response as any;
+    expect(data.observations.direct.pages[0].response.dom.titles).toEqual(["Safe"]);
+    expect(data.network.blockedRequests).toBeGreaterThanOrEqual(4);
+    expect(privateHits).toBe(0);
+    const denied = await execute({
+      operation: "page.verify",
+      url: privateService.url.href.replace("127.0.0.1", "localhost"),
+      settleMs: 0,
+    });
+    expect((denied.pages[0]!.response as any).observations.server.status).toBe("error");
+    expect(privateHits).toBe(0);
+  } finally {
+    await server.stop(true);
+    await privateService.stop(true);
   }
 }, 10000);

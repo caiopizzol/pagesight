@@ -1,6 +1,6 @@
 import { readBounded, RequestError } from "../shared/http.js";
 
-export async function fetchText(url: string, maxBytes: number, origin?: string) {
+export async function fetchText(url: string, maxBytes: number, origin?: string, proxy?: string) {
   const redirects: Array<{ url: string; status: number; location: string }> = [];
   let current = url;
   const signal = AbortSignal.timeout(20_000);
@@ -15,6 +15,7 @@ export async function fetchText(url: string, maxBytes: number, origin?: string) 
       throw new RequestError("Redirect left the permitted origin or protocol", null, "invalid_redirect");
     const response = await fetch(current, {
       signal,
+      ...(proxy ? { proxy } : {}),
       redirect: "manual",
       headers: { "User-Agent": "Pagesight/0.17", Accept: "text/html,application/xml,text/plain" },
     });

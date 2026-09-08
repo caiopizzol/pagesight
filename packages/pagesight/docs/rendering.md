@@ -70,10 +70,27 @@ cookies are not returned. Keep URLs and extracted page content private when need
 Each browser path uses fresh storage, a maximum of 500 attempted requests, blocked
 service workers and WebSockets, and only GET/HEAD requests. Cross-origin top-level navigation and
 downloads are blocked. These restrictions can change application behavior and are
-reported with blocked-request counts. Subresources may use other origins; ordinary
+reported with blocked-request counts. Subresources may use other public origins; ordinary
 page requests can reach analytics. No user browser profile or authentication state
 is loaded. Browser network response sizes are not globally capped; the server HTML
-limit is separate. Extracted fields cap at 200 items and 4000 characters per value.
+limit is separate. Extracted fields cap at 200 items and 4000 characters per value. Selection stops
+at the first excess match, and extraction uses a Chromium isolated world so page
+scripts cannot replace the extraction primitives. Document response history caps
+at 20 entries; `documentsTruncated` makes the result partial and the target HTTP
+response unavailable.
+
+Both server HTML and browser requests use a temporary local proxy. It resolves each
+upstream connection once, rejects nonpublic addresses, and connects to the checked
+IP without a second DNS lookup. Chromium's implicit loopback proxy bypass is removed;
+QUIC and non-proxied WebRTC UDP are disabled. TLS certificate checks remain enabled.
+This is request filtering, not an operating-system sandbox for untrusted browsers.
+
+For deliberate local fixtures, request a literal IP URL such as
+`http://127.0.0.1:3000/target`. Only that exact IP and port is permitted as a nonpublic
+destination; `localhost` and other names resolving to private addresses are rejected.
+A fixture cannot request another local port. Blocked proxy destinations are counted
+in `network.blockedRequests`, separately from browser route restrictions. GET requests
+can still cause site-side effects, including on the deliberately selected fixture.
 
 Run this separately when investigating a URL or verifying a deployment. It does not
 schedule analysis, alter production pages, validate rich-result eligibility, or

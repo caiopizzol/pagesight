@@ -9,9 +9,18 @@ export function extractSeo(input: { html?: string; url: string }) {
     return value === null ? null : value.slice(0, maxText);
   };
   const select = (selector: string) => {
-    const all = doc.querySelectorAll(selector);
-    if (all.length > maxItems) truncated = true;
-    return Array.from(all).slice(0, maxItems);
+    const matches: Element[] = [];
+    const walker = doc.createTreeWalker(doc, NodeFilter.SHOW_ELEMENT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      if (!(node as Element).matches(selector)) continue;
+      if (matches.length === maxItems) {
+        truncated = true;
+        break;
+      }
+      matches.push(node as Element);
+    }
+    return matches;
   };
   let baseUrl = input.url;
   const baseHref = doc.querySelector("base[href]")?.getAttribute("href");
