@@ -1,7 +1,7 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  fmt: { printWidth: 120 },
+  fmt: { printWidth: 120, ignorePatterns: ["packages/pagesight/CHANGELOG.md"] },
   lint: {
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     categories: { correctness: "error" },
