@@ -7,6 +7,7 @@ export const help = `Pagesight — read-only site evidence
 
 pagesight                      Start the existing MCP stdio server
 pagesight mcp                  Start MCP explicitly
+pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
 pagesight gsc sitemaps --site sc-domain:example.com
@@ -63,6 +64,7 @@ export async function runCli(args: string[]): Promise<number> {
         strategy: { type: "string" },
         "form-factor": { type: "string" },
         origin: { type: "boolean" },
+        providers: { type: "string" },
       },
     });
     if (values.help || positionals[0] === "help") {
@@ -74,6 +76,7 @@ export async function runCli(args: string[]): Promise<number> {
       throw new RequestError("Too many command arguments", null, "invalid_input");
     const operation = ["gsc", "ga", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
     const flags: Record<string, string[]> = {
+      discover: ["url", "providers"],
       "gsc.sites": [],
       "gsc.sitemaps": ["site"],
       "gsc.inspect": ["site", "url"],
@@ -126,6 +129,7 @@ export async function runCli(args: string[]): Promise<number> {
         ...(values.strategy ? { strategy: values.strategy } : {}),
         ...(values["form-factor"] ? { formFactor: values["form-factor"] } : {}),
         ...(values.origin ? { origin: true } : {}),
+        ...(values.providers !== undefined ? { providers: values.providers.split(",") } : {}),
       };
     }
     const result = await execute(input);

@@ -77,31 +77,57 @@ const httpUrl = z
 export const configSchema = z
   .object({
     site: httpUrl,
-    gscSite: z.string().min(1),
-    gaProperty: z.string().regex(/^(properties\/)?\d+$/),
-    productionHostname: z.string().min(1),
-    sitemap: httpUrl,
-    pages: z.array(httpUrl).max(10).default([]),
+    gscSite: z.string().min(1).optional(),
+    gaProperty: z
+      .string()
+      .regex(/^(properties\/)?\d+$/)
+      .optional(),
+    productionHostname: z.string().min(1).optional(),
+    sitemap: httpUrl.optional(),
+    pages: z.array(httpUrl).max(10).optional(),
     context: z
       .object({
-        objective: z.string(),
+        objective: z.string().default("Define a product objective before evaluating outcomes."),
         successEvents: z.array(z.string()).default([]),
         excludedKeyEvents: z.array(z.string()).default([]),
-        locale: z.string(),
-        country: z.string(),
-        routes: z.array(
-          z
-            .object({ pattern: z.string(), purpose: z.string(), indexing: z.enum(["index", "noindex", "verify"]) })
-            .strict(),
-        ),
+        locale: z.string().default("unspecified"),
+        country: z.string().default("unspecified"),
+        routes: z
+          .array(
+            z
+              .object({ pattern: z.string(), purpose: z.string(), indexing: z.enum(["index", "noindex", "verify"]) })
+              .strict(),
+          )
+          .default([]),
         measurementCaveats: z.array(z.string()).default([]),
       })
-      .strict(),
+      .strict()
+      .default({}),
   })
   .strict()
-  .refine((c) => new URL(c.site).hostname === c.productionHostname, "productionHostname must match site");
+  .transform((c) => ({
+    ...c,
+    productionHostname: c.productionHostname ?? new URL(c.site).hostname,
+    pages: [...new Set(c.pages ?? [c.site])],
+  }))
+  .refine((c) => new URL(c.site).hostname === c.productionHostname, "productionHostname must match site")
+  .refine(
+    (c) => Boolean(c.pages.length || c.sitemap || c.gscSite || c.gaProperty),
+    "Select at least one page or provider",
+  );
 export type SiteConfig = z.infer<typeof configSchema>;
 const operationVariants = z.discriminatedUnion("operation", [
+  z
+    .object({
+      operation: z.literal("discover"),
+      url: httpUrl,
+      providers: z
+        .array(z.enum(["gsc", "ga"]))
+        .min(1)
+        .max(2)
+        .default(["gsc", "ga"]),
+    })
+    .strict(),
   z.object({ operation: z.literal("gsc.sites") }).strict(),
   z.object({ operation: z.literal("gsc.sitemaps"), site: z.string().min(1) }).strict(),
   z.object({ operation: z.literal("gsc.inspect"), site: z.string().min(1), url: httpUrl }).strict(),

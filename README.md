@@ -36,20 +36,21 @@ GA evidence identifies the credential source variable, credential type, and serv
 account email when present. It never includes the token or private key. Aggregate
 results include a concise per-observation `summary` alongside full observations.
 
-| Operation                      | Required inputs                                       |
-| ------------------------------ | ----------------------------------------------------- |
-| `gsc.sites`                    | None                                                  |
-| `gsc.sitemaps`                 | `site`                                                |
-| `gsc.inspect`                  | `site`, `url`                                         |
-| `gsc.report`                   | `site`, `request`; optional `maxPages`                |
-| `ga.accounts`                  | None                                                  |
-| `ga.property`, `ga.key-events` | `property`                                            |
-| `ga.report`                    | `property`, `request`; optional `maxPages`            |
-| `page`                         | `url`                                                 |
-| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`)    |
-| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`          |
-| `doctor`                       | `config`                                              |
-| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages` |
+| Operation                      | Required inputs                                          |
+| ------------------------------ | -------------------------------------------------------- |
+| `discover`                     | `url`; optional `providers` (`["gsc", "ga"]` by default) |
+| `gsc.sites`                    | None                                                     |
+| `gsc.sitemaps`                 | `site`                                                   |
+| `gsc.inspect`                  | `site`, `url`                                            |
+| `gsc.report`                   | `site`, `request`; optional `maxPages`                   |
+| `ga.accounts`                  | None                                                     |
+| `ga.property`, `ga.key-events` | `property`                                               |
+| `ga.report`                    | `property`, `request`; optional `maxPages`               |
+| `page`                         | `url`                                                    |
+| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`)       |
+| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`             |
+| `doctor`                       | `config`                                                 |
+| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages`    |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
@@ -61,6 +62,7 @@ link, social-meta and contrast checks.
 
 ```sh
 pagesight --help
+pagesight discover --url https://example.com/ --providers gsc,ga
 pagesight doctor --config seo.config.json
 pagesight gsc report --site sc-domain:example.com --request report.json --max-pages 4
 pagesight ga report --property 123456 --request ga-report.json
@@ -102,6 +104,25 @@ limitations; inspect warnings and metadata before making comparisons.
 
 ## Site snapshots
 
+A minimal config needs only a site:
+
+```json
+{ "site": "https://example.com/" }
+```
+
+It collects that page without Google credentials. Add `gscSite` or `gaProperty`
+to select those providers independently. Omitted providers appear as `not_selected`;
+a selected provider that fails produces error evidence. `sitemap` is opt-in, and
+`pages` defaults to the site URL. `productionHostname` defaults to its hostname.
+Existing full configurations still work. Context defaults identify unspecified
+objectives, locale and country rather than inferring them.
+
+`discover` lists candidates from the selected Google providers and returns a usable
+site-only config in `pages[0].response.config`. Copy that object to a config file,
+then add the property IDs you verified. It does not automatically select properties:
+GA account display names are not proof of hostname ownership. Discovery failures
+remain independent; inspect raw responses and `nextPageToken` for incomplete lists.
+
 A config holds nonsecret provider IDs and the site's meaning:
 
 ```json
@@ -138,7 +159,9 @@ compressed documents are reported as incomplete rather than empty coverage.
 Snapshots embed the config used, observations, content hashes, requested/observed
 dates and unknown deployment/reference identities. A failed observation remains
 visible while successful data is retained. `doctor` probes GSC, GA Admin, GA Data
-and live HTML. Run speed operations to probe PSI/CrUX separately.
+when selected, plus live HTML. Run speed operations to probe PSI/CrUX separately.
+Snapshot responses carry `snapshotVersion: 1` and stable observation `name` values,
+also present in the summary, so identity does not depend on array position.
 
 Interpretation rules:
 

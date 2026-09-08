@@ -4,6 +4,7 @@ export interface Evidence {
   schemaVersion: 1;
   provider: string;
   operation: string;
+  name?: string;
   target: string;
   startedAt: string;
   finishedAt: string;
