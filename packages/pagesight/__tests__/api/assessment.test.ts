@@ -144,3 +144,10 @@ test("incomplete pagination cannot yield an ok assessment even if the supplied s
     expect(content(result).tables.find((t: any) => t.observation === "ga.report.eventName").complete).toBe(false);
   }
 });
+
+test("invalid imported assessment configuration is an invalid-input error", async () => {
+  const snapshot = await fixture();
+  content(snapshot).context.config.productionHostname = "other.example.com";
+  const error = await execute({ operation: "assess", snapshot }).catch((error) => error);
+  expect(error).toMatchObject({ code: "invalid_input" });
+});

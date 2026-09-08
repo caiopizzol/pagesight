@@ -182,6 +182,15 @@ export function normalizeReport(observation: Evidence, context: SnapshotContext)
     offset += rows.length;
   }
   if (!report) throw new Incompatible("No report pages available.");
+  if (observation.provider === "ga") {
+    const totals = observation.pages.map((p) => (p.response as { rowCount?: number }).rowCount ?? 0);
+    if (
+      totals.some((n) => !Number.isSafeInteger(n) || n < offset || n !== totals[0]) ||
+      (observation.pagination?.exhausted && totals[0] !== offset)
+    )
+      throw new Incompatible("GA rowCount conflicts with retained rows or completeness.");
+  }
+
   if (
     observation.pagination &&
     (observation.pagination.rowsReturned !== offset ||

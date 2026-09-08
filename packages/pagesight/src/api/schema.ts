@@ -154,7 +154,12 @@ const operationVariants = z.discriminatedUnion("operation", [
   z
     .object({
       operation: z.literal("assess"),
-      snapshot: snapshotEvidenceSchema,
+      snapshot: snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
+        const config = configSchema.safeParse(snapshot.pages[0].response.context.config);
+        if (!config.success)
+          for (const issue of config.error.issues)
+            ctx.addIssue({ ...issue, path: ["pages", 0, "response", "context", "config", ...issue.path] });
+      }),
       maxRows: z.number().int().min(1).max(100).default(10),
     })
     .strict(),

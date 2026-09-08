@@ -157,14 +157,6 @@ export async function assessSnapshot(snapshot: ImportedSnapshot, maxRows: number
         )
           throw new Error("GSC property totals require byProperty response aggregation.");
         const allRows = [...normalized.rows.values()];
-        if (provider === "ga") {
-          const totals = observation.pages.map((p) => (p.response as { rowCount?: number }).rowCount ?? 0);
-          if (
-            totals.some((n) => !Number.isSafeInteger(n) || n < allRows.length || n !== totals[0]) ||
-            (observation.pagination?.exhausted && totals[0] !== allRows.length)
-          )
-            throw new Error("GA rowCount conflicts with retained rows or completeness.");
-        }
         const limitations = [...new Set([...observation.warnings, ...normalized.warnings])];
         const complete =
           observation.status === "ok" && !observation.error && observation.pagination?.exhausted === true;

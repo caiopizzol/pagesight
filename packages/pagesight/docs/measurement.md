@@ -86,7 +86,7 @@ Keep separate evidence for each stage:
 | ------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | Provider access           | `doctor`                                                              | Credentials can read the selected properties                                   |
 | Browser emission          | DevTools network capture                                              | The browser attempted to send an event                                         |
-| Endpoint response         | Response to that exact request                                        | The endpoint accepted/responded to the request; not finalized reporting        |
+| Endpoint response         | Response to that exact request                                        | The endpoint responded; event acceptance or processing is not established      |
 | Recent reported activity  | `ga realtime`                                                         | Matching aggregate property activity appeared; not attribution to your test    |
 | Stored reported activity  | `ga report`                                                           | Rows exist for the requested dates and filters; recent data may still change   |
 | Validated product outcome | Observed user action plus event definition and corroborating evidence | The event represents the site's intended useful action within the tested scope |

@@ -319,3 +319,19 @@ test("all generated GA snapshot report dimensions remain comparable", async () =
   }
   expect((await compare(reports[0], reports[1])).map((result) => result.status)).toEqual(Array(5).fill("compared"));
 });
+
+test("GA row totals must agree with retained pages and exhausted pagination", async () => {
+  for (const total of [2, -1, 1.5, "1"]) {
+    const current = await ga(1, "2");
+    (current.pages[0].response as any).rowCount = total;
+    expect((await compare([await ga(0, "1")], [current]))[0].status).toBe("incompatible");
+  }
+  const current = await ga(1, "2");
+  const second = structuredClone(current.pages[0]);
+  (second.request as any).offset = 1;
+  (second.response as any).rows[0].dimensionValues[0].value = "other";
+  (second.response as any).rowCount = 2;
+  current.pages.push(second);
+  current.pagination = { exhausted: true, nextOffset: null, rowsReturned: 2 };
+  expect((await compare([await ga(0, "1")], [current]))[0].status).toBe("incompatible");
+});
