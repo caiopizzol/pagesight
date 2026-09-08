@@ -38,3 +38,5 @@ to gather exact-page search queries, device/country breakdowns, daily history,
 current metadata/indexing and associated organic traffic/events. JSON retains raw
 observations alongside a brief with findings, unknowns and next checks.
 See [the investigation guide](docs/investigation.md) for scope and interpretation.
+
+Use `pagesight crawl --config seo.config.json --out crawl.json` for a bounded internal-link/metadata graph and stored indexing sample. See [site discovery](docs/crawl.md) for robots, query and coverage policies.

@@ -1,4 +1,5 @@
 import { evaluateChange } from "./evaluate-change.js";
+import { crawl } from "./crawl.js";
 import { technicalChanges } from "./technical-changes.js";
 import { investigate } from "./investigation.js";
 import { assessSnapshot } from "./assessment.js";
@@ -53,6 +54,8 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
     case "change.evaluate":
       return evaluateChange(op.record, op.baseline, op.current, op.maxRows);
+    case "crawl":
+      return crawl(op, execute);
     case "technical.compare":
       return technicalChanges(op.baseline, op.current);
     case "investigate":

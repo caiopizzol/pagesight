@@ -164,6 +164,17 @@ const operationVariants = z.discriminatedUnion("operation", [
     .strict(),
   z
     .object({
+      operation: z.literal("crawl"),
+      config: configSchema,
+      maxPages: z.number().int().min(1).max(100).default(20),
+      maxDepth: z.number().int().min(0).max(10).default(3),
+      maxLinks: z.number().int().min(1).max(1000).default(500),
+      includeQuery: z.boolean().default(false),
+      inspectLimit: z.number().int().min(0).max(10).default(3),
+    })
+    .strict(),
+  z
+    .object({
       operation: z.literal("technical.compare"),
       baseline: assessedSnapshotSchema.optional(),
       current: assessedSnapshotSchema,
