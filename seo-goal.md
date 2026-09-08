@@ -17,7 +17,7 @@ increment as a dependent PR. CLI, MCP and HTTP remain thin adapters. Never merge
       without silently selecting a property. All interfaces share API behavior.
 - [x] Bing read-only site discovery and documented traffic reports preserve raw
       responses, scope, limits, and safe errors; tests verify documented JSON contracts.
-- [ ] Snapshot comparison validates compatible evidence and produces descriptive
+- [x] Snapshot comparison validates compatible evidence and produces descriptive
       changes without invented zeros, exhaustive coverage, or causal conclusions.
 - [ ] Each increment has focused tests, appropriate checks, usage documentation,
       resolved consultation findings, and a PR in a verified dependent stack.
@@ -74,3 +74,25 @@ registered URLs. Unknown timezone/raw Date strings need no invented metadata typ
 Doctor traffic access is sufficient for the selected site; speculative null-response
 handling and extra credential probes are deferred without live evidence.
 Foundation and setup rebased onto TypeScript 7 main; 76 tests remain passing.
+
+Foundation PR #2 and setup PR #4 were externally merged by caiopizzol on
+2026-09-08 at 00:59:55–56 UTC. GitHub rebased Bing PR #6 onto main; local work
+follows its current head 846ce4b without overwriting remote changes.
+Comparison implementation: versioned snapshot validation, same-site report matching,
+equal disjoint periods, request and metadata compatibility, raw values/common rows,
+explicit unsupported observations and unknown missing rows. API/CLI/HTTP/MCP
+transport parity tested, including a >1 MB pair. 87 tests, TS7 and Vite+ pass.
+Final consultation findings addressed; next publish comparison layer and finish owner
+monitoring for the active stack. No live Bing credential available.
+
+Comparison consultation findings verified and addressed: typed snapshot date context,
+trailing GSC dates and recent GA collection become limitations; canonicalSha256 labels
+validated-object provenance rather than file bytes; summary counts expose incompatible
+and unsupported outcomes. Time-key guard includes cyclic dimensions. Observed-only
+keys stay useful evidence with explicit names and unknown absence rather than being
+hidden for truncated reports. Missing provider aggregation remains incompatible rather
+than inferred. Added unsafe decimal/underflow regressions independently of the review.
+
+Final comparison verification: 89 Bun tests pass, TypeScript 7 and Vite+ checks pass
+with four warnings in unchanged legacy tool code. Package archive built successfully.
+Comparison changes are ready for a dependent PR above Bing #6.

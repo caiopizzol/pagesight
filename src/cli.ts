@@ -26,6 +26,7 @@ pagesight speed psi --url https://example.com/ [--strategy mobile]
 pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
+pagesight compare --baseline before.json --current after.json [--max-rows 100]
 pagesight api --request operation.json
 pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
@@ -69,6 +70,9 @@ export async function runCli(args: string[]): Promise<number> {
         "form-factor": { type: "string" },
         origin: { type: "boolean" },
         providers: { type: "string" },
+        baseline: { type: "string" },
+        current: { type: "string" },
+        "max-rows": { type: "string" },
       },
     });
     if (values.help || positionals[0] === "help") {
@@ -81,6 +85,7 @@ export async function runCli(args: string[]): Promise<number> {
     const operation = ["gsc", "ga", "bing", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
     const flags: Record<string, string[]> = {
       discover: ["url", "providers"],
+      compare: ["baseline", "current", "max-rows"],
       "bing.sites": [],
       "bing.queries": ["site"],
       "bing.pages": ["site"],
@@ -117,6 +122,13 @@ export async function runCli(args: string[]): Promise<number> {
     }
     let input: unknown;
     if (operation === "api") input = await jsonFile(values.request, "request");
+    else if (operation === "compare")
+      input = {
+        operation,
+        baseline: await jsonFile(values.baseline, "baseline"),
+        current: await jsonFile(values.current, "current"),
+        maxRows: Number(values["max-rows"] ?? 100),
+      };
     else if (operation === "snapshot" || operation === "doctor") {
       const config = await jsonFile(values.config, "config");
       if (operation === "doctor") input = { operation, config };

@@ -1,3 +1,13 @@
+import { z } from "zod";
+
+export const dateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const date = new Date(value);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  }, "Use a real YYYY-MM-DD date");
+
 export function pacificDate(now = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",

@@ -6,6 +6,7 @@ import { getSite, inspectUrlResponse, listSitemapsResponse, listSitesResponse } 
 import { RequestError } from "../lib/http.js";
 import { runPagespeed } from "../lib/psi.js";
 import { bingObservation } from "./bing.js";
+import { compareSnapshots } from "./compare.js";
 import { defaultDates } from "./dates.js";
 import { capture, type Evidence } from "./evidence.js";
 import { gaReport, gscReport } from "./reports.js";
@@ -14,6 +15,7 @@ import { discover } from "./setup.js";
 import { aggregate, providerSelection, snapshot } from "./snapshot.js";
 import { observePage } from "./web.js";
 
+export { evidenceSchema, snapshotEvidenceSchema } from "./imported.js";
 export type { Evidence } from "./evidence.js";
 export { configSchema, type Operation, operationSchema } from "./schema.js";
 
@@ -44,6 +46,8 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ReturnType<typeof operationSchema.parse>): Promise<Evidence> {
   switch (op.operation) {
+    case "compare":
+      return compareSnapshots(op.baseline, op.current, op.maxRows);
     case "discover":
       return discover(op.url, op.providers, execute);
     case "bing.sites":

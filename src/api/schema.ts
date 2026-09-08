@@ -1,13 +1,8 @@
 import { z } from "zod";
-import { pacificDate } from "./dates.js";
+import { snapshotEvidenceSchema } from "./imported.js";
+import { dateSchema, pacificDate } from "./dates.js";
 
-export const dateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => {
-    const date = new Date(value);
-    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-  }, "Use a real YYYY-MM-DD date");
+export { dateSchema } from "./dates.js";
 const offset = z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 export const maxPagesSchema = z.number().int().min(1).max(20).default(1);
 export const gscRequestSchema = z
@@ -118,6 +113,14 @@ export const configSchema = z
   );
 export type SiteConfig = z.infer<typeof configSchema>;
 const operationVariants = z.discriminatedUnion("operation", [
+  z
+    .object({
+      operation: z.literal("compare"),
+      baseline: snapshotEvidenceSchema,
+      current: snapshotEvidenceSchema,
+      maxRows: z.number().int().min(1).max(1000).default(100),
+    })
+    .strict(),
   z
     .object({
       operation: z.literal("discover"),
