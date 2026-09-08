@@ -20,7 +20,7 @@ Root owns shared tools, hooks, and the lockfile. Run a focused test from the pac
 
 ```sh
 cd packages/pagesight
-bun test __tests__/transports.test.ts
+bun test __tests__/transports/cli.test.ts
 ```
 
 A future website belongs in `apps/website`, with its own build and TypeScript config.

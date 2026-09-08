@@ -1,7 +1,7 @@
 import { expect, spyOn, test } from "bun:test";
-import { execute } from "../src/api/index.js";
-import { configSchema, operationSchema } from "../src/api/schema.js";
-import { snapshotOperations, providerSelection } from "../src/api/snapshot.js";
+import { execute } from "../../src/api/index.js";
+import { configSchema, operationSchema } from "../../src/api/schema.js";
+import { snapshotOperations, providerSelection } from "../../src/api/snapshot.js";
 
 test("Bing preserves documented envelopes and dates without inventing a report window", async () => {
   const previous = process.env.BING_WEBMASTER_API_KEY;

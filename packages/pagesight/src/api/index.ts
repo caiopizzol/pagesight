@@ -1,21 +1,21 @@
 import { ZodError } from "zod";
-import { getAuthMethod } from "../lib/auth.js";
-import { queryCrux, queryCruxHistory } from "../lib/crux.js";
-import { gaCredentialInfo, gaFetch, gaProperty } from "../lib/ga.js";
-import { getSite, inspectUrlResponse, listSitemapsResponse, listSitesResponse } from "../lib/gsc.js";
-import { RequestError } from "../lib/http.js";
-import { runPagespeed } from "../lib/psi.js";
+import { getAuthMethod } from "../providers/gsc-auth.js";
+import { queryCrux, queryCruxHistory } from "../providers/crux.js";
+import { gaCredentialInfo, gaFetch, gaProperty } from "../providers/ga.js";
+import { getSite, inspectUrlResponse, listSitemapsResponse, listSitesResponse } from "../providers/gsc.js";
+import { RequestError } from "../shared/http.js";
+import { runPagespeed } from "../providers/pagespeed.js";
 import { bingObservation } from "./bing.js";
-import { compareSnapshots } from "./compare.js";
-import { defaultDates } from "./dates.js";
+import { compareSnapshots } from "./compare-snapshots.js";
+import { defaultDates } from "../shared/dates.js";
 import { capture, type Evidence } from "./evidence.js";
 import { gaReport, gscReport } from "./reports.js";
 import { operationSchema } from "./schema.js";
-import { discover } from "./setup.js";
+import { discover } from "./discover.js";
 import { aggregate, providerSelection, snapshot } from "./snapshot.js";
-import { observePage } from "./web.js";
+import { observePage } from "../web/page-observation.js";
 
-export { evidenceSchema, snapshotEvidenceSchema } from "./imported.js";
+export { evidenceSchema, snapshotEvidenceSchema } from "./evidence-schema.js";
 export type { Evidence } from "./evidence.js";
 export { configSchema, type Operation, operationSchema } from "./schema.js";
 

@@ -1,4 +1,4 @@
-import { RequestError } from "../lib/http.js";
+import { RequestError } from "../shared/http.js";
 
 export interface Evidence {
   schemaVersion: 1;

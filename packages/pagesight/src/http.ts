@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { execute } from "./api/index.js";
-import { RequestError } from "./lib/http.js";
+import { RequestError } from "./shared/http.js";
 
 export function startHttpApi(token: string, port = 6095) {
   if (token.length < 24)

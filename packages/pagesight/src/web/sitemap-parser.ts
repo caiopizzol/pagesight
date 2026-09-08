@@ -1,5 +1,5 @@
 import { SaxesParser, type SaxesTagNS } from "saxes";
-import { RequestError } from "../lib/http.js";
+import { RequestError } from "../shared/http.js";
 
 export function parseInventorySitemap(xml: string) {
   const parser = new SaxesParser({ xmlns: true });

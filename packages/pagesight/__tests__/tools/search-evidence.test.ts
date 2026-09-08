@@ -2,9 +2,9 @@ import { expect, spyOn, test } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { clearTokenCache } from "../src/lib/auth.js";
-import { addSitemapFindings, registerAuditTool } from "../src/tools/audit.js";
-import { formatComparison } from "../src/tools/search.js";
+import { clearTokenCache } from "../../src/providers/gsc-auth.js";
+import { addSitemapFindings, registerAuditTool } from "../../src/tools/audit.js";
+import { formatComparison } from "../../src/tools/search.js";
 
 test("deprecated indexed zero does not create a false indexing alarm", () => {
   const findings: Parameters<typeof addSitemapFindings>[1] = [];

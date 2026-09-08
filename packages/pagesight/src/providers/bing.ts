@@ -1,4 +1,4 @@
-import { RequestError, requestJson } from "./http.js";
+import { RequestError, requestJson } from "../shared/http.js";
 
 export const bingMethods = {
   sites: "GetUserSites",

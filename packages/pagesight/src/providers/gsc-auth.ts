@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { RequestError, requestJson } from "./http.js";
+import { RequestError, requestJson } from "../shared/http.js";
 
 const SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"];
 const TOKEN_URL = "https://oauth2.googleapis.com/token";

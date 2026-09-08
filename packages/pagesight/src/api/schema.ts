@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { snapshotEvidenceSchema } from "./imported.js";
-import { dateSchema, pacificDate } from "./dates.js";
+import { snapshotEvidenceSchema } from "./evidence-schema.js";
+import { dateSchema, pacificDate } from "../shared/dates.js";
 
-export { dateSchema } from "./dates.js";
+export { dateSchema } from "../shared/dates.js";
 const offset = z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 export const maxPagesSchema = z.number().int().min(1).max(20).default(1);
 export const gscRequestSchema = z

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { parseRobotsTxt } from "../src/lib/robots.js";
+import { parseRobotsTxt } from "../src/web/robots.js";
 
 describe("robots access rules", () => {
   test("specific bot rules override the wildcard", async () => {
@@ -8,7 +8,7 @@ describe("robots access rules", () => {
     expect(robots.groups).toHaveLength(2);
 
     // GPTBot should be blocked
-    const { isAllowed } = await import("../src/lib/robots.js");
+    const { isAllowed } = await import("../src/web/robots.js");
     const gpt = isAllowed(robots, "GPTBot", "/");
     expect(gpt.allowed).toBe(false);
 
@@ -41,7 +41,7 @@ describe("robots group examples", () => {
   test("real-world Reddit-style single wildcard disallow", () => {
     const robots = parseRobotsTxt("User-agent: *\nDisallow: /");
 
-    const { isAllowed } = require("../src/lib/robots.js");
+    const { isAllowed } = require("../src/web/robots.js");
     // Every bot should be blocked
     expect(isAllowed(robots, "GPTBot", "/").allowed).toBe(false);
     expect(isAllowed(robots, "ClaudeBot", "/").allowed).toBe(false);
@@ -63,7 +63,7 @@ describe("robots group examples", () => {
       ].join("\n"),
     );
 
-    const { isAllowed } = require("../src/lib/robots.js");
+    const { isAllowed } = require("../src/web/robots.js");
     expect(isAllowed(robots, "GPTBot", "/article").allowed).toBe(false);
     expect(isAllowed(robots, "ClaudeBot", "/article").allowed).toBe(false);
     expect(isAllowed(robots, "Googlebot", "/article").allowed).toBe(true);

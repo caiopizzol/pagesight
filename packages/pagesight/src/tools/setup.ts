@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { exchangeCodeForToken, getAuthMethod, getOAuthSetupUrl } from "../lib/auth.js";
+import { exchangeCodeForToken, getAuthMethod, getOAuthSetupUrl } from "../providers/gsc-auth.js";
 
 export function registerSetupTool(server: McpServer): void {
   server.tool(

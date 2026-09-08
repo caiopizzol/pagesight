@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dateSchema } from "./dates.js";
+import { dateSchema } from "../shared/dates.js";
 
 export const evidenceSchema = z
   .object({

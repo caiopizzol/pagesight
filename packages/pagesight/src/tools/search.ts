@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { pacificDaysAgo } from "../api/dates.js";
+import { pacificDaysAgo } from "../shared/dates.js";
 import {
   type GscSite,
   type GscSitemap,
@@ -13,7 +13,7 @@ import {
   querySearchAnalytics,
   type SearchAnalyticsFilter,
   type SearchAnalyticsResponse,
-} from "../lib/gsc.js";
+} from "../providers/gsc.js";
 import { fetchSitemap, type InspectionSummary, inspectSingle, sampleUrls } from "../lib/sitemap.js";
 
 // ── Inspect formatters ──

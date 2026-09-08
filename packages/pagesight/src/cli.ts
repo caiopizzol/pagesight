@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
-import { defaultDates } from "./api/dates.js";
+import { defaultDates } from "./shared/dates.js";
 import { execute } from "./api/index.js";
-import { RequestError } from "./lib/http.js";
+import { RequestError } from "./shared/http.js";
 
 export const help = `Pagesight — read-only site evidence
 

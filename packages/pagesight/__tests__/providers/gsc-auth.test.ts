@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { getAuthMethod, getOAuthSetupUrl } from "../src/lib/auth.js";
+import { getAuthMethod, getOAuthSetupUrl } from "../../src/providers/gsc-auth.js";
 
 describe("getAuthMethod", () => {
   const origEnv = { ...process.env };

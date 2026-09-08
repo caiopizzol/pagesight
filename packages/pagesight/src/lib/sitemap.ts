@@ -1,4 +1,4 @@
-import { inspectUrl } from "./gsc.js";
+import { inspectUrl } from "../providers/gsc.js";
 
 export interface SitemapParseResult {
   urls: string[];

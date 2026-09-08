@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { RequestError } from "../lib/http.js";
+import { RequestError } from "../shared/http.js";
 import { capture, type Evidence } from "./evidence.js";
-import type { ImportedSnapshot } from "./imported.js";
+import type { ImportedSnapshot } from "./evidence-schema.js";
 import { gaRequestSchema, gscRequestSchema } from "./schema.js";
 
 const gscRow = z

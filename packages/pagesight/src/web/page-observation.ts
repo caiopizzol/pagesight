@@ -1,5 +1,5 @@
-import { readBounded, RequestError } from "../lib/http.js";
-import { parseInventorySitemap } from "./sitemap.js";
+import { readBounded, RequestError } from "../shared/http.js";
+import { parseInventorySitemap } from "./sitemap-parser.js";
 
 async function fetchText(url: string, maxBytes: number, origin?: string) {
   const redirects: Array<{ url: string; status: number; location: string }> = [];

@@ -1,4 +1,4 @@
-import { type BingAction, bingFetch, bingMethods } from "../lib/bing.js";
+import { type BingAction, bingFetch, bingMethods } from "../providers/bing.js";
 import { capture } from "./evidence.js";
 
 export function bingObservation(action: BingAction, site?: string) {

@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { getOAuthToken, getServiceAccountToken } from "./auth.js";
-import { RequestError, requestJson } from "./http.js";
+import { getOAuthToken, getServiceAccountToken } from "./gsc-auth.js";
+import { RequestError, requestJson } from "../shared/http.js";
 
 const SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
 let cached: { path: string; token: string; expiresAt: number } | undefined;

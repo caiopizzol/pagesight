@@ -6,7 +6,7 @@ import {
   type CruxResponse,
   queryCrux,
   queryCruxHistory,
-} from "../lib/crux.js";
+} from "../providers/crux.js";
 import {
   hasApiKey,
   type PsiAudit,
@@ -14,7 +14,7 @@ import {
   type PsiCategoryType,
   type PsiResult,
   runPagespeed,
-} from "../lib/psi.js";
+} from "../providers/pagespeed.js";
 
 // --- PageSpeed helpers ---
 

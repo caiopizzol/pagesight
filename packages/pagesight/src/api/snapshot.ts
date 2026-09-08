@@ -1,7 +1,7 @@
-import { RequestError } from "../lib/http.js";
+import { RequestError } from "../shared/http.js";
 import { capture, type Evidence } from "./evidence.js";
 import { configSchema, gaRequestSchema, gscRequestSchema, type Operation, type SiteConfig } from "./schema.js";
-import { observeSitemap } from "./web.js";
+import { observeSitemap } from "../web/page-observation.js";
 
 export type Executor = (input: unknown) => Promise<Evidence>;
 

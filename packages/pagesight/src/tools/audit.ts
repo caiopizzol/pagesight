@@ -1,9 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { type GscSitemap, inspectUrl, listSitemaps } from "../lib/gsc.js";
-import { RequestError } from "../lib/http.js";
-import { type PsiCategoryType, type PsiResult, runPagespeed } from "../lib/psi.js";
-import { auditAiCrawlers, fetchRobotsTxt, isAllowed } from "../lib/robots.js";
+import { type GscSitemap, inspectUrl, listSitemaps } from "../providers/gsc.js";
+import { RequestError } from "../shared/http.js";
+import { type PsiCategoryType, type PsiResult, runPagespeed } from "../providers/pagespeed.js";
+import { auditAiCrawlers, fetchRobotsTxt, isAllowed } from "../web/robots.js";
 
 type Severity = "HIGH" | "MEDIUM" | "LOW";
 

@@ -1,6 +1,6 @@
-import { type GaReport, gaFetch, gaProperty } from "../lib/ga.js";
-import { querySearchAnalytics, type SearchAnalyticsResponse } from "../lib/gsc.js";
-import { RequestError } from "../lib/http.js";
+import { type GaReport, gaFetch, gaProperty } from "../providers/ga.js";
+import { querySearchAnalytics, type SearchAnalyticsResponse } from "../providers/gsc.js";
+import { RequestError } from "../shared/http.js";
 import { type Evidence, evidence, fail } from "./evidence.js";
 import type { GaRequest, GscRequest } from "./schema.js";
 

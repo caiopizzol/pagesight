@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { execute, operationSchema } from "../api/index.js";
-import { RequestError } from "../lib/http.js";
+import { RequestError } from "../shared/http.js";
 
 export function registerObserveTool(server: McpServer): void {
   server.tool(

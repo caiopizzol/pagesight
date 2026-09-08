@@ -5,13 +5,13 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { capture, type Evidence } from "../src/api/evidence.js";
-import { execute } from "../src/api/index.js";
-import { gaReport, gscReport } from "../src/api/reports.js";
-import { configSchema, gaRequestSchema, gscRequestSchema } from "../src/api/schema.js";
-import { aggregate, snapshotOperations } from "../src/api/snapshot.js";
-import { startHttpApi } from "../src/http.js";
-import { registerObserveTool } from "../src/tools/observe.js";
+import { capture, type Evidence } from "../../src/api/evidence.js";
+import { execute } from "../../src/api/index.js";
+import { gaReport, gscReport } from "../../src/api/reports.js";
+import { configSchema, gaRequestSchema, gscRequestSchema } from "../../src/api/schema.js";
+import { aggregate, snapshotOperations } from "../../src/api/snapshot.js";
+import { startHttpApi } from "../../src/http.js";
+import { registerObserveTool } from "../../src/tools/observe.js";
 
 const periods = [
   { startDate: "2026-07-04", endDate: "2026-07-31" },
@@ -385,7 +385,7 @@ test("CLI comparison reads saved objects and agrees with the API", async () => {
     const child = Bun.spawn(
       [
         process.execPath,
-        new URL("../src/index.ts", import.meta.url).pathname,
+        new URL("../../src/index.ts", import.meta.url).pathname,
         "compare",
         "--baseline",
         join(dir, "before.json"),

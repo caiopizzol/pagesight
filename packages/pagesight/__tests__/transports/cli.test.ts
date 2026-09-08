@@ -1,7 +1,7 @@
 import { afterAll, expect, test } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { execute } from "../src/api/index.js";
+import { execute } from "../../src/api/index.js";
 
 const fixture = Bun.serve({
   hostname: "127.0.0.1",
@@ -12,7 +12,7 @@ const fixture = Bun.serve({
     }),
 });
 afterAll(() => fixture.stop(true));
-const entry = new URL("../src/index.ts", import.meta.url).pathname;
+const entry = new URL("../../src/index.ts", import.meta.url).pathname;
 
 test("CLI emits the same page evidence as the API and exits", async () => {
   const child = Bun.spawn([process.execPath, entry, "page", "--url", fixture.url.href], {

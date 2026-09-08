@@ -1,5 +1,5 @@
-import { clearTokenCache, getAccessToken } from "./auth.js";
-import { RequestError, requestJson } from "./http.js";
+import { clearTokenCache, getAccessToken } from "./gsc-auth.js";
+import { RequestError, requestJson } from "../shared/http.js";
 
 const GSC_API = "https://searchconsole.googleapis.com/v1";
 const WEBMASTERS_API = "https://www.googleapis.com/webmasters/v3";

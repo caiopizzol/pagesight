@@ -1,4 +1,4 @@
-import { RequestError, requestJson } from "./http.js";
+import { RequestError, requestJson } from "../shared/http.js";
 
 const CRUX_API = "https://chromeuxreport.googleapis.com/v1/records";
 

@@ -2,16 +2,16 @@ import { afterAll, expect, spyOn, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultDates } from "../src/api/dates.js";
-import { capture } from "../src/api/evidence.js";
-import { execute } from "../src/api/index.js";
-import { gaReport, gscReport } from "../src/api/reports.js";
-import { configSchema, gaRequestSchema, gscRequestSchema, operationSchema } from "../src/api/schema.js";
-import { discover } from "../src/api/setup.js";
-import { snapshot, snapshotOperations } from "../src/api/snapshot.js";
-import { observePage, observeSitemap } from "../src/api/web.js";
-import { startHttpApi } from "../src/http.js";
-import { RequestError, requestJson } from "../src/lib/http.js";
+import { defaultDates } from "../../src/shared/dates.js";
+import { capture } from "../../src/api/evidence.js";
+import { execute } from "../../src/api/index.js";
+import { gaReport, gscReport } from "../../src/api/reports.js";
+import { configSchema, gaRequestSchema, gscRequestSchema, operationSchema } from "../../src/api/schema.js";
+import { discover } from "../../src/api/discover.js";
+import { snapshot, snapshotOperations } from "../../src/api/snapshot.js";
+import { observePage, observeSitemap } from "../../src/web/page-observation.js";
+import { startHttpApi } from "../../src/http.js";
+import { RequestError, requestJson } from "../../src/shared/http.js";
 
 const fixture = Bun.serve({
   hostname: "127.0.0.1",

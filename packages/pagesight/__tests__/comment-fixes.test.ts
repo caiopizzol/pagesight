@@ -1,11 +1,11 @@
 import { callTool } from "./support/mcp.js";
 import { expect, spyOn, test } from "bun:test";
-import { pacificDaysAgo } from "../src/api/dates.js";
+import { pacificDaysAgo } from "../src/shared/dates.js";
 import { capture } from "../src/api/evidence.js";
 import { configSchema } from "../src/api/schema.js";
 import { snapshot } from "../src/api/snapshot.js";
-import { readBounded } from "../src/lib/http.js";
-import { fetchRobotsTxt, isAllowed, parseRobotsTxt } from "../src/lib/robots.js";
+import { readBounded } from "../src/shared/http.js";
+import { fetchRobotsTxt, isAllowed, parseRobotsTxt } from "../src/web/robots.js";
 import { formatCategorySummary, registerAiTool } from "../src/tools/ai.js";
 import { registerPageTool } from "../src/tools/page.js";
 

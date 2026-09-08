@@ -1,11 +1,11 @@
-import { mockFetch, requestUrl } from "./support/fetch.js";
+import { mockFetch, requestUrl } from "../support/fetch.js";
 import { expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { clearTokenCache, getServiceAccountToken } from "../src/lib/auth.js";
-import { gaAccessToken, gaFetch } from "../src/lib/ga.js";
-import { listSites } from "../src/lib/gsc.js";
+import { clearTokenCache, getServiceAccountToken } from "../../src/providers/gsc-auth.js";
+import { gaAccessToken, gaFetch } from "../../src/providers/ga.js";
+import { listSites } from "../../src/providers/gsc.js";
 
 test("service-account token exchange signs the requested provider scope", async () => {
   const keys = await crypto.subtle.generateKey(

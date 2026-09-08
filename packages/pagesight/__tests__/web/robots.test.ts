@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isAllowed, parseRobotsTxt } from "../src/lib/robots.js";
+import { isAllowed, parseRobotsTxt } from "../../src/web/robots.js";
 
 describe("parseRobotsTxt", () => {
   test("parses basic allow/disallow rules", () => {

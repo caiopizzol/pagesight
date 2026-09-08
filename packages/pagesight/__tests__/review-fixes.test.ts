@@ -3,12 +3,12 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../src/api/index.js";
 import { gscRequestSchema } from "../src/api/schema.js";
-import { parseInventorySitemap } from "../src/api/sitemap.js";
-import { observeSitemap } from "../src/api/web.js";
-import { clearTokenCache } from "../src/lib/auth.js";
-import { gaCredentialPath } from "../src/lib/ga.js";
-import { inspectUrl, listSites, listSitemaps } from "../src/lib/gsc.js";
-import { requestJson } from "../src/lib/http.js";
+import { parseInventorySitemap } from "../src/web/sitemap-parser.js";
+import { observeSitemap } from "../src/web/page-observation.js";
+import { clearTokenCache } from "../src/providers/gsc-auth.js";
+import { gaCredentialPath } from "../src/providers/ga.js";
+import { inspectUrl, listSites, listSitemaps } from "../src/providers/gsc.js";
+import { requestJson } from "../src/shared/http.js";
 
 test("JSON syntax failures and interrupted response bodies have different safe errors", async () => {
   const fixture = Bun.serve({

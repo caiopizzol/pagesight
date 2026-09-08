@@ -1,4 +1,4 @@
-import { requestJson } from "./http.js";
+import { requestJson } from "../shared/http.js";
 
 const PSI_API = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
