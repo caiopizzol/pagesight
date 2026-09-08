@@ -23,7 +23,7 @@ function metric(baseline: number | string, current: number | string) {
 
 type SnapshotContext = ImportedSnapshot["pages"][0]["response"]["context"];
 
-function compareObservation(
+export function compareObservation(
   baseline: Evidence | undefined,
   current: Evidence | undefined,
   maxRows: number,

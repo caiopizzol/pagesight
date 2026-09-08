@@ -11,6 +11,7 @@ export const help = `Pagesight — read-only site evidence
 pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
+pagesight change evaluate --record change.json --baseline before.json [--current after.json] [--max-rows 20]
 pagesight technical compare --current current.json [--baseline previous.json]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
@@ -69,6 +70,7 @@ export async function runCli(args: string[]): Promise<number> {
       allowPositionals: true,
       strict: true,
       options: {
+        record: { type: "string" },
         port: { type: "string" },
         help: { type: "boolean", short: "h" },
         json: { type: "boolean" },
@@ -103,12 +105,15 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (positionals.length > (["gsc", "ga", "bing", "speed", "evidence", "technical"].includes(family) ? 2 : 1))
+    if (
+      positionals.length > (["gsc", "ga", "bing", "speed", "evidence", "change", "technical"].includes(family) ? 2 : 1)
+    )
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "bing", "speed", "evidence", "technical"].includes(family)
+    const operation = ["gsc", "ga", "bing", "speed", "evidence", "change", "technical"].includes(family)
       ? `${family}.${action ?? ""}`
       : family;
     const flags: Record<string, string[]> = {
+      "change.evaluate": ["record", "baseline", "current", "max-rows"],
       "technical.compare": ["baseline", "current"],
       "evidence.import": ["request"],
       crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
@@ -165,6 +170,14 @@ export async function runCli(args: string[]): Promise<number> {
     if (operation === "api") input = await jsonFile(values.request, "request");
     else if (operation === "evidence.import")
       input = { operation, document: await jsonFile(values.request, "request") };
+    else if (operation === "change.evaluate")
+      input = {
+        operation,
+        record: await jsonFile(values.record, "record"),
+        baseline: await jsonFile(values.baseline, "baseline"),
+        ...(values.current ? { current: await jsonFile(values.current, "current") } : {}),
+        maxRows: Number(values["max-rows"] ?? 20),
+      };
     else if (operation === "crawl")
       input = {
         operation,
