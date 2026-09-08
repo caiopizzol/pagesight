@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.19.0](https://github.com/caiopizzol/pagesight/compare/v0.18.0...v0.19.0) (2026-09-08)
+
+
+### Features
+
+* **analytics:** assess measurement evidence and expose realtime ([#19](https://github.com/caiopizzol/pagesight/issues/19)) ([e2fdb1d](https://github.com/caiopizzol/pagesight/commit/e2fdb1d4ebbd68b72a141a0038755eff07282c14))
+* **analytics:** connect organic landings to event evidence ([#21](https://github.com/caiopizzol/pagesight/issues/21)) ([45093a2](https://github.com/caiopizzol/pagesight/commit/45093a2e814c5fb943cf7a987badc3c500b24c28))
+* **seo:** surface evidence-backed search candidates ([#22](https://github.com/caiopizzol/pagesight/issues/22)) ([eadac67](https://github.com/caiopizzol/pagesight/commit/eadac673a16567c46e640cf575f6a2872b8ba220))
+
 ## [0.18.0](https://github.com/caiopizzol/pagesight/compare/v0.17.0...v0.18.0) (2026-09-08)
 
 
