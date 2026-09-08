@@ -1,6 +1,7 @@
+import { fileURLToPath } from "node:url";
 import { dirname, relative, resolve } from "node:path";
 
-const root = new URL("../packages/pagesight/src/", import.meta.url).pathname;
+const root = fileURLToPath(new URL("../packages/pagesight/src/", import.meta.url));
 const sources = [...new Bun.Glob("**/*.ts").scanSync(root)];
 const graph = new Map<string, string[]>();
 for (const source of sources) {
