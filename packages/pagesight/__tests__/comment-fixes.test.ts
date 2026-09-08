@@ -7,7 +7,7 @@ import { snapshot } from "../src/api/snapshot.js";
 import { readBounded } from "../src/shared/http.js";
 import { fetchRobotsTxt, isAllowed, parseRobotsTxt } from "../src/web/robots.js";
 import { formatCategorySummary, registerAiTool } from "../src/tools/ai.js";
-import { registerPageTool } from "../src/tools/page.js";
+import { registerPageTool } from "../src/tools/page/tool.js";
 
 test("robots matching normalizes unreserved escapes without decoding reserved separators or wildcards", () => {
   for (const [rule, path, allowed] of [

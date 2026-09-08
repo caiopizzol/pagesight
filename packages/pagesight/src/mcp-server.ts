@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAiTool } from "./tools/ai.js";
 import { registerAuditTool } from "./tools/audit.js";
 import { registerObserveTool } from "./tools/observe.js";
-import { registerPageTool } from "./tools/page.js";
+import { registerPageTool } from "./tools/page/tool.js";
 import { registerSearchTool } from "./tools/search.js";
 import { registerSetupTool } from "./tools/setup.js";
 import { registerSpeedTool } from "./tools/speed.js";
