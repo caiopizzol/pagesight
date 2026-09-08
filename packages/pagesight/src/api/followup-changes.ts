@@ -109,6 +109,7 @@ export async function followupChanges(experiments: unknown[], asOf: string, lagD
                 warnings: [...a.observation.warnings, ...a.report.warnings],
               };
               let comparisonEnd = endDate;
+              let currentCollectedDay: string | undefined;
               if (current) {
                 let b;
                 try {
@@ -122,7 +123,8 @@ export async function followupChanges(experiments: unknown[], asOf: string, lagD
                 }
                 comparisonEnd = b.report.end;
                 const currentTimezone = (b.report.semantics as { timezone: string }).timezone;
-                if (b.report.end >= localDay(b.observation.finishedAt, currentTimezone))
+                currentCollectedDay = localDay(b.observation.finishedAt, currentTimezone);
+                if (b.report.end >= currentCollectedDay)
                   return {
                     ...details,
                     status: "blocked",
@@ -158,6 +160,14 @@ export async function followupChanges(experiments: unknown[], asOf: string, lagD
                     ...details,
                     status: "waiting",
                     reason: "Supplied after period has not reached the configured collection buffer.",
+                    nextCollection: { date: actualCollectOn, timezone },
+                  };
+                if (currentCollectedDay && currentCollectedDay < actualCollectOn)
+                  return {
+                    ...details,
+                    status: "ready_to_collect",
+                    reason:
+                      "Saved after report was collected before the configured buffer. Recollect this window before evaluation.",
                     nextCollection: { date: actualCollectOn, timezone },
                   };
                 if (!comparison.commonRowCount)

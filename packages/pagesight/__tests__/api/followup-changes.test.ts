@@ -1,6 +1,9 @@
-import { expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, setSystemTime, test } from "bun:test";
 import { execute } from "../../src/api/index.js";
 import { fixture, record } from "../support/followup.js";
+
+beforeEach(() => setSystemTime(new Date("2026-09-08T12:00:00Z")));
+afterEach(() => setSystemTime());
 
 const asOf = "2026-09-05T12:00:00Z";
 const entry = async () => ({ label: "Title", record, baseline: await fixture("2026-07-01", "2026-07-28") });
@@ -112,6 +115,9 @@ test("reject impossible collection chronology and unfinished saved report period
 
 test("actual after windows set collection buffer and retain source errors and context changes", async () => {
   const experiment = { ...(await entry()), current: await fixture("2026-08-05", "2026-09-01") };
+  experiment.current.startedAt = experiment.current.finishedAt = "2026-09-03T12:00:00Z";
+  for (const observation of (experiment.current.pages[0]!.response as any).observations)
+    observation.startedAt = observation.finishedAt = "2026-09-03T12:00:00Z";
   const result = await run([experiment], { asOf: "2026-09-03T12:00:00Z" });
   expect(report(result, "ga.report.eventName")).toMatchObject({
     status: "waiting",
@@ -123,8 +129,26 @@ test("actual after windows set collection buffer and retain source errors and co
   ga.status = "error";
   ga.pages = [];
   ga.error = { code: "unavailable", message: "Provider unavailable", httpStatus: 503 };
+  experiment.current.startedAt = experiment.current.finishedAt = "2026-09-04T12:00:00Z";
+  for (const observation of response.observations)
+    observation.startedAt = observation.finishedAt = "2026-09-04T12:00:00Z";
   const failed = await run([experiment]);
   expect(failed.entries[0].contextChanged).toBe(true);
   expect(report(failed, "ga.report.eventName").sources.current.error.httpStatus).toBe(503);
   expect(report(failed, "gsc.report.query").status).toBe("ready_to_evaluate");
+});
+
+test("early saved after evidence must be recollected even after its buffer elapses", async () => {
+  const experiment = { ...(await entry()), current: await fixture("2026-08-03", "2026-08-30") };
+  const observations = (experiment.current.pages[0]!.response as any).observations;
+  const ga = observations.find((o: any) => o.name === "ga.report.eventName");
+  ga.startedAt = ga.finishedAt = "2026-09-01T12:00:00Z";
+  const result = await run([experiment]);
+  expect(report(result, "ga.report.eventName")).toMatchObject({
+    status: "ready_to_collect",
+    nextCollection: { date: "2026-09-02", timezone: "UTC" },
+  });
+  expect(report(result, "ga.report.eventName").reason).toContain("Recollect");
+  ga.startedAt = ga.finishedAt = "2026-09-02T00:00:00Z";
+  expect(report(await run([experiment]), "ga.report.eventName").status).toBe("ready_to_evaluate");
 });

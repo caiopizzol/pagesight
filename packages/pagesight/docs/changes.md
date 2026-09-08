@@ -79,7 +79,7 @@ Each report has one of four states:
 | State               | Next action                                                                           |
 | ------------------- | ------------------------------------------------------------------------------------- |
 | `waiting`           | Wait until its next collection date, then collect the explicit window.                |
-| `ready_to_collect`  | Collect missing after evidence; elapsed time does not establish evaluability.         |
+| `ready_to_collect`  | Collect missing after evidence or replace an artifact collected before its buffer.    |
 | `ready_to_evaluate` | Run `change evaluate` on the saved pair and inspect descriptive results and warnings. |
 | `blocked`           | Inspect its reason and source diagnostics; more elapsed time alone does not fix it.   |
 
@@ -99,8 +99,10 @@ windows, collect each distinct window separately and use separate manifest entri
 for the relevant reports, or choose one equal-duration window starting after all
 provider-local deployment days and collect after every provider's buffer. The
 latter may differ from proposed dates; supplied snapshots are checked on their
-actual windows. Do not rely on snapshot date defaults. Keep each saved snapshot
-intact; editing its context does not change the underlying report scope.
+actual windows and saved collection dates. A report collected before its buffer
+remains `waiting` until that date, then `ready_to_collect` until recollected;
+time passing cannot mature a saved artifact. Do not rely on snapshot date defaults.
+Keep each saved snapshot intact; editing its context does not change the underlying report scope.
 
 GA tracking changes between baseline start and after end block that experiment;
 a later snapshot or baseline cannot repair the historical comparison. Establish

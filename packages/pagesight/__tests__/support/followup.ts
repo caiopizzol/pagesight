@@ -49,7 +49,7 @@ export async function fixture(startDate: string, endDate: string, timezone = "UT
     }
     return capture("fixture", op.operation, record.site, {}, async () => ({}));
   });
-  const at = new Date(Date.parse(endDate) + 2 * 86400000).toISOString();
+  const at = new Date(Date.parse(endDate) + 3.5 * 86400000).toISOString();
   result.startedAt = at;
   result.finishedAt = at;
   for (const observation of (
