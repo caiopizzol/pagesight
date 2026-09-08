@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { capture } from "./evidence.js";
 import type { ImportedSnapshot } from "./evidence-schema.js";
+import { configSchema } from "./schema.js";
 import { canonical } from "./report-table.js";
 const pageSchema = z.object({
   url: z.string().url(),
@@ -31,13 +32,23 @@ export function technicalChanges(baseline: ImportedSnapshot | undefined, current
     { baselineSha256: baseline ? hash(baseline) : null, currentSha256: hash(current) },
     async () => {
       const alerts: Array<{ kind: string; source: string; message: string; before?: unknown; after?: unknown }> = [];
+      for (const url of configSchema.parse(after.context.config).pages) {
+        if (!after.observations.some((o) => o.provider === "web" && o.operation === "page" && o.target === url))
+          alerts.push({
+            kind: "unknown",
+            source: `page:${url}`,
+            message: "Configured page observation is missing; no regression inferred",
+          });
+      }
       for (const observation of after.observations) {
-        if (observation.status === "error" || observation.error)
+        if (observation.status === "error" || observation.error) {
           alerts.push({
             kind: "availability",
             source: observation.name,
             message: `Observation unavailable/incomplete: ${observation.error?.code ?? observation.status}`,
           });
+          continue;
+        }
         if (observation.provider !== "web" || observation.operation !== "page") continue;
         const parsed = pageSchema.safeParse(observation.pages[0]?.response);
         const request = observation.pages[0]?.request as { url?: string } | undefined;
@@ -66,7 +77,8 @@ export function technicalChanges(baseline: ImportedSnapshot | undefined, current
           !prior.success ||
           priorRequest?.url !== parsed.data.url ||
           prior.data.url !== parsed.data.url ||
-          previous?.status === "error"
+          previous?.status === "error" ||
+          previous?.error
         ) {
           alerts.push({
             kind: "unknown",

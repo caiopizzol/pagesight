@@ -58,3 +58,27 @@ test("scope changes and mismatched response identity cannot generate false regre
     (await execute({ operation: "technical.compare", baseline, current: mismatched })).pages[0].response,
   ).toMatchObject({ alerts: [{ kind: "unknown" }] });
 });
+test("missing configured pages remain unknown", async () => {
+  const missing = (await fixture()) as any;
+  missing.pages[0].response.context.config.pages.push("https://example.com/missing");
+  const missingResult = (await execute({ operation: "technical.compare", current: missing })).pages[0].response as any;
+  expect(missingResult.alerts).toContainEqual(
+    expect.objectContaining({ kind: "unknown", source: "page:https://example.com/missing" }),
+  );
+});
+test("failed retained page responses cannot infer changes", async () => {
+  const baseline = await fixture();
+  for (const status of ["error", "partial"]) {
+    const failed = (await fixture(200, ["robots: noindex"])) as any;
+    const observation = failed.pages[0].response.observations[0];
+    observation.status = status;
+    observation.error = { code: "provider_error", message: "Interrupted", httpStatus: null };
+    const result = (await execute({ operation: "technical.compare", baseline, current: failed })).pages[0]
+      .response as any;
+    expect(result.alerts.some((a: any) => a.kind === "availability")).toBe(true);
+    expect(result.alerts.some((a: any) => a.kind === "technical-change")).toBe(false);
+    const priorResult = (await execute({ operation: "technical.compare", baseline: failed, current: baseline }))
+      .pages[0].response as any;
+    expect(priorResult.alerts.some((a: any) => a.kind === "technical-change")).toBe(false);
+  }
+});
