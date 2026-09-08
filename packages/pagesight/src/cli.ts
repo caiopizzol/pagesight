@@ -37,6 +37,7 @@ pagesight ga accounts
 pagesight ga property --property 123456
 pagesight ga key-events --property 123456
 pagesight ga report --property 123456 --request report.json [--max-pages 4]
+pagesight render --url URL [--from-url URL --link-selector CSS] [--settle-ms 1000] [--timeout-ms 20000]
 pagesight page --url https://example.com/
 pagesight speed psi --url https://example.com/ [--strategy mobile]
 pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
@@ -77,6 +78,10 @@ export async function runCli(args: string[]): Promise<number> {
       options: {
         zone: { type: "string" },
         hostname: { type: "string" },
+        "from-url": { type: "string" },
+        "link-selector": { type: "string" },
+        "settle-ms": { type: "string" },
+        "timeout-ms": { type: "string" },
         limit: { type: "string" },
         record: { type: "string" },
         manifest: { type: "string" },
@@ -125,6 +130,7 @@ export async function runCli(args: string[]): Promise<number> {
       ? `${family}.${action ?? ""}`
       : family;
     const flags: Record<string, string[]> = {
+      render: ["url", "from-url", "link-selector", "settle-ms", "timeout-ms"],
       "cloudflare.audit": ["zone", "hostname", "start", "end", "limit"],
       "change.followup": ["manifest", "as-of", "lag-days", "format"],
       "change.evaluate": ["record", "baseline", "current", "max-rows"],
@@ -182,7 +188,19 @@ export async function runCli(args: string[]): Promise<number> {
       throw new RequestError("--json and --format text conflict", null, "invalid_input");
     let input: unknown;
     if (operation === "api") input = await jsonFile(values.request, "request");
-    else if (operation === "evidence.import")
+    else if (operation === "render") {
+      if (Boolean(values["from-url"]) !== Boolean(values["link-selector"]))
+        throw new RequestError("Supply both --from-url and --link-selector", null, "invalid_input");
+      input = {
+        operation: "page.verify",
+        url: values.url,
+        ...(values["from-url"]
+          ? { navigation: { fromUrl: values["from-url"], linkSelector: values["link-selector"] } }
+          : {}),
+        settleMs: Number(values["settle-ms"] ?? 1000),
+        timeoutMs: Number(values["timeout-ms"] ?? 20000),
+      };
+    } else if (operation === "evidence.import")
       input = { operation, document: await jsonFile(values.request, "request") };
     else if (operation === "cloudflare.audit")
       input = {

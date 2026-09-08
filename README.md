@@ -40,5 +40,6 @@ MIT — see [LICENSE](LICENSE).
 
 - [Cloudflare edge and security evidence](packages/pagesight/docs/cloudflare.md)
 - [Plan follow-ups and evaluate a deployed SEO change](packages/pagesight/docs/changes.md)
+- [Rendered-page verification](packages/pagesight/docs/rendering.md)
 - [Daily private observations](packages/pagesight/docs/monitoring.md)
 - [SEO agent workflow](packages/pagesight/docs/seo-agent-workflow.md)

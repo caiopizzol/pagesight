@@ -152,7 +152,24 @@ export const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapsh
     for (const issue of config.error.issues)
       ctx.addIssue({ ...issue, path: ["pages", 0, "response", "context", "config", ...issue.path] });
 });
+const renderRequestSchema = z
+  .object({
+    operation: z.literal("page.verify"),
+    url: httpUrl,
+    navigation: z
+      .object({ fromUrl: httpUrl, linkSelector: z.string().min(1).max(500) })
+      .strict()
+      .optional(),
+    settleMs: z.number().int().min(0).max(5000).default(1000),
+    timeoutMs: z.number().int().min(1000).max(60000).default(20000),
+    viewport: z
+      .object({ width: z.number().int().min(320).max(2560), height: z.number().int().min(240).max(2160) })
+      .strict()
+      .default({ width: 1280, height: 800 }),
+  })
+  .strict();
 const operationVariants = z.discriminatedUnion("operation", [
+  renderRequestSchema,
   z
     .object({
       operation: z.literal("change.followup"),
