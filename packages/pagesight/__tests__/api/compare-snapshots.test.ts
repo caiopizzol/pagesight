@@ -317,7 +317,7 @@ test("all generated GA snapshot report dimensions remain comparable", async () =
     }
     reports.push(observations);
   }
-  expect((await compare(reports[0], reports[1])).map((result) => result.status)).toEqual(Array(5).fill("compared"));
+  expect((await compare(reports[0], reports[1])).map((result) => result.status)).toEqual(Array(6).fill("compared"));
 });
 
 test("GA row totals must agree with retained pages and exhausted pagination", async () => {

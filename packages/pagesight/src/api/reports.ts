@@ -30,6 +30,14 @@ async function pages<T extends GscRequest | GaRequest>(
       result.warnings.push("Page aggregation differs from property aggregation; do not reconcile their row sums.");
     if ((request as GscRequest).dataState !== "final")
       result.warnings.push("Fresh data can be incomplete even when metadata is absent for this grouping.");
+  } else if (
+    (request as GaRequest).dimensions.some((dimension) => dimension.name === "landingPagePlusQueryString") &&
+    (request as GaRequest).dimensions.some((dimension) => dimension.name === "eventName")
+  ) {
+    result.warnings.push(
+      "Landing page is the first pageview of the session, not necessarily where an event occurred. Event counts are occurrences, not unique sessions or a conversion rate.",
+      "Landing URLs retain query strings and (not set)/(other) values; do not join them to Search Console canonical URLs without verified mapping.",
+    );
   }
   for (let page = 0; page < maxPages; page++) {
     const effective = { ...request, [offsetKey]: offset };

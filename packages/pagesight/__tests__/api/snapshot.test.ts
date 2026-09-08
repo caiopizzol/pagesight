@@ -134,3 +134,20 @@ test("named observations remain unique and stable when a provider is removed", a
   expect(new Set(names(all)).size).toBe(names(all).length);
   expect(names(gaOnly)).toEqual(names(all).filter((name) => !name.startsWith("gsc.")));
 });
+
+test("organic landing events retain source, event name, production scope and bounded pagination", () => {
+  const op = snapshotOperations(config, "2026-08-01", "2026-08-28", 2).find(
+    (op) => op.operation === "ga.report" && op.request.dimensions?.length === 3,
+  );
+  expect(op?.operation).toBe("ga.report");
+  if (op?.operation !== "ga.report") throw new Error("Missing report");
+  expect(op.maxPages).toBe(2);
+  expect(op.request.dimensions?.map((d) => d.name)).toEqual([
+    "landingPagePlusQueryString",
+    "sessionSource",
+    "eventName",
+  ]);
+  expect(op.request.metrics).toEqual([{ name: "eventCount" }]);
+  expect(JSON.stringify(op.request.dimensionFilter)).toContain("Organic Search");
+  expect(JSON.stringify(op.request.dimensionFilter)).toContain("127.0.0.1");
+});

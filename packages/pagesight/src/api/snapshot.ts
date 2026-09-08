@@ -91,6 +91,21 @@ export function snapshotOperations(
           },
         },
       }),
+      ga(["landingPagePlusQueryString", "sessionSource", "eventName"], ["eventCount"], true, {
+        dimensionFilter: {
+          andGroup: {
+            expressions: [
+              hostFilter,
+              {
+                filter: {
+                  fieldName: "sessionDefaultChannelGroup",
+                  stringFilter: { matchType: "EXACT", value: "Organic Search" },
+                },
+              },
+            ],
+          },
+        },
+      }),
     );
   }
   operations.push(...config.pages.map((url) => ({ operation: "page" as const, url })));

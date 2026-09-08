@@ -151,3 +151,43 @@ test("invalid imported assessment configuration is an invalid-input error", asyn
   const error = await execute({ operation: "assess", snapshot }).catch((error) => error);
   expect(error).toMatchObject({ code: "invalid_input" });
 });
+
+test("organic landing events stay raw and scoped, with event-location and outcome limits", async () => {
+  const saved = await fixture();
+  const name = "ga.report.landingPagePlusQueryString+sessionSource+eventName.organic";
+  const observation = report(saved, name);
+  observation.pages[0].response.rows[0].dimensionValues = [
+    { value: "/explore?brand=example" },
+    { value: "google" },
+    { value: "detail_view" },
+  ];
+  const result = await execute({ operation: "assess", snapshot: saved });
+  expect(content(result).tables.find((t: any) => t.observation === name)).toMatchObject({
+    scope: "production-organic",
+    metrics: ["eventCount"],
+    rows: [{ keys: ["/explore?brand=example", "google", "detail_view"], values: ["100"] }],
+  });
+  expect(content(result).findings.find((f: any) => f.code === "organic-landing-events").message).toContain(
+    "not necessarily the pages",
+  );
+  expect(renderAssessment(result)).toContain("/explore?brand=example");
+  observation.status = "partial";
+  observation.pagination.exhausted = false;
+  observation.pagination.nextOffset = 1;
+  observation.pages[0].response.rowCount = 2;
+  const partial = await execute({ operation: "assess", snapshot: saved });
+  expect(partial.status).toBe("partial");
+  expect(content(partial).tables.find((t: any) => t.observation === name).complete).toBe(false);
+});
+
+test("older snapshots keep available tables and explicitly lack the new landing/event report", async () => {
+  const saved = await fixture();
+  const name = "ga.report.landingPagePlusQueryString+sessionSource+eventName.organic";
+  content(saved).observations = content(saved).observations.filter((o: Evidence) => o.name !== name);
+  const result = await execute({ operation: "assess", snapshot: saved });
+  expect(result.status).toBe("partial");
+  expect(content(result).tables.length).toBeGreaterThan(0);
+  expect(content(result).findings.some((f: any) => f.code === "report-unavailable" && f.sources.includes(name))).toBe(
+    true,
+  );
+});
