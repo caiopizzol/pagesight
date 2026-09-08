@@ -36,7 +36,7 @@
     "lint": "vp lint",
     "format": "vp fmt",
     "check": "vp check",
-    "prepare": "if [ -x node_modules/.bin/vp ]; then node_modules/.bin/vp config --no-agent; fi"
+    "prepare": "bun -e \"if (await Bun.file('node_modules/vite-plus/bin/vp').exists()) process.exit(Bun.spawnSync(['node', 'node_modules/vite-plus/bin/vp', 'config', '--no-agent'], { stdout: 'inherit', stderr: 'inherit' }).exitCode)\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
