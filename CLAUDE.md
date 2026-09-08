@@ -45,6 +45,7 @@ src/
 
 - `bun run src/index.ts` — start MCP server
 - `bun run check` — Vite+ format, lint, and type checks
+- `bun run typecheck` — TypeScript checks without emitting files
 - `bun run lint` — Vite+ lint
 - `bun run format` — Vite+ format
 - `bun test` — run tests
