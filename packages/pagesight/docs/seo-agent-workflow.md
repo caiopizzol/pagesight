@@ -103,8 +103,8 @@ do not claim they are original screenshots. Browser findings may be imported usi
 and source label. Imports remain unverified by Pagesight. Avoid cookies, client IDs,
 full tracking payloads and private browser data in shared artifacts.
 
-Run `speed psi --url URL --strategy mobile` for lab evidence and `speed crux --url
-URL` (or `--origin`) for field evidence. Save requests, collection windows, device
+Run `pagesight speed psi --url URL --strategy mobile` for lab evidence and
+`pagesight speed crux --url URL` (or `--origin`) for field evidence. Save requests, collection windows, device
 and response failures. PSI variability calls for repeated comparable lab conditions
 when diagnosing a specific issue. CrUX no-record means unavailable evidence for
 that scope. A visible fast load is not a Core Web Vitals measurement. Neither
