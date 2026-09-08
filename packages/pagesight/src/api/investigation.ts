@@ -99,6 +99,8 @@ const htmlResponse = z.object({
   canonical: z.string().nullable(),
   robots: z.array(z.string()),
   xRobotsTag: z.string().nullable(),
+  redirects: z.array(z.object({ url: z.string(), status: z.number().int(), location: z.string() })).default([]),
+  warnings: z.array(z.string()).default([]),
 });
 const indexResponse = z.object({
   inspectionResult: z.object({
@@ -127,6 +129,7 @@ export function investigationBrief(input: Input, observations: Evidence[]) {
     omittedRows: number;
     unusableRows: number;
     paginationExhausted: boolean;
+    displayPolicy: string;
     collectedAt: string;
     metadata: unknown[];
     warnings: string[];
@@ -153,7 +156,12 @@ export function investigationBrief(input: Input, observations: Evidence[]) {
       const metadata = observation.pages.map((p) => (p.response as { metadata?: unknown })?.metadata ?? null);
       for (const page of observation.pages) {
         if (observation.provider === "gsc") {
-          const request = gscRequestSchema.parse(page.request);
+          const parsedRequest = gscRequestSchema.safeParse(page.request);
+          if (!parsedRequest.success) {
+            unknowns.push(`${source}: unusable request; see raw evidence.`);
+            continue;
+          }
+          const request = parsedRequest.data;
           dimensions = request.dimensions;
           metrics = ["clicks", "impressions", "ctr", "position"];
           const response = searchResponse.safeParse(page.response);
@@ -170,7 +178,12 @@ export function investigationBrief(input: Input, observations: Evidence[]) {
             rows.push(row.data);
           }
         } else {
-          const request = gaRequestSchema.parse(page.request);
+          const parsedRequest = gaRequestSchema.safeParse(page.request);
+          if (!parsedRequest.success) {
+            unknowns.push(`${source}: unusable request; see raw evidence.`);
+            continue;
+          }
+          const request = parsedRequest.data;
           dimensions = request.dimensions.map((d) => d.name);
           metrics = request.metrics.map((m) => m.name);
           const response = gaResponse.safeParse(page.response);
@@ -204,7 +217,8 @@ export function investigationBrief(input: Input, observations: Evidence[]) {
         source,
         dimensions,
         metrics,
-        rows: rows.slice(0, input.maxRows),
+        rows: source === "search.date" ? rows.slice(-input.maxRows) : rows.slice(0, input.maxRows),
+        displayPolicy: source === "search.date" ? "newest-observed-dates-ascending" : "provider-order-prefix",
         observedRows: rows.length,
         omittedRows: Math.max(0, rows.length - input.maxRows),
         unusableRows,
@@ -231,7 +245,12 @@ export function investigationBrief(input: Input, observations: Evidence[]) {
         continue;
       }
       const page = parsed.data;
-      technical.push({ source, collectedAt: observation.finishedAt, evidence: page, warnings: observation.warnings });
+      technical.push({
+        source,
+        collectedAt: observation.finishedAt,
+        evidence: page,
+        warnings: [...observation.warnings, ...page.warnings],
+      });
       if (!page.title || !page.description)
         nextChecks.push(
           "Check whether the missing HTML title or description is intentional and inspect rendered metadata before proposing a snippet change.",

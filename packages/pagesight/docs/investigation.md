@@ -29,7 +29,9 @@ and MCP `observe`:
 The CLI defaults to 28 days ending three Pacific days ago. Supply both dates or
 neither. The API requires dates. `maxPages` defaults to 1 per report (maximum 20);
 `maxRows` defaults to 28 displayed rows per table (maximum 100). These are
-independent collection and presentation bounds. At most nine logical observations
+independent collection and presentation bounds. When a daily table is capped, it
+shows the newest retained observed dates in chronological order; other tables
+keep provider order. The display policy and omitted counts are explicit. At most nine logical observations
 run, in batches of three; pagination can add provider calls. Configured sitemap,
 Bing, and unrelated `pages` entries do not add reads to this Google-focused workflow.
 

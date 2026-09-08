@@ -8,14 +8,18 @@ export function renderInvestigation(evidence: Evidence): string {
     brief: ReturnType<typeof investigationBrief>;
   };
   const { brief } = response;
-  const quote = (value: unknown) => JSON.stringify(value);
+  const quote = (value: unknown) =>
+    JSON.stringify(value).replace(
+      /[\u007f-\u009f\u2028\u2029]/gu,
+      (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`,
+    );
   return [
     `Pagesight investigation: ${quote(evidence.target)} (${evidence.status})`,
     `Reporting window: ${quote(response.requestedDates)}`,
     `Caller context (unverified): ${quote(response.context)}`,
-    ...brief.findings.map((f) => `Finding [${f.source}]: ${f.statement}`),
+    ...brief.findings.map((f) => `Finding [${f.source}]: ${quote(f.statement)}`),
     ...brief.tables.flatMap((t) => [
-      `Evidence [${t.source}]: ${quote({ dimensions: t.dimensions, metrics: t.metrics, rows: t.rows, observedRows: t.observedRows, omittedRows: t.omittedRows, unusableRows: t.unusableRows, paginationExhausted: t.paginationExhausted, collectedAt: t.collectedAt, metadata: t.metadata })}`,
+      `Evidence [${t.source}]: ${quote({ displayPolicy: t.displayPolicy, dimensions: t.dimensions, metrics: t.metrics, rows: t.rows, observedRows: t.observedRows, omittedRows: t.omittedRows, unusableRows: t.unusableRows, paginationExhausted: t.paginationExhausted, collectedAt: t.collectedAt, metadata: t.metadata })}`,
       ...t.warnings.map((w) => `Warning [${t.source}]: ${quote(w)}`),
     ]),
     ...brief.technical.map((t) => `Technical [${t.source}]: ${quote(t)}`),
