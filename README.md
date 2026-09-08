@@ -1,7 +1,14 @@
-# Pagesight
+<h1 align="center">Pagesight</h1>
 
-SEO, analytics, page, and performance evidence for developers and AI assistants.
-Use it through the TypeScript API, CLI, local HTTP server, or MCP.
+<p align="center">
+  Check your site's search traffic, analytics, and page performance.
+  <br>
+  Built for developers and AI assistants. Use the TypeScript API, CLI, local HTTP server, or MCP.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/pagesight"><img src="https://img.shields.io/npm/v/pagesight" alt="npm version"></a>
+</p>
 
 ## Quick start
 
