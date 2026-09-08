@@ -36,21 +36,23 @@ GA evidence identifies the credential source variable, credential type, and serv
 account email when present. It never includes the token or private key. Aggregate
 results include a concise per-observation `summary` alongside full observations.
 
-| Operation                      | Required inputs                                          |
-| ------------------------------ | -------------------------------------------------------- |
-| `discover`                     | `url`; optional `providers` (`["gsc", "ga"]` by default) |
-| `gsc.sites`                    | None                                                     |
-| `gsc.sitemaps`                 | `site`                                                   |
-| `gsc.inspect`                  | `site`, `url`                                            |
-| `gsc.report`                   | `site`, `request`; optional `maxPages`                   |
-| `ga.accounts`                  | None                                                     |
-| `ga.property`, `ga.key-events` | `property`                                               |
-| `ga.report`                    | `property`, `request`; optional `maxPages`               |
-| `page`                         | `url`                                                    |
-| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`)       |
-| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`             |
-| `doctor`                       | `config`                                                 |
-| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages`    |
+| Operation                                    | Required inputs                                          |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `discover`                                   | `url`; optional `providers` (`["gsc", "ga"]` by default) |
+| `bing.sites`                                 | None                                                     |
+| `bing.queries`, `bing.pages`, `bing.traffic` | `site`                                                   |
+| `gsc.sites`                                  | None                                                     |
+| `gsc.sitemaps`                               | `site`                                                   |
+| `gsc.inspect`                                | `site`, `url`                                            |
+| `gsc.report`                                 | `site`, `request`; optional `maxPages`                   |
+| `ga.accounts`                                | None                                                     |
+| `ga.property`, `ga.key-events`               | `property`                                               |
+| `ga.report`                                  | `property`, `request`; optional `maxPages`               |
+| `page`                                       | `url`                                                    |
+| `speed.psi`                                  | `url`; optional `strategy` (`mobile` or `desktop`)       |
+| `speed.crux`, `speed.history`                | `url`; optional `origin: true`, `formFactor`             |
+| `doctor`                                     | `config`                                                 |
+| `snapshot`                                   | `config`, `startDate`, `endDate`; optional `maxPages`    |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
@@ -248,3 +250,36 @@ fetching, CLI/HTTP/MCP parity, and the original robots/authentication behavior.
 ## License
 
 MIT
+
+## Bing Webmaster reports
+
+Set `BING_WEBMASTER_API_KEY` from Bing Webmaster Tools API Access, then discover
+sites before copying a verified URL into `bingSite` in your config:
+
+```sh
+pagesight discover --url https://example.com/ --providers bing
+pagesight bing sites
+pagesight bing queries --site https://example.com/
+pagesight bing pages --site https://example.com/
+pagesight bing traffic --site https://example.com/
+```
+
+The API operations are `bing.sites`, `bing.queries`, `bing.pages` and `bing.traffic`.
+MCP `observe` and HTTP use the same operation objects. A configured `bingSite`
+adds all three reports to snapshots; doctor checks traffic access. Google discovery
+remains the default; use `--providers gsc,ga,bing` to include all providers.
+
+These methods accept no date range or pagination options. Snapshot requested dates
+apply to Google reports; Bing returns its provider-defined range. Responses retain
+Bing's raw `d` envelope, numeric fields and `/Date(...)/` strings; reporting timezone
+and coverage remain unknown. Query/page statistics update weekly, traffic daily.
+`GetPageStats` uses `Query` for the page URL. Since March 24, 2023 traffic includes
+Web, Chat, News, Images, Videos and Knowledge Panel; this is not isolated AI-citation
+evidence or a Google Web equivalent. Site verification is not indexing evidence.
+
+Contracts were checked against Microsoft Learn's [GetUserSites](https://learn.microsoft.com/en-us/dotnet/api/microsoft.bing.webmaster.api.interfaces.iwebmasterapi.getusersites),
+[GetQueryStats](https://learn.microsoft.com/en-us/dotnet/api/microsoft.bing.webmaster.api.interfaces.iwebmasterapi.getquerystats),
+[GetPageStats](https://learn.microsoft.com/en-us/dotnet/api/microsoft.bing.webmaster.api.interfaces.iwebmasterapi.getpagestats)
+and [GetRankAndTrafficStats](https://learn.microsoft.com/en-us/dotnet/api/microsoft.bing.webmaster.api.interfaces.iwebmasterapi.getrankandtrafficstats).
+Fixture tests verify these contracts and safe failures. Live Bing access has not
+been verified because no API key is configured in the development environment.
