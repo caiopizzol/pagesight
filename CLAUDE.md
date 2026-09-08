@@ -8,6 +8,7 @@ The active agent SEO observability goal and verification live in `seo-goal.md`.
 ## Stack
 
 - **Runtime**: Bun (not Node.js)
+- **Contributor runtime**: Node 22.18 or later in the 22.x line for Vite+ and release tooling
 - **Language**: TypeScript
 - **MCP SDK**: `@modelcontextprotocol/sdk`
 - **Development tools**: Vite+ (Oxfmt, Oxlint, type checks)
@@ -19,40 +20,50 @@ The active agent SEO observability goal and verification live in `seo-goal.md`.
 Adapters translate transport input/output only. The six original MCP tools remain
 compatible; `observe` exposes the shared API.
 
-```
-src/
-  index.ts              # Bin dispatcher; no arguments show CLI help; mcp starts MCP
-  cli.ts                # CLI adapter
-  http.ts               # Bearer-authenticated loopback HTTP adapter
-  mcp.ts                # MCP server entry, registers 7 tools
+```text
+packages/pagesight/src/
+  index.ts              # Existing bin dispatcher
+  cli.ts, http.ts       # CLI and authenticated loopback HTTP
+  mcp.ts                # Stdio startup
+  mcp-server.ts         # Import-safe registration of seven tools
   api/
-    index.ts            # Public execute API and operation dispatch
-    schema.ts           # Shared request and site-context validation
-    evidence.ts         # Raw observations, failures and provenance
+    index.ts            # Public exports
+    execute.ts          # Validate and dispatch operations
+    schema.ts           # Requests and site configuration
+    evidence.ts         # Evidence creation, failures, and aggregation
+    evidence-schema.ts  # Saved evidence validation
+    doctor.ts           # Provider access checks
+    discover.ts         # Accessible property discovery
     reports.ts          # Bounded GA/GSC pagination
-    compare.ts          # Validated descriptive snapshot comparisons
-    imported.ts         # Stored evidence and snapshot validation
-    snapshot.ts         # Independent observations and aggregation
-    web.ts              # Bounded deployed HTML and sitemap inventory
-    dates.ts            # Pacific reporting-window defaults
-  lib/
-    auth.ts             # OAuth 2.0 + Service Account auth for GSC
-    gsc.ts              # Google Search Console API client
-    ga.ts               # GA Admin/Data APIs and separate credential cache
-    http.ts             # Bounded requests and safe provider errors
-    psi.ts              # PageSpeed Insights API client
-    crux.ts             # Chrome UX Report API client
-    robots.ts           # robots.txt parser + AI crawler registry
-    sitemap.ts          # Sitemap XML parser + URL inspection utilities
+    snapshot.ts         # Observation selection and collection
+    compare-snapshots.ts
+    bing.ts
+    ui-findings.ts       # Attributed, unverified UI evidence imports
+  providers/            # gsc, ga, bing, pagespeed, crux clients
+    google-tokens.ts    # OAuth/JWT exchanges; explicit scopes
+    gsc-auth.ts         # GSC credentials, cache, and setup
+  web/                  # Bounded observation; separate from legacy MCP parsing
+    fetch.ts
+    page-observation.ts
+    images.ts           # Bounded fetched-image and noscript inventory
+    sitemap-inventory.ts
+    sitemap-parser.ts
+    robots.ts
+  shared/               # HTTP/error primitives and reporting dates only
   tools/
-    observe.ts          # Shared API operation as an MCP tool
-    audit.ts            # "How's my site?" — orchestrates all tools
-    page.ts             # "What's on this URL?" — meta tags, links, structured data, contrast
-    speed.ts            # "How fast is it?" — PageSpeed (single/batch/compare) + CrUX (snapshot/history)
-    search.ts           # "How's Google seeing me?" — inspect, sample inspect, sitemaps, analytics
-    ai.ts               # "How's AI seeing me?" — AI crawler audit, robots.txt validation
-    setup.ts            # Auth setup helper
+    page/               # Metadata, structured data, links, contrast, single/batch analysis
+    search/             # Actions, inspection, coverage, analytics, sitemap sampling
+    speed/              # PageSpeed, CrUX, and batch analysis
+    ai.ts, audit.ts, observe.ts, setup.ts
 ```
+
+Each large tool's `tool.ts` registers it. Tests live under matching subjects in
+`packages/pagesight/__tests__`; shared fixtures are in `support/`.
+Lower layers must not import API orchestration. Keep the strict sitemap inventory
+and legacy search sampler separate, along with their existing fetch policies.
+
+The private root owns shared tooling and one Bun lockfile. Runtime dependencies
+belong to their workspace. A future website belongs in `apps/website`.
 
 ## APIs Used
 
@@ -65,15 +76,17 @@ src/
 
 ## Commands
 
-- `bun run src/index.ts` — show CLI help
-- `bun run src/index.ts mcp` — start MCP server
+- `bun run packages/pagesight/src/index.ts` — show CLI help
+- `bun run packages/pagesight/src/index.ts mcp` — start MCP server
 - `bun run typecheck` — TypeScript checks without emitting files
-- `bun src/index.ts --help` — CLI operations
-- `bun src/index.ts serve` — local HTTP API; requires `PAGESIGHT_API_TOKEN`
+- `bun packages/pagesight/src/index.ts --help` — CLI operations
+- `bun packages/pagesight/src/index.ts serve` — local HTTP API; requires `PAGESIGHT_API_TOKEN`
 - `bun run lint` — Vite+ lint
 - `bun run format` — Vite+ format
 - `bun run check` — Vite+ format, lint and type checks
-- `bun test` — run tests
+- `bun run test` — run workspace tests
+- `bun run verify` — all checks, import boundaries, and tests
+- `bun run test:package` — packed API/CLI/MCP consumer checks
 
 ## Conventions
 
@@ -84,3 +97,19 @@ src/
 - Preserve raw requests/responses and unknowns. Pagination completion is not exhaustive
   search coverage; missing rows are not zero, sitemap submission is not indexing, and
   configured key events are not automatically product outcomes.
+
+## Contributor setup and releases
+
+Use Bun 1.3.12 and Node 22.18 or later in the 22.x line. From the root, run
+`bun install --frozen-lockfile`, `bun run verify`, and `bun run test:package`.
+The package check installs a tarball outside the checkout and exercises API, CLI,
+and MCP entrypoints. Run focused tests from `packages/pagesight`.
+
+Only `packages/pagesight` is published. Website-only commits use the `website`
+scope, which is excluded from npm releases; mixed changes must not use it.
+The release job disables npm workspace updates; Bun owns the lockfile.
+
+Add operation schemas in `api/schema.ts`, workflows beside their owner, and
+routing in `api/execute.ts`. Export public additions from `api/index.ts`.
+Use `fetch*` for I/O, `parse*` for parsing, and `format*` for display, with
+kebab-case filenames and formatters beside their results.

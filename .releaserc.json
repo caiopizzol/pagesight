@@ -1,10 +1,30 @@
 {
   "branches": ["main"],
   "plugins": [
-    "@semantic-release/commit-analyzer",
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "releaseRules": [
+          {
+            "scope": "website",
+            "release": false
+          }
+        ]
+      }
+    ],
     "semantic-release-ai-notes",
-    "@semantic-release/npm",
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "packages/pagesight"
+      }
+    ],
     "@semantic-release/github",
-    "@semantic-release/git"
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["packages/pagesight/package.json", "bun.lock"]
+      }
+    ]
   ]
 }

@@ -1,0 +1,28 @@
+# Pagesight
+
+SEO, analytics, page, and performance evidence for developers and AI assistants.
+Use it through the TypeScript API, CLI, local HTTP server, or MCP.
+
+Requires Bun. Try a page check without provider credentials:
+
+```sh
+bun add pagesight
+bunx --bun pagesight page --url https://example.com
+```
+
+```ts
+import { execute } from "pagesight";
+
+const result = await execute({ operation: "page", url: "https://example.com" });
+console.log(result);
+```
+
+Provider reports need access to the relevant Google or Bing account. Results keep
+raw observations, failures, and limits; missing data is not zero.
+
+- [API, CLI, HTTP, and MCP](docs/usage.md)
+- [Snapshots and comparisons](docs/snapshots.md)
+- [Provider access](docs/credentials.md)
+- [Bing diagnostics, HTML images, and UI findings](docs/diagnostics.md)
+
+MIT — see [LICENSE](LICENSE).
