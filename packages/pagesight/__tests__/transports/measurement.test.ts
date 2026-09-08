@@ -137,3 +137,55 @@ test("Realtime uses the same read endpoint and request through every adapter", a
     await rm(dir, { recursive: true });
   }
 });
+
+test("opportunity candidates agree across API, CLI, HTTP and MCP with readable text", async () => {
+  const { opportunityFixture } = await import("../support/opportunities.js");
+  const snapshot = await opportunityFixture();
+  const request = { operation: "opportunities", snapshot, minImpressions: 40, maxClicks: 1, maxRows: 1 };
+  const dir = await mkdtemp(`${tmpdir()}/pagesight-opportunities-`);
+  await Bun.write(`${dir}/snapshot.json`, JSON.stringify(snapshot));
+  const server = startHttpApi(token, 0);
+  const client = new Client({ name: "opportunities-test", version: "1" });
+  try {
+    const direct = await execute(request);
+    const child = Bun.spawn(
+      [
+        process.execPath,
+        entry,
+        "opportunities",
+        "--snapshot",
+        `${dir}/snapshot.json`,
+        "--min-impressions",
+        "40",
+        "--max-clicks",
+        "1",
+        "--max-rows",
+        "1",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    const cli = await new Response(child.stdout).json();
+    expect(await child.exited).toBe(3);
+    expect(cli.pages).toEqual(direct.pages);
+    const response = await fetch(new URL("v1/query", server.url), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    expect(response.status).toBe(200);
+    expect((await response.json()).pages).toEqual(direct.pages);
+    await client.connect(new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" }));
+    const mcp = await client.callTool({ name: "observe", arguments: { request } });
+    expect((mcp.structuredContent as { pages: unknown }).pages).toEqual(direct.pages);
+    const readable = Bun.spawn(
+      [process.execPath, entry, "opportunities", "--snapshot", `${dir}/snapshot.json`, "--format", "text"],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(await new Response(readable.stdout).text()).toContain("caller-adjustable investigation cutoffs");
+    expect(await readable.exited).toBe(3);
+  } finally {
+    await client.close();
+    await server.stop(true);
+    await rm(dir, { recursive: true });
+  }
+});
