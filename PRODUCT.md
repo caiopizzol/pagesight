@@ -32,8 +32,10 @@ text output, so their results can differ from the shared API.
   and site access. A site-only snapshot needs no provider credentials.
 - Bing reports use provider-defined periods without date-range or pagination inputs.
   Reporting timezone and complete coverage remain unknown; traffic spans Bing verticals.
-- Snapshot comparison supports compatible GSC and GA reports with non-time row keys
-  and equal-length, nonoverlapping periods. Partial or recent data remains limited;
+- Snapshot comparison supports compatible GSC reports with non-time row keys and
+  GA reports using the [documented snapshot dimensions](README.md#compare-saved-snapshots),
+  without dimension expressions. Periods must be equal-length and nonoverlapping.
+  Partial or recent data remains limited;
   changes don't establish causation. Bing and other observations aren't compared.
 - Page checks read HTML without running browser JavaScript. JSON-LD checks cover
   supported rules; color contrast isn't a full accessibility audit.

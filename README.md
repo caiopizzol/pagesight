@@ -302,7 +302,11 @@ file paths. HTTP accepts objects up to 32 MB per request; larger pairs can use t
 local API or CLI. MCP `observe` accepts the same object. `evidenceSchema` and
 `snapshotEvidenceSchema` are exported for callers validating stored reports.
 
-This first comparison supports GSC and GA reports with non-time row keys. It checks
+This first comparison supports GSC reports with non-time row keys and GA reports
+using snapshot dimensions: `hostName`, `sessionDefaultChannelGroup`,
+`sessionSourceMedium`, `eventName`, `landingPagePlusQueryString`, and `sessionSource`.
+Reports without dimensions are also supported. Other GA dimensions and
+`dimensionExpression` aliases require a separate comparison policy. It checks
 snapshot format version 1, unique observation names, site, property, dimensions,
 metrics, filters, aggregation, report periods and GA timezone/currency/metric types.
 GSC data must be finalized. Time dimensions, Bing's provider-defined windows, HTML,

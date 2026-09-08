@@ -35,6 +35,14 @@ const gaResponse = z
     metadata: z.object({ timeZone: z.string().min(1), currencyCode: z.string().optional() }).passthrough(),
   })
   .passthrough();
+const gaComparisonDimensions = new Set([
+  "hostName",
+  "sessionDefaultChannelGroup",
+  "sessionSourceMedium",
+  "eventName",
+  "landingPagePlusQueryString",
+  "sessionSource",
+]);
 
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
@@ -80,6 +88,10 @@ function report(observation: Evidence, context: SnapshotContext): Report {
         throw new Incompatible("GSC data must be finalized.");
       if (q.startRow !== offset)
         throw new Incompatible("Report must contain contiguous pages starting at offset zero.");
+      if (q.dimensions.some((dimension) => dimension === "date" || dimension === "hour"))
+        throw new Incompatible(
+          "Time dimensions need a separate alignment policy; this comparison uses non-time row keys.",
+        );
       const { startDate, endDate, startRow: _startRow, rowLimit: _rowLimit, ...scope } = q;
       current = {
         request: scope,
@@ -99,6 +111,12 @@ function report(observation: Evidence, context: SnapshotContext): Report {
       const q = gaRequestSchema.parse(page.request);
       const response = gaResponse.parse(page.response);
       if (q.dateRanges.length !== 1) throw new Incompatible("GA comparison requires exactly one date range.");
+      if (
+        q.dimensions.some(
+          (dimension) => !gaComparisonDimensions.has(dimension.name) || Object.hasOwn(dimension, "dimensionExpression"),
+        )
+      )
+        throw new Incompatible("GA comparison supports only snapshot dimension names without dimension expressions.");
       if (q.offset !== offset) throw new Incompatible("Report must contain contiguous pages starting at offset zero.");
       const { dateRanges, offset: _offset, limit: _limit, returnPropertyQuota: _quota, ...scope } = q;
       const dimensions = q.dimensions.map((d) => d.name);
@@ -155,16 +173,6 @@ function report(observation: Evidence, context: SnapshotContext): Report {
       { startDate: context.requestedDates.startDate, endDate: context.requestedDates.endDate },
       "Report period does not match the snapshot context.",
     );
-    if (
-      current.dimensions.some((d) =>
-        /^(date|hour|dateHour|dateHourMinute|year|yearMonth|yearWeek|isoYear|isoYearIsoWeek|nthDay|nthHour|nthMinute|nthMonth|nthWeek|day|dayOfWeek|dayOfWeekName|week|isoWeek|month|minute)$/u.test(
-          d,
-        ),
-      )
-    )
-      throw new Incompatible(
-        "Time dimensions need a separate alignment policy; this comparison uses non-time row keys.",
-      );
     if (report) {
       requireSame(
         [report.request, report.start, report.end, report.semantics],

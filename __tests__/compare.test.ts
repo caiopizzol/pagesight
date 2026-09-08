@@ -8,8 +8,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { capture, type Evidence } from "../src/api/evidence.js";
 import { execute } from "../src/api/index.js";
 import { gaReport, gscReport } from "../src/api/reports.js";
-import { gaRequestSchema, gscRequestSchema } from "../src/api/schema.js";
-import { aggregate } from "../src/api/snapshot.js";
+import { configSchema, gaRequestSchema, gscRequestSchema } from "../src/api/schema.js";
+import { aggregate, snapshotOperations } from "../src/api/snapshot.js";
 import { startHttpApi } from "../src/http.js";
 import { registerObserveTool } from "../src/tools/observe.js";
 
@@ -317,6 +317,62 @@ test("GA recently collected reports are limited and cyclic time dimensions requi
     );
     expect(comparison.status).toBe("incompatible");
   }
+});
+
+test("GA temporal dimensions and expression aliases cannot be compared as stable keys", async () => {
+  const results: Comparison[] = [];
+  for (const dimension of [
+    { name: "nthYear" },
+    { name: "eventName", dimensionExpression: { lowerCase: { dimensionName: "nthYear" } } },
+  ]) {
+    const baseline = await ga(0, "1"),
+      current = await ga(1, "2");
+    for (const observation of [baseline, current]) {
+      (observation.pages[0].request as Record<string, unknown>).dimensions = [dimension];
+      const response = observation.pages[0].response as {
+        dimensionHeaders: Array<{ name: string }>;
+        rows: Array<{ dimensionValues: Array<{ value: string }> }>;
+      };
+      response.dimensionHeaders = [{ name: dimension.name }];
+      response.rows[0].dimensionValues = [{ value: "0000" }];
+    }
+    const [result] = await compare([baseline], [current]);
+    results.push(result);
+  }
+  expect(results.map((result) => result.status)).toEqual(["incompatible", "incompatible"]);
+  for (const result of results) expect(result.rows).toBeUndefined();
+});
+
+test("all generated GA snapshot report dimensions remain comparable", async () => {
+  const reports: Evidence[][] = [];
+  for (const period of periods) {
+    const observations: Evidence[] = [];
+    for (const operation of snapshotOperations(
+      configSchema.parse({ site: "https://example.com/", gaProperty: "123", productionHostname: "example.com" }),
+      period.startDate,
+      period.endDate,
+      1,
+    )) {
+      if (operation.operation !== "ga.report") continue;
+      const request = gaRequestSchema.parse(operation.request);
+      const observation = await gaReport(operation.property, request, 1, async () => ({
+        dimensionHeaders: request.dimensions,
+        metricHeaders: request.metrics.map((metric) => ({ name: metric.name, type: "TYPE_INTEGER" })),
+        rows: [
+          {
+            dimensionValues: request.dimensions.map(() => ({ value: "shared" })),
+            metricValues: request.metrics.map(() => ({ value: "2" })),
+          },
+        ],
+        rowCount: 1,
+        metadata: { timeZone: "UTC" },
+      }));
+      observation.name = `ga.report.${observations.length}`;
+      observations.push(observation);
+    }
+    reports.push(observations);
+  }
+  expect((await compare(reports[0], reports[1])).map((result) => result.status)).toEqual(Array(5).fill("compared"));
 });
 
 test("CLI comparison reads saved objects and agrees with the API", async () => {
