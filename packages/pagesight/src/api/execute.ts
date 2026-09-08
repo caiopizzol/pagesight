@@ -1,3 +1,4 @@
+import { verifyRender } from "./verify-render.js";
 import { followupChanges } from "./followup-changes.js";
 import { cloudflareAudit } from "./cloudflare.js";
 
@@ -41,6 +42,12 @@ export async function execute(input: unknown): Promise<Evidence> {
       "invalid_input",
     );
   }
+  if (
+    op.operation === "page.verify" &&
+    op.navigation &&
+    new URL(op.navigation.fromUrl).origin !== new URL(op.url).origin
+  )
+    throw new RequestError("Navigation source must share the target origin", null, "invalid_input");
   const result = await dispatch(op);
   if (op.operation.startsWith("ga.")) result.credential = await gaCredentialInfo();
   if (op.operation.startsWith("bing."))
@@ -55,6 +62,8 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
+    case "page.verify":
+      return verifyRender(op);
     case "cloudflare.audit":
       return cloudflareAudit(op);
 

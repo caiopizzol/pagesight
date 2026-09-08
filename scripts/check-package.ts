@@ -34,10 +34,12 @@ try {
     `import { execute, RequestError, operationSchema, configSchema, evidenceSchema, snapshotEvidenceSchema } from "pagesight";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-const fixture = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("<title>Package check</title>") });
+const fixture = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("<title>Package check</title>", { headers: { "content-type": "text/html" } }) });
 try {
   const result = await execute({ operation: "page", url: fixture.url.href });
   if (result.status !== "ok" || result.schemaVersion !== 1 || result.provider !== "web" || result.operation !== "page" || result.target !== fixture.url.href) throw new Error("Page evidence contract changed");
+  const rendered = await execute({ operation: "page.verify", url: fixture.url.href, settleMs: 0 });
+  if (rendered.status !== "ok" || rendered.pages[0].response.comparisons.serverToDirect.status !== "equal") throw new Error("Packed browser verification failed");
   try { await execute({ operation: "invalid" }); throw new Error("Invalid input accepted"); }
   catch (error) { if (!(error instanceof RequestError) || error.code !== "invalid_input") throw error; }
   for (const schema of [operationSchema, configSchema, evidenceSchema, snapshotEvidenceSchema]) {

@@ -65,6 +65,8 @@ shipping or merchant claims merely to satisfy a validator.
 
 ## Rendered-template and performance verification
 
+For repeatable direct-load and internal-anchor checks, use [rendered-page verification](rendering.md). Keep the manual workflow below for forms, history navigation and visual inspection.
+
 Select one known URL per important template, plus an intentional noindex or
 functional-filter example. Record browser, viewport, capture time, URL and navigation
 path (direct load versus client navigation). Run `pagesight page --url URL` to save
