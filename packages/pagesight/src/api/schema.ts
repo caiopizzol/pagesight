@@ -146,13 +146,28 @@ export const configSchema = z
     "Select at least one page or provider",
   );
 export type SiteConfig = z.infer<typeof configSchema>;
-const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
+export const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
   const config = configSchema.safeParse(snapshot.pages[0].response.context.config);
   if (!config.success)
     for (const issue of config.error.issues)
       ctx.addIssue({ ...issue, path: ["pages", 0, "response", "context", "config", ...issue.path] });
 });
 const operationVariants = z.discriminatedUnion("operation", [
+  z
+    .object({
+      operation: z.literal("change.followup"),
+      experiments: z
+        .array(z.unknown())
+        .min(1)
+        .max(50)
+        .describe(
+          "Entries: {label, record: change record, baseline: configured snapshot, current?: configured snapshot}. Each entry is validated independently; use embedded objects, not filesystem paths.",
+        ),
+      asOf: z.string().datetime().optional(),
+      lagDays: z.number().int().min(1).max(30).default(3),
+    })
+    .strict(),
+
   z
     .object({
       operation: z.literal("cloudflare.audit"),

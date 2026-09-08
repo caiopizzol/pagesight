@@ -8,7 +8,7 @@ import { snapshotOperations, observationName } from "./snapshot.js";
 import { normalizeGaProperty } from "../providers/ga.js";
 import { RequestError } from "../shared/http.js";
 
-function localDay(at: string, timeZone: string): string {
+export function localDay(at: string, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     year: "numeric",
@@ -26,7 +26,7 @@ function scope(provider: string, request: unknown) {
   const { startRow: _offset, rowLimit: _limit, ...rest } = gscRequestSchema.parse(request);
   return rest;
 }
-function boundReport(snapshot: ImportedSnapshot, name: string) {
+export function boundReport(snapshot: ImportedSnapshot, name: string) {
   const { context, observations } = snapshot.pages[0].response;
   const config = configSchema.parse(context.config);
   const expected = snapshotOperations(config, context.requestedDates.startDate, context.requestedDates.endDate, 1).find(
@@ -56,7 +56,7 @@ function boundReport(snapshot: ImportedSnapshot, name: string) {
     );
   return { observation, report: normalizeReport(observation, context) };
 }
-const fingerprint = (value: unknown) => Bun.CryptoHasher.hash("sha256", canonical(value), "hex");
+export const fingerprint = (value: unknown) => Bun.CryptoHasher.hash("sha256", canonical(value), "hex");
 
 export async function evaluateChange(
   record: ChangeRecord,

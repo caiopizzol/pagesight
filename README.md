@@ -39,6 +39,6 @@ Source and tests live in `packages/pagesight`.
 MIT — see [LICENSE](LICENSE).
 
 - [Cloudflare edge and security evidence](packages/pagesight/docs/cloudflare.md)
-- [Evaluate a deployed SEO change](packages/pagesight/docs/changes.md)
+- [Plan follow-ups and evaluate a deployed SEO change](packages/pagesight/docs/changes.md)
 - [Daily private observations](packages/pagesight/docs/monitoring.md)
 - [SEO agent workflow](packages/pagesight/docs/seo-agent-workflow.md)
