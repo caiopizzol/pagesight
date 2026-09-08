@@ -18,7 +18,7 @@ Preserve npm exports/bin, seven MCP tools, CLI/HTTP contracts, evidence identifi
 and current provider/network semantics. Document the changed checkout entry path.
 Keep one published package; no empty website, framework choice, generic provider layer,
 or build pipeline. Leave the main checkout and its SEO feature work untouched.
-Implementation is authorized; publishing, deployment, and a new PR are not requested.
+The user invoked deliver-pr: branch publication, PR delivery, and gated auto-merge are authorized. Website deployment remains out of scope.
 
 ## Completion criteria
 
@@ -69,9 +69,11 @@ Claude's implementation consultation reached its 600-second limit without a fina
 answer. Its records were inspected; it is not counted as approval. The earlier
 completed assessment consultations remain in the assessment artifact directory.
 
-## Resume
+## Delivery
 
-Implementation is complete and committed in reviewable local increments. The website
-has not been scaffolded, and no PR or push was requested. If the user requests a PR,
-review this branch against current main and rerun checks after any new changes.
-This is the authoritative cleanup record; `seo-goal.md` tracks a separate goal.
+Implementation is complete. PR delivery is now active at the user's request.
+The authoritative delivery handoff is
+`/Users/cpolive/.codex/artifacts/pagesight-cleanup-20260908/delivery.md`.
+It records the exact PR, owner, verified heads, merge gates, waits, and terminal state.
+Current main includes PR #12; the delivery owner must preserve those additions while
+reconciling the workspace move. `seo-goal.md` tracks the separate SEO feature goal.
