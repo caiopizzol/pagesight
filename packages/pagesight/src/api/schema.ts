@@ -163,6 +163,13 @@ const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx
 const operationVariants = z.discriminatedUnion("operation", [
   z
     .object({
+      operation: z.literal("technical.compare"),
+      baseline: assessedSnapshotSchema.optional(),
+      current: assessedSnapshotSchema,
+    })
+    .strict(),
+  z
+    .object({
       operation: z.literal("investigate"),
       config: configSchema,
       url: httpUrl,
