@@ -189,3 +189,92 @@ test("opportunity candidates agree across API, CLI, HTTP and MCP with readable t
     await rm(dir, { recursive: true });
   }
 });
+
+test("URL investigation collects live HTML through API, CLI, HTTP and MCP with explicit missing-provider evidence", async () => {
+  const web = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: () =>
+      new Response('<title>Investigation fixture</title><meta name="robots" content="noindex">', {
+        headers: { "Content-Type": "text/html" },
+      }),
+  });
+  const url = new URL("/candidate?variant=1", web.url).href;
+  const config = { site: web.url.href };
+  const request = { operation: "investigate", config, url, startDate: "2026-08-01", endDate: "2026-08-28" };
+  const dir = await mkdtemp(`${tmpdir()}/pagesight-investigation-`);
+  await Bun.write(`${dir}/config.json`, JSON.stringify(config));
+  const server = startHttpApi(token, 0);
+  const client = new Client({ name: "investigation-test", version: "1" });
+  try {
+    const direct = await execute(request);
+    const data = (e: any) => ({
+      target: e.target,
+      status: e.status,
+      findings: e.pages[0].response.brief.findings,
+      unknowns: e.pages[0].response.brief.unknowns,
+      nextChecks: e.pages[0].response.brief.nextChecks,
+    });
+    expect(direct.status).toBe("partial");
+    const child = Bun.spawn(
+      [
+        process.execPath,
+        entry,
+        "investigate",
+        "--config",
+        `${dir}/config.json`,
+        "--url",
+        url,
+        "--start",
+        "2026-08-01",
+        "--end",
+        "2026-08-28",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    const cli = await new Response(child.stdout).json();
+    expect(await child.exited).toBe(3);
+    expect(data(cli)).toEqual(data(direct));
+    const response = await fetch(new URL("v1/query", server.url), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    expect(response.status).toBe(200);
+    expect(data(await response.json())).toEqual(data(direct));
+    await client.connect(new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" }));
+    const mcp = await client.callTool({ name: "observe", arguments: { request } });
+    expect(data(mcp.structuredContent)).toEqual(data(direct));
+    const readable = Bun.spawn(
+      [
+        process.execPath,
+        entry,
+        "investigate",
+        "--config",
+        `${dir}/config.json`,
+        "--url",
+        url,
+        "--start",
+        "2026-08-01",
+        "--end",
+        "2026-08-28",
+        "--format",
+        "text",
+        "--out",
+        `${dir}/brief.txt`,
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    const text = await new Response(readable.stdout).text();
+    expect(await readable.exited).toBe(3);
+    expect(text).toContain("Investigation fixture");
+    expect(text).toContain("noindex");
+    expect(text).toContain("Search Console is not configured");
+    expect(await Bun.file(`${dir}/brief.txt`).text()).toBe(text);
+  } finally {
+    await client.close();
+    await server.stop(true);
+    await web.stop(true);
+    await rm(dir, { recursive: true });
+  }
+});

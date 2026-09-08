@@ -30,3 +30,11 @@ MIT — see [LICENSE](LICENSE).
 
 [Assess measurement quality and verify analytics](docs/measurement.md) with saved
 snapshot summaries, GA Realtime and a repeatable browser-check workflow.
+
+## Investigate a search candidate
+
+Use `pagesight investigate --config seo.config.json --url 'https://example.com/page' --format text`
+to gather exact-page search queries, device/country breakdowns, daily history,
+current metadata/indexing and associated organic traffic/events. JSON retains raw
+observations alongside a brief with findings, unknowns and next checks.
+See [the investigation guide](docs/investigation.md) for scope and interpretation.
