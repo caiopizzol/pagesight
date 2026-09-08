@@ -49,8 +49,8 @@ test("CLI rejects ignored flags and unexpected positional arguments before provi
   }
 });
 
-test("no-argument MCP remains compatible and observe calls the same API", async () => {
-  const transport = new StdioClientTransport({ command: process.execPath, args: [entry], stderr: "pipe" });
+test("explicit MCP startup exposes existing tools and observe calls the same API", async () => {
+  const transport = new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" });
   const client = new Client({ name: "pagesight-test", version: "1.0.0" });
   try {
     await client.connect(transport);
@@ -74,4 +74,13 @@ test("no-argument MCP remains compatible and observe calls the same API", async 
   } finally {
     await client.close();
   }
+});
+
+test("no arguments show CLI help and exit without starting MCP", async () => {
+  const child = Bun.spawn([process.execPath, entry], { stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  expect(await child.exited).toBe(0);
+  expect(stdout).toContain("Show CLI help");
+  expect(stdout).toContain("pagesight mcp");
+  expect(stderr).toBe("");
 });
