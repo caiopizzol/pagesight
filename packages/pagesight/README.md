@@ -1,8 +1,7 @@
 # Pagesight
 
-See your site the way search engines and AI see it. Pagesight returns SEO,
-analytics, page, and performance evidence through a TypeScript API, CLI, local
-HTTP server, and MCP tools.
+SEO, analytics, page, and performance evidence for developers and AI assistants.
+Use it through the TypeScript API, CLI, local HTTP server, or MCP.
 
 Requires Bun. Try a page check without provider credentials:
 
@@ -24,7 +23,6 @@ raw observations, failures, and limits; missing data is not zero.
 - [API, CLI, HTTP, and MCP](docs/usage.md)
 - [Snapshots and comparisons](docs/snapshots.md)
 - [Provider access](docs/credentials.md)
-- [Product boundary](https://github.com/caiopizzol/pagesight/blob/main/PRODUCT.md)
-- [Contributing](https://github.com/caiopizzol/pagesight/blob/main/CONTRIBUTING.md)
+- [Bing diagnostics, HTML images, and UI findings](docs/diagnostics.md)
 
 MIT — see [LICENSE](LICENSE).

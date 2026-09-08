@@ -93,3 +93,59 @@ review/check monitoring of active PRs; no merge, queue or auto-merge action.
 
 Expected GitHub writer: `caiopizzol`, verified against repository Git config.
 Expected reviewer: `cubic-dev-ai[bot]` (GitHub App 1082092).
+
+## Bing assessment follow-up — 2026-09-08
+
+The preceding publication notes are historical. This follow-up assesses the supplied
+Bing UI screenshots and exports against live site/provider evidence; it does not
+reopen the completed implementation stack or authorize a version bump.
+
+Outcome: recommend evidence-backed fipe.chat improvements and the smallest Pagesight
+capabilities needed to support an agent assessment. Website implementation, IndexNow
+submission, and provider-setting changes are outside this assessment.
+
+- [x] Read the four supplied Bing recommendation screenshots and both URL CSVs.
+- [x] Verify the affected pages against live HTML and local source.
+- [x] Compare existing Pagesight Bing operations with official API contracts and
+      bounded live probes of crawl, URL-info, and link methods.
+- [x] Incorporate and independently check the requested outside consultation.
+- [x] Deliver a prioritized website recommendation and API-first, CLI-default backlog
+      with evidence provenance, coverage limits, and unresolved questions.
+
+Browser discovery returned no connected browsers, so live UI navigation is unavailable.
+The comparison uses supplied UI evidence; additional UI-only reports remain unverified.
+Private working artifacts: `/tmp/pagesight-bing-assessment/` (including consultation).
+Final local report: `/Users/cpolive/.local/state/pagesight/bing-assessment-20260908.md`.
+Assessment complete within the available UI evidence. Consultation session
+`61529e5d-4cc2-47eb-84c1-aeab22b0931f` completed with a follow-up incorporating live probes.
+Next proposed implementation: Bing crawl/URL reads, shared HTML image evidence,
+then lightweight UI evidence imports. Live authenticated UI navigation remains
+unverified until a browser is connected. Preserve private provider responses outside this repository.
+
+## Authorized implementation — 2026-09-08
+
+User authorized the Pagesight backlog after the assessment. Branch: feat/bing-assessment,
+based on the CLI-default work. No site edits, index submissions or major version bump.
+
+- [x] Add five Bing read operations with method-specific envelopes and bounded link pagination.
+- [x] Add shared page image evidence, including empty ALT and noscript, and description length.
+- [x] Add lightweight attributed UI finding import without inferred scan dates or coverage.
+- [x] Verify API/CLI/HTTP/MCP behavior, update usage docs and consult on the completed changes.
+
+Resume with the first unchecked criterion. Keep provider responses outside tracked source.
+
+Implementation evidence: 109 Bun tests and Vite+ checks pass (four existing legacy
+warnings). All five new Bing CLI reads and two page inspections passed against the
+assessment site; raw results stay in the private assessment directory. UI import
+parity is verified through API, CLI, HTTP and MCP. Claude implementation review
+found the stale MCP operation description, now fixed. Live URL-info includes the
+required Url string; fixture tests cover link parameter naming, empty crawl issues,
+partial pagination and image parser behavior. Package version remains 0.17.0.
+
+Rebased onto main at 04d4564, including merged PRs #10 and #11. The only
+conflict was the shared HTTP reader import; retained the upstream bounded reader
+and the new image inspection import. Final tests and Vite+ checks passed after
+resolution. Implementation criteria are complete. Published for review as
+[PR #12](https://github.com/caiopizzol/pagesight/pull/12), branch feat/bing-assessment.
+Implementation and publication are complete; hosted CI/review readiness is separate.
+No merge is authorized.

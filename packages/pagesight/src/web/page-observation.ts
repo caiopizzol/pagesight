@@ -1,3 +1,4 @@
+import { imageEvidence } from "./images.js";
 import { fetchText } from "./fetch.js";
 
 export async function observePage(url: string) {
@@ -50,6 +51,7 @@ export async function observePage(url: string) {
     xRobotsTag: response.headers.get("x-robots-tag"),
     title: title.trim() || null,
     description: metadata.description,
+    descriptionLength: metadata.description === null ? null : Array.from(metadata.description).length,
     canonical: metadata.canonical,
     robots,
     sha256: Bun.CryptoHasher.hash("sha256", body, "hex"),
@@ -61,6 +63,7 @@ export async function observePage(url: string) {
         return { value: null, validJson: false };
       }
     }),
+    imageEvidence: await imageEvidence(body),
     warnings,
   };
 }

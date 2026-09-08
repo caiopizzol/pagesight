@@ -3,8 +3,6 @@
 Shared API for SEO, analytics, GEO, and web performance evidence, with CLI,
 local HTTP, and MCP interfaces. npm package: `pagesight`.
 
-The active workspace and code cleanup goal is in `cleanup-goal.md`.
-
 The active agent SEO observability goal and verification live in `seo-goal.md`.
 
 ## Stack
@@ -40,12 +38,14 @@ packages/pagesight/src/
     snapshot.ts         # Observation selection and collection
     compare-snapshots.ts
     bing.ts
+    ui-findings.ts       # Attributed, unverified UI evidence imports
   providers/            # gsc, ga, bing, pagespeed, crux clients
     google-tokens.ts    # OAuth/JWT exchanges; explicit scopes
     gsc-auth.ts         # GSC credentials, cache, and setup
   web/                  # Bounded observation; separate from legacy MCP parsing
     fetch.ts
     page-observation.ts
+    images.ts           # Bounded fetched-image and noscript inventory
     sitemap-inventory.ts
     sitemap-parser.ts
     robots.ts
@@ -97,3 +97,19 @@ belong to their workspace. A future website belongs in `apps/website`.
 - Preserve raw requests/responses and unknowns. Pagination completion is not exhaustive
   search coverage; missing rows are not zero, sitemap submission is not indexing, and
   configured key events are not automatically product outcomes.
+
+## Contributor setup and releases
+
+Use Bun 1.3.12 and Node 22.18 or later in the 22.x line. From the root, run
+`bun install --frozen-lockfile`, `bun run verify`, and `bun run test:package`.
+The package check installs a tarball outside the checkout and exercises API, CLI,
+and MCP entrypoints. Run focused tests from `packages/pagesight`.
+
+Only `packages/pagesight` is published. Website-only commits use the `website`
+scope, which is excluded from npm releases; mixed changes must not use it.
+The release job disables npm workspace updates; Bun owns the lockfile.
+
+Add operation schemas in `api/schema.ts`, workflows beside their owner, and
+routing in `api/execute.ts`. Export public additions from `api/index.ts`.
+Use `fetch*` for I/O, `parse*` for parsing, and `format*` for display, with
+kebab-case filenames and formatters beside their results.

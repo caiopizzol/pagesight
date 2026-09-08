@@ -117,3 +117,76 @@ test("Bing discovery returns verified-site candidates without auto-selecting a s
     else process.env.BING_WEBMASTER_API_KEY = previous;
   }
 });
+
+test("Bing diagnostics retain object envelopes and bound link pages", async () => {
+  const previous = process.env.BING_WEBMASTER_API_KEY;
+  process.env.BING_WEBMASTER_API_KEY = "secret";
+  const urls: URL[] = [];
+  let mode = "links";
+  const mocked = spyOn(globalThis, "fetch").mockImplementation(
+    Object.assign(
+      async (input: Parameters<typeof fetch>[0]) => {
+        const url = new URL(input instanceof Request ? input.url : input.toString());
+        urls.push(url);
+        if (mode === "fault" && url.searchParams.get("page") === "1")
+          return Response.json({ ErrorCode: 4, Message: "secret" });
+        if (mode === "invalid") return Response.json({ d: { Links: [], TotalPages: -1 } });
+        if (mode === "info")
+          return Response.json({ d: { Url: "https://example.com/", HttpStatus: 0, AnchorCount: 1 } });
+        if (mode === "issues") return Response.json({ d: [] });
+        if (mode === "url-links")
+          return Response.json({
+            d: { Details: [{ Url: "https://referrer.example/", AnchorText: "Reference" }], TotalPages: 1 },
+          });
+        if (mode === "crawl") return Response.json({ d: [{ Code5xx: 69, InIndex: 7648 }] });
+        if (mode === "empty") return Response.json({ d: { Links: [], TotalPages: 0 } });
+        return Response.json({
+          d: {
+            Links: [{ Url: "https://example.com/", Count: 1 }],
+            TotalPages: mode === "unstable" && url.searchParams.get("page") === "1" ? 3 : 2,
+          },
+        });
+      },
+      { preconnect: fetch.preconnect },
+    ),
+  );
+  try {
+    const input = { operation: "bing.link-counts", site: "https://example.com/" };
+    const limited = await execute(input);
+    expect(limited.status).toBe("partial");
+    expect(limited.pagination).toEqual({ exhausted: false, nextOffset: 1, rowsReturned: 1 });
+    const complete = await execute({ ...input, maxPages: 2 });
+    expect(complete.pagination).toEqual({ exhausted: true, nextOffset: null, rowsReturned: 2 });
+    expect(complete.pages[1].request).toMatchObject({ page: "1", method: "GetLinkCounts" });
+    mode = "fault";
+    const failed = await execute({ ...input, maxPages: 2 });
+    expect(failed.status).toBe("partial");
+    expect(failed.pages).toHaveLength(1);
+    expect(failed.error?.code).toBe("bing_fault_4");
+    expect(JSON.stringify(failed)).not.toContain("secret");
+    mode = "unstable";
+    expect((await execute({ ...input, maxPages: 3 })).warnings.join(" ")).toContain("TotalPages changed");
+    mode = "empty";
+    expect((await execute(input)).pagination).toEqual({ exhausted: true, nextOffset: null, rowsReturned: 0 });
+    mode = "invalid";
+    expect((await execute(input)).error?.code).toBe("invalid_response");
+    mode = "info";
+    const info = await execute({ operation: "bing.url-info", site: input.site, url: input.site });
+    expect(info.pages[0].response).toMatchObject({ d: { HttpStatus: 0 } });
+    expect(urls.at(-1)?.searchParams.get("url")).toBe(input.site);
+    mode = "crawl";
+    expect((await execute({ operation: "bing.crawl-stats", site: input.site })).status).toBe("ok");
+    mode = "issues";
+    expect((await execute({ operation: "bing.crawl-issues", site: input.site })).pages[0].response).toEqual({ d: [] });
+    mode = "url-links";
+    const links = await execute({ operation: "bing.url-links", site: input.site, url: input.site });
+    expect(links.pagination).toEqual({ exhausted: true, nextOffset: null, rowsReturned: 1 });
+    expect(urls.at(-1)?.searchParams.get("link")).toBe(input.site);
+    expect(urls.at(-1)?.searchParams.has("url")).toBe(false);
+    expect(operationSchema.safeParse({ ...input, maxPages: 21 }).success).toBe(false);
+  } finally {
+    mocked.mockRestore();
+    if (previous === undefined) delete process.env.BING_WEBMASTER_API_KEY;
+    else process.env.BING_WEBMASTER_API_KEY = previous;
+  }
+});

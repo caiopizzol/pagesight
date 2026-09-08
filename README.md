@@ -5,26 +5,28 @@ Use it through the TypeScript API, CLI, local HTTP server, or MCP.
 
 ## Quick start
 
-With Bun installed:
+Requires [Bun](https://bun.sh). This page check needs no provider credentials:
 
 ```sh
 bunx --bun pagesight page --url https://example.com
 ```
 
-This page check needs no provider credentials. See the [package guide](packages/pagesight/README.md)
-for installation and usage, or [provider access](packages/pagesight/docs/credentials.md)
-for Google and Bing reports.
+## Development
 
-## Repository
+Use Bun 1.3.12 and Node 22.18 or later in the 22.x line. From the repository root:
 
-- `packages/pagesight` — the published npm package, source, tests, and usage guides.
-- `apps/website` — reserved for the future website; no app is scaffolded yet.
-- Root — shared tools, lockfile, checks, and release configuration.
+```sh
+bun install --frozen-lockfile
+bun run start --help  # Show local CLI commands
+bun run verify       # Format, lint, types, import boundaries, and tests
+bun run test:package # Check the packed API, CLI, and MCP entrypoints
+```
 
-To run from a checkout, use `bun run start --help` or
-`bun packages/pagesight/src/index.ts page --url https://example.com`.
-The former root `src/index.ts` checkout path has moved; installed npm commands are unchanged.
+Source and tests live in `packages/pagesight`.
 
-[Contributing](CONTRIBUTING.md) · [Product boundary](PRODUCT.md) · [Brand notes](docs/brand.md)
+- [API, CLI, HTTP, and MCP](packages/pagesight/docs/usage.md)
+- [Google and Bing credentials](packages/pagesight/docs/credentials.md)
+- [Snapshots and comparisons](packages/pagesight/docs/snapshots.md)
+- [Bing diagnostics, HTML images, and UI findings](packages/pagesight/docs/diagnostics.md)
 
 MIT — see [LICENSE](LICENSE).

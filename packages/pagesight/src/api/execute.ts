@@ -1,3 +1,4 @@
+import { importUiFindings } from "./ui-findings.js";
 import { doctor } from "./doctor.js";
 import { ZodError } from "zod";
 import { queryCrux, queryCruxHistory } from "../providers/crux.js";
@@ -5,7 +6,7 @@ import { gaCredentialInfo, gaFetch, normalizeGaProperty } from "../providers/ga.
 import { inspectUrlResponse, listSitemapsResponse, listSitesResponse } from "../providers/gsc.js";
 import { RequestError } from "../shared/http.js";
 import { runPagespeed } from "../providers/pagespeed.js";
-import { bingObservation } from "./bing.js";
+import { bingDiagnostics, bingObservation } from "./bing.js";
 import { compareSnapshots } from "./compare-snapshots.js";
 import { capture, type Evidence } from "./evidence.js";
 import { gaReport, gscReport } from "./reports.js";
@@ -44,10 +45,21 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
+    case "evidence.import":
+      return importUiFindings(op.document);
     case "compare":
       return compareSnapshots(op.baseline, op.current, op.maxRows);
     case "discover":
       return discover(op.url, op.providers, execute);
+    case "bing.crawl-stats":
+    case "bing.crawl-issues":
+      return bingDiagnostics(op.operation === "bing.crawl-stats" ? "crawl-stats" : "crawl-issues", op.site);
+    case "bing.url-info":
+      return bingDiagnostics("url-info", op.site, op.url);
+    case "bing.link-counts":
+      return bingDiagnostics("link-counts", op.site, undefined, op.maxPages);
+    case "bing.url-links":
+      return bingDiagnostics("url-links", op.site, op.url, op.maxPages);
     case "bing.sites":
       return bingObservation("sites");
     case "bing.queries":

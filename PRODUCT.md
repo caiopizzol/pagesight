@@ -22,6 +22,23 @@ text output, so their results can differ from the shared API.
 | Compare saved snapshots and retain raw values with descriptive changes for common report rows.                   | `compare` through the shared API, CLI, HTTP, or MCP `observe`                                                          | [comparison](packages/pagesight/src/api/compare-snapshots.ts), [snapshot imports](packages/pagesight/src/api/evidence-schema.ts)                              | [Comparison tests](packages/pagesight/__tests__/api/compare-snapshots.test.ts) cover compatibility, limitations, and malformed imports; [transport tests](packages/pagesight/__tests__/transports/comparison.test.ts) cover wiring                      |
 | Check robots rules by crawler or path and detect `llms.txt`.                                                     | MCP `ai`                                                                                                               | [ai](packages/pagesight/src/tools/ai.ts), [robots](packages/pagesight/src/web/robots.ts)                                                                      | [Robots tests](packages/pagesight/__tests__/web/robots.test.ts)                                                                                                                                                                                         |
 
+## Bing assessment evidence
+
+The shared API and default CLI also expose `bing.crawl-stats`, `bing.crawl-issues`,
+`bing.url-info`, `bing.link-counts` and `bing.url-links`. Link pagination is bounded
+and preserves partial results; provider counts and dates retain their original
+meaning and uncertainty. Crawl issues are not the UI recommendations report.
+See `src/api/bing.ts`, `src/lib/bing.ts` and the Bing tests.
+
+Shared `page` observations include description length and a capped image inventory,
+including noscript fallback images and separate missing/empty ALT values. This is
+HTML evidence, not a rendered accessibility audit (`src/api/images.ts`, image tests).
+
+`evidence.import` accepts small attributed JSON transcriptions of UI findings with
+unknown dates/coverage preserved. It never fetches or verifies imported claims;
+results remain `user-import` / `unverified`. It is available in all shared adapters
+(`src/api/ui-findings.ts`, import and transport tests).
+
 ## Where it stops
 
 - Pagesight collects and explains data. It doesn't edit or deploy sites, submit
@@ -30,7 +47,7 @@ text output, so their results can differ from the shared API.
 - Google reports need read-only credentials and property access. PageSpeed's key is
   optional; CrUX requires `GOOGLE_API_KEY`. Bing requires `BING_WEBMASTER_API_KEY`
   and site access. A site-only snapshot needs no provider credentials.
-- Bing reports use provider-defined periods without date-range or pagination inputs.
+- Bing traffic reports use provider-defined periods without date-range or pagination inputs.
   Reporting timezone and complete coverage remain unknown; traffic spans Bing verticals.
 - Snapshot comparison supports compatible GSC reports with non-time row keys and
   GA reports using the [documented snapshot dimensions](README.md#compare-saved-snapshots),
