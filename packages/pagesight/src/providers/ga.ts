@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { getOAuthToken, getServiceAccountToken } from "./gsc-auth.js";
+import { getOAuthToken, getServiceAccountToken } from "./google-tokens.js";
 import { RequestError, requestJson } from "../shared/http.js";
 
 const SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
@@ -76,7 +76,7 @@ export async function gaFetch<T>(path: string, body?: unknown, admin = false): P
   }
 }
 
-export function gaProperty(id: string): string {
+export function normalizeGaProperty(id: string): string {
   const number = id.replace(/^properties\//, "");
   if (!/^\d+$/.test(number)) throw new RequestError("GA property must be a numeric ID", null, "invalid_input");
   return `properties/${number}`;

@@ -17,7 +17,7 @@ export interface Evidence {
   error?: { code: string; message: string; httpStatus: number | null; name?: string };
 }
 
-export function evidence(provider: string, operation: string, target: string): Evidence {
+export function createEvidence(provider: string, operation: string, target: string): Evidence {
   return {
     schemaVersion: 1,
     provider,
@@ -52,7 +52,7 @@ export async function capture(
   run: () => Promise<unknown>,
   warnings: string[] = [],
 ): Promise<Evidence> {
-  const result = evidence(provider, operation, target);
+  const result = createEvidence(provider, operation, target);
   result.warnings.push(...warnings);
   try {
     result.pages.push({ request, response: await run() });
@@ -62,4 +62,38 @@ export async function capture(
   }
   result.finishedAt = new Date().toISOString();
   return result;
+}
+
+export function aggregate(operation: string, target: string, request: unknown, observations: Evidence[]): Evidence {
+  if (!observations.length) throw new RequestError("Select at least one observation", null, "invalid_input");
+  return {
+    schemaVersion: 1,
+    provider: "pagesight",
+    operation,
+    target,
+    startedAt: observations.map((o) => o.startedAt).sort()[0] ?? new Date().toISOString(),
+    finishedAt: new Date().toISOString(),
+    status: observations.every((o) => o.status === "ok")
+      ? "ok"
+      : observations.every((o) => o.status === "error")
+        ? "error"
+        : "partial",
+    pages: [
+      {
+        request,
+        response: {
+          observations,
+          summary: observations.map((o) => ({
+            provider: o.provider,
+            operation: o.operation,
+            ...(o.name ? { name: o.name } : {}),
+            target: o.target,
+            status: o.status,
+            errorCode: o.error?.code ?? null,
+          })),
+        },
+      },
+    ],
+    warnings: [],
+  };
 }

@@ -1,7 +1,7 @@
-import { type GaReport, gaFetch, gaProperty } from "../providers/ga.js";
+import { type GaReport, gaFetch, normalizeGaProperty } from "../providers/ga.js";
 import { querySearchAnalytics, type SearchAnalyticsResponse } from "../providers/gsc.js";
 import { RequestError } from "../shared/http.js";
-import { type Evidence, evidence, fail } from "./evidence.js";
+import { type Evidence, createEvidence, fail } from "./evidence.js";
 import type { GaRequest, GscRequest } from "./schema.js";
 
 type Query<T> = (request: T) => Promise<SearchAnalyticsResponse | GaReport>;
@@ -13,7 +13,7 @@ async function pages<T extends GscRequest | GaRequest>(
   maxPages: number,
   query: Query<T>,
 ): Promise<Evidence> {
-  const result = evidence(provider, "report", target);
+  const result = createEvidence(provider, "report", target);
   const isGsc = provider === "gsc";
   const offsetKey = isGsc ? "startRow" : "offset";
   let offset = Number(isGsc ? (request as GscRequest).startRow : (request as GaRequest).offset);
@@ -84,7 +84,7 @@ export function gaReport(
   property: string,
   request: GaRequest,
   maxPages: number,
-  query = (r: GaRequest) => gaFetch<GaReport>(`${gaProperty(property)}:runReport`, r),
+  query = (r: GaRequest) => gaFetch<GaReport>(`${normalizeGaProperty(property)}:runReport`, r),
 ): Promise<Evidence> {
-  return pages("ga", gaProperty(property), request, maxPages, query);
+  return pages("ga", normalizeGaProperty(property), request, maxPages, query);
 }

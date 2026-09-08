@@ -1,5 +1,6 @@
 import { configSchema } from "./schema.js";
-import { aggregate, type Executor } from "./snapshot.js";
+import { aggregate } from "./evidence.js";
+import type { Executor } from "./execute.js";
 
 export async function discover(url: string, providers: Array<"gsc" | "ga" | "bing">, run: Executor) {
   const selected = [...new Set(providers)];

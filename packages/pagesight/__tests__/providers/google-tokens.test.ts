@@ -3,7 +3,8 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { clearTokenCache, getServiceAccountToken } from "../../src/providers/gsc-auth.js";
+import { clearTokenCache } from "../../src/providers/gsc-auth.js";
+import { getServiceAccountToken } from "../../src/providers/google-tokens.js";
 import { gaAccessToken, gaFetch } from "../../src/providers/ga.js";
 import { listSites } from "../../src/providers/gsc.js";
 

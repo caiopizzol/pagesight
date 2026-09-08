@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { execute } from "../src/api/index.js";
 import { gscRequestSchema } from "../src/api/schema.js";
 import { parseInventorySitemap } from "../src/web/sitemap-parser.js";
-import { observeSitemap } from "../src/web/page-observation.js";
+import { observeSitemap } from "../src/web/sitemap-inventory.js";
 import { clearTokenCache } from "../src/providers/gsc-auth.js";
 import { gaCredentialPath } from "../src/providers/ga.js";
 import { inspectUrl, listSites, listSitemaps } from "../src/providers/gsc.js";

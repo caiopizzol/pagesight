@@ -72,7 +72,7 @@ const requireSame = (a: unknown, b: unknown, message: string) => {
 
 type SnapshotContext = ImportedSnapshot["pages"][0]["response"]["context"];
 
-function report(observation: Evidence, context: SnapshotContext): Report {
+function normalizeReport(observation: Evidence, context: SnapshotContext): Report {
   let report: Report | undefined;
   let offset = 0;
   for (const page of observation.pages) {
@@ -204,7 +204,7 @@ function report(observation: Evidence, context: SnapshotContext): Report {
   return report;
 }
 
-function number(value: RawValue): number | null {
+function parseNumericValue(value: RawValue): number | null {
   if (typeof value === "string" && !/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/u.test(value)) return null;
   const result = Number(value);
   if (typeof value === "string" && !/^-?\d+$/u.test(value)) {
@@ -216,8 +216,8 @@ function number(value: RawValue): number | null {
 }
 
 function metric(baseline: RawValue, current: RawValue) {
-  const before = number(baseline);
-  const after = number(current);
+  const before = parseNumericValue(baseline);
+  const after = parseNumericValue(current);
   if (before === null || after === null)
     return {
       baseline,
@@ -266,8 +266,8 @@ function compareObservation(
   if (baseline.status === "error" || current.status === "error" || !baseline.pages.length || !current.pages.length)
     return { name, status: "unavailable", reason: "A provider report failed or has no response pages.", warnings };
   try {
-    const a = report(baseline, beforeContext);
-    const b = report(current, afterContext);
+    const a = normalizeReport(baseline, beforeContext);
+    const b = normalizeReport(current, afterContext);
     requireSame(a.request, b.request, "Requested dimensions, metrics, filters or scope changed.");
     requireSame(
       a.semantics,

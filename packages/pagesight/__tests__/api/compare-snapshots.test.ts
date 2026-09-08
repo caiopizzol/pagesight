@@ -9,7 +9,8 @@ import { capture, type Evidence } from "../../src/api/evidence.js";
 import { execute } from "../../src/api/index.js";
 import { gaReport, gscReport } from "../../src/api/reports.js";
 import { configSchema, gaRequestSchema, gscRequestSchema } from "../../src/api/schema.js";
-import { aggregate, snapshotOperations } from "../../src/api/snapshot.js";
+import { aggregate } from "../../src/api/evidence.js";
+import { snapshotOperations } from "../../src/api/snapshot.js";
 import { startHttpApi } from "../../src/http.js";
 import { registerObserveTool } from "../../src/tools/observe.js";
 

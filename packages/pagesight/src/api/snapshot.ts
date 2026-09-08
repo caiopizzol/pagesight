@@ -1,9 +1,8 @@
-import { RequestError } from "../shared/http.js";
-import { capture, type Evidence } from "./evidence.js";
+import { aggregate, capture, type Evidence } from "./evidence.js";
 import { configSchema, gaRequestSchema, gscRequestSchema, type Operation, type SiteConfig } from "./schema.js";
-import { observeSitemap } from "../web/page-observation.js";
+import { observeSitemap } from "../web/sitemap-inventory.js";
 
-export type Executor = (input: unknown) => Promise<Evidence>;
+import type { Executor } from "./execute.js";
 
 export function snapshotOperations(
   config: SiteConfig,
@@ -180,39 +179,5 @@ export function providerSelection(config: SiteConfig) {
     ga: config.gaProperty ? "selected" : "not_selected",
     sitemap: config.sitemap ? "selected" : "not_selected",
     web: config.pages.length ? "selected" : "not_selected",
-  };
-}
-
-export function aggregate(operation: string, target: string, request: unknown, observations: Evidence[]): Evidence {
-  if (!observations.length) throw new RequestError("Select at least one observation", null, "invalid_input");
-  return {
-    schemaVersion: 1,
-    provider: "pagesight",
-    operation,
-    target,
-    startedAt: observations.map((o) => o.startedAt).sort()[0] ?? new Date().toISOString(),
-    finishedAt: new Date().toISOString(),
-    status: observations.every((o) => o.status === "ok")
-      ? "ok"
-      : observations.every((o) => o.status === "error")
-        ? "error"
-        : "partial",
-    pages: [
-      {
-        request,
-        response: {
-          observations,
-          summary: observations.map((o) => ({
-            provider: o.provider,
-            operation: o.operation,
-            ...(o.name ? { name: o.name } : {}),
-            target: o.target,
-            status: o.status,
-            errorCode: o.error?.code ?? null,
-          })),
-        },
-      },
-    ],
-    warnings: [],
   };
 }

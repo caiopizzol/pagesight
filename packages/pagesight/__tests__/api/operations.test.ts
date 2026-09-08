@@ -9,7 +9,8 @@ import { gaReport, gscReport } from "../../src/api/reports.js";
 import { configSchema, gaRequestSchema, gscRequestSchema, operationSchema } from "../../src/api/schema.js";
 import { discover } from "../../src/api/discover.js";
 import { snapshot, snapshotOperations } from "../../src/api/snapshot.js";
-import { observePage, observeSitemap } from "../../src/web/page-observation.js";
+import { observePage } from "../../src/web/page-observation.js";
+import { observeSitemap } from "../../src/web/sitemap-inventory.js";
 import { startHttpApi } from "../../src/http.js";
 import { RequestError, requestJson } from "../../src/shared/http.js";
 
