@@ -177,6 +177,13 @@ const operationVariants = z.discriminatedUnion("operation", [
     .strict(),
   z
     .object({
+      operation: z.literal("technical.compare"),
+      baseline: assessedSnapshotSchema.optional(),
+      current: assessedSnapshotSchema,
+    })
+    .strict(),
+  z
+    .object({
       operation: z.literal("investigate"),
       config: configSchema,
       url: httpUrl,

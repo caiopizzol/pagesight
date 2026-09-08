@@ -12,6 +12,8 @@ pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight cloudflare audit --zone ZONE_ID --hostname example.com --start UTC_TIME --end UTC_TIME [--limit 50]
+
+pagesight technical compare --current current.json [--baseline previous.json]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
 pagesight gsc sitemaps --site sc-domain:example.com
@@ -101,13 +103,17 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (positionals.length > (["gsc", "ga", "bing", "speed", "evidence", "cloudflare"].includes(family) ? 2 : 1))
+    if (
+      positionals.length >
+      (["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "technical"].includes(family) ? 2 : 1)
+    )
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "bing", "speed", "evidence", "cloudflare"].includes(family)
+    const operation = ["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "technical"].includes(family)
       ? `${family}.${action ?? ""}`
       : family;
     const flags: Record<string, string[]> = {
       "cloudflare.audit": ["zone", "hostname", "start", "end", "limit"],
+      "technical.compare": ["baseline", "current"],
       "evidence.import": ["request"],
       investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
       assess: ["snapshot", "max-rows", "format"],
@@ -170,6 +176,12 @@ export async function runCli(args: string[]): Promise<number> {
         startTime: values.start,
         endTime: values.end,
         limit: Number(values.limit ?? 50),
+      };
+    else if (operation === "technical.compare")
+      input = {
+        operation,
+        current: await jsonFile(values.current, "current"),
+        ...(values.baseline ? { baseline: await jsonFile(values.baseline, "baseline") } : {}),
       };
     else if (operation === "opportunities")
       input = {
