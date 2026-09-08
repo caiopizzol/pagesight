@@ -3,6 +3,8 @@
 Shared API for SEO, analytics, GEO, and web performance evidence, with CLI,
 local HTTP, and MCP interfaces. npm package: `pagesight`.
 
+The active workspace and code cleanup goal is in `cleanup-goal.md`.
+
 The active agent SEO observability goal and verification live in `seo-goal.md`.
 
 ## Stack
@@ -20,7 +22,7 @@ Adapters translate transport input/output only. The six original MCP tools remai
 compatible; `observe` exposes the shared API.
 
 ```
-src/
+packages/pagesight/src/
   index.ts              # Bin dispatcher; no arguments show CLI help; mcp starts MCP
   cli.ts                # CLI adapter
   http.ts               # Bearer-authenticated loopback HTTP adapter
@@ -65,11 +67,11 @@ src/
 
 ## Commands
 
-- `bun run src/index.ts` — show CLI help
-- `bun run src/index.ts mcp` — start MCP server
+- `bun run packages/pagesight/src/index.ts` — show CLI help
+- `bun run packages/pagesight/src/index.ts mcp` — start MCP server
 - `bun run typecheck` — TypeScript checks without emitting files
-- `bun src/index.ts --help` — CLI operations
-- `bun src/index.ts serve` — local HTTP API; requires `PAGESIGHT_API_TOKEN`
+- `bun packages/pagesight/src/index.ts --help` — CLI operations
+- `bun packages/pagesight/src/index.ts serve` — local HTTP API; requires `PAGESIGHT_API_TOKEN`
 - `bun run lint` — Vite+ lint
 - `bun run format` — Vite+ format
 - `bun run check` — Vite+ format, lint and type checks

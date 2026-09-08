@@ -8,7 +8,7 @@ are interfaces over that API.
 
 Requires Bun. Install with `bun add pagesight`, or run the checkout after
 `bun install`. The examples below use the `pagesight` bin; in the checkout use
-`bun packages/pagesight/src/index.ts`.
+`bun src/index.ts`.
 
 ## API
 
@@ -214,7 +214,7 @@ This interface is for local agents, not an Internet deployment.
 ## MCP compatibility
 
 Run `pagesight mcp` to start the stdio MCP server. Configure your host to run
-`bun /path/to/pagesight/packages/pagesight/src/index.ts mcp` with the environment above. Existing MCP
+`bun /path/to/pagesight/src/index.ts mcp` with the environment above. Existing MCP
 launch configurations must include the `mcp` argument; no arguments show CLI help.
 
 The new `observe` tool accepts `{ "request": <operation object> }` and returns

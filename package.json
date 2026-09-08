@@ -1,51 +1,21 @@
 {
-  "name": "pagesight",
-  "version": "0.17.0",
-  "description": "See your site the way search engines and AI see it.",
-  "keywords": [
-    "ai-crawlers",
-    "core-web-vitals",
-    "geo",
-    "google-search-console",
-    "mcp",
-    "pagespeed-insights",
-    "robots-txt",
-    "seo",
-    "web-performance"
-  ],
-  "homepage": "https://github.com/caiopizzol/pagesight",
-  "license": "MIT",
-  "author": "Caio Pizzol",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/caiopizzol/pagesight.git"
-  },
-  "bin": {
-    "pagesight": "src/index.ts"
-  },
-  "files": [
-    "src",
-    "README.md",
-    "LICENSE"
+  "name": "pagesight-workspace",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
   ],
   "type": "module",
-  "main": "src/api/index.ts",
-  "exports": {
-    ".": "./src/api/index.ts"
-  },
   "scripts": {
-    "start": "bun run src/index.ts",
-    "test": "bun test",
-    "typecheck": "tsc",
+    "start": "bun run --filter pagesight start",
+    "check": "vp check",
+    "typecheck": "tsc -p tsconfig.json && bun run --workspaces typecheck",
+    "test": "bun run --workspaces test",
     "lint": "vp lint",
     "format": "vp fmt",
-    "check": "vp check",
+    "verify": "bun run check && bun run typecheck && bun run test",
+    "test:package": "bun scripts/check-package.ts",
     "prepare": "bun -e \"if (await Bun.file('node_modules/vite-plus/bin/vp').exists()) process.exit(Bun.spawnSync(['node', 'node_modules/vite-plus/bin/vp', 'config', '--no-agent'], { stdout: 'inherit', stderr: 'inherit' }).exitCode)\""
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "saxes": "^6.0.0",
-    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@semantic-release/commit-analyzer": "^13.0.1",
