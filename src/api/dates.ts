@@ -24,3 +24,9 @@ export function defaultDates(now = new Date()): { startDate: string; endDate: st
   start.setUTCDate(start.getUTCDate() - 27);
   return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
 }
+
+export function pacificDaysAgo(days: number, now = new Date()): string {
+  const date = new Date(`${pacificDate(now)}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}

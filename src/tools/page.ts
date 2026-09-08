@@ -19,7 +19,9 @@ interface ParsedHead {
 }
 
 interface SchemaRule {
+  source: string;
   required: string[];
+  requiredAny?: string[];
   recommended: string[];
   imageFields: string[];
   nestedRequired?: Record<string, string[]>;
@@ -182,109 +184,108 @@ function formatJsonLd(data: unknown, indent = 0): string[] {
   return lines;
 }
 
-// --- Structured data validation (per Google Rich Results docs) ---
-
-// Required/recommended fields sourced from Google's Rich Results documentation
-// https://developers.google.com/search/docs/appearance/structured-data
+// Presence checks for selected Google-documented fields, reviewed 2026-09-08.
+// These do not cover every conditional requirement, value rule, or eligibility policy.
 const SCHEMA_RULES: Record<string, SchemaRule> = {
   WebSite: {
+    source: "https://developers.google.com/search/docs/appearance/site-names",
     required: ["name", "url"],
-    recommended: ["potentialAction"],
+    recommended: ["alternateName"],
     imageFields: [],
   },
   Organization: {
-    required: ["name", "url"],
-    recommended: ["logo", "sameAs", "contactPoint"],
+    source: "https://developers.google.com/search/docs/appearance/structured-data/organization",
+    required: [],
+    recommended: ["name", "url", "logo", "sameAs", "contactPoint"],
     imageFields: ["logo"],
   },
   Article: {
-    required: ["headline", "image", "datePublished", "author"],
-    recommended: ["dateModified", "publisher"],
+    source: "https://developers.google.com/search/docs/appearance/structured-data/article",
+    required: [],
+    recommended: ["headline", "image", "datePublished", "author", "dateModified"],
     imageFields: ["image"],
   },
   NewsArticle: {
-    required: ["headline", "image", "datePublished", "author"],
-    recommended: ["dateModified", "publisher"],
+    source: "https://developers.google.com/search/docs/appearance/structured-data/article",
+    required: [],
+    recommended: ["headline", "image", "datePublished", "author", "dateModified"],
     imageFields: ["image"],
   },
   Product: {
-    required: ["name", "image"],
-    recommended: ["description", "offers", "brand", "review", "aggregateRating"],
+    source: "https://developers.google.com/search/docs/appearance/structured-data/product-snippet",
+    required: ["name"],
+    requiredAny: ["offers", "review", "aggregateRating"],
+    recommended: ["offers", "review", "aggregateRating"],
     imageFields: ["image"],
-    nestedRequired: { offers: ["price", "priceCurrency"] },
   },
   LocalBusiness: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/local-business",
     required: ["name", "address"],
-    recommended: ["telephone", "openingHoursSpecification", "image", "url"],
+    recommended: ["telephone", "openingHoursSpecification", "url"],
     imageFields: ["image"],
   },
-  FAQPage: {
-    required: ["mainEntity"],
-    recommended: [],
-    imageFields: [],
-  },
   BreadcrumbList: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/breadcrumb",
     required: ["itemListElement"],
     recommended: [],
     imageFields: [],
   },
   Event: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/event",
     required: ["name", "startDate", "location"],
     recommended: ["endDate", "image", "description", "offers", "organizer"],
     imageFields: ["image"],
   },
   Recipe: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/recipe",
     required: ["name", "image"],
     recommended: ["author", "datePublished", "description", "recipeIngredient", "recipeInstructions"],
     imageFields: ["image"],
   },
   VideoObject: {
-    required: ["name", "description", "thumbnailUrl", "uploadDate"],
-    recommended: ["duration", "contentUrl", "embedUrl"],
+    source: "https://developers.google.com/search/docs/appearance/structured-data/video",
+    required: ["name", "thumbnailUrl", "uploadDate"],
+    recommended: ["description", "duration", "contentUrl", "embedUrl"],
     imageFields: ["thumbnailUrl"],
   },
   SoftwareApplication: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/software-app",
     required: ["name", "offers"],
+    requiredAny: ["review", "aggregateRating"],
     recommended: ["applicationCategory", "operatingSystem", "review", "aggregateRating"],
     imageFields: ["image"],
-    nestedRequired: { offers: ["price", "priceCurrency"] },
+    nestedRequired: { offers: ["price"] },
   },
   Dataset: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/dataset",
     required: ["name", "description"],
     recommended: ["distribution", "creator", "license"],
     imageFields: [],
-    nestedRequired: { distribution: ["contentUrl", "encodingFormat"] },
-  },
-  TechArticle: {
-    required: ["headline", "image", "datePublished", "author"],
-    recommended: ["dateModified", "publisher"],
-    imageFields: ["image"],
+    nestedRequired: { distribution: ["contentUrl"] },
   },
   BlogPosting: {
-    required: ["headline", "image", "datePublished", "author"],
-    recommended: ["dateModified", "publisher"],
-    imageFields: ["image"],
-  },
-  HowTo: {
-    required: ["name", "step"],
-    recommended: ["image", "totalTime", "estimatedCost"],
+    source: "https://developers.google.com/search/docs/appearance/structured-data/article",
+    required: [],
+    recommended: ["headline", "image", "datePublished", "author", "dateModified"],
     imageFields: ["image"],
   },
   Course: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/course",
     required: ["name", "description"],
-    recommended: ["provider", "offers"],
+    recommended: ["provider"],
     imageFields: [],
   },
   JobPosting: {
+    source: "https://developers.google.com/search/docs/appearance/structured-data/job-posting",
     required: ["title", "description", "datePosted", "hiringOrganization"],
-    recommended: ["employmentType", "jobLocation", "baseSalary", "validThrough"],
+    recommended: ["employmentType", "baseSalary"],
     imageFields: [],
   },
 };
 
 function getNestedValue(obj: Record<string, unknown>, field: string): unknown {
   const val = obj[field];
-  if (val !== undefined && val !== null && val !== "") return val;
+  if (val !== undefined && val !== null && val !== "" && !(Array.isArray(val) && val.length === 0)) return val;
   return undefined;
 }
 
@@ -319,13 +320,17 @@ function validateJsonLd(blocks: unknown[]): {
         }
       }
 
+      if (rule.requiredAny && !rule.requiredAny.some((field) => getNestedValue(obj, field) !== undefined)) {
+        issues.push({ type: String(type), level: "required", field: rule.requiredAny.join(" or ") });
+      }
+
       for (const field of rule.recommended) {
         if (getNestedValue(obj, field) === undefined) {
           issues.push({ type: String(type), level: "recommended", field });
         }
       }
 
-      // Check nested required fields (e.g., offers.price inside Product)
+      // Check each nested object; one complete entry cannot hide an incomplete sibling.
       if (rule.nestedRequired) {
         for (const [parent, fields] of Object.entries(rule.nestedRequired)) {
           const parentVal = obj[parent];
@@ -339,7 +344,6 @@ function validateJsonLd(blocks: unknown[]): {
                     issues.push({ type: String(type), level: "required", field: `${parent}.${field}` });
                   }
                 }
-                break; // Only check the first item in arrays
               }
             }
           }
@@ -375,61 +379,32 @@ function validateJsonLd(blocks: unknown[]): {
   return { issues, imageUrls, validatedTypes };
 }
 
-// What each recommended field enables (sourced from Google Rich Results docs)
-const FIELD_HINTS: Record<string, string> = {
-  "WebSite.potentialAction": "enables sitelinks searchbox",
-  "Organization.logo": "appears in knowledge panel",
-  "Organization.contactPoint": "may appear in knowledge panel",
-  "Organization.sameAs": "links social profiles in knowledge panel",
-  "Article.dateModified": "shows freshness in search results",
-  "Article.publisher": "required for some article rich results",
-  "Product.offers": "enables price display in search",
-  "Product.review": "enables star ratings in search",
-  "Product.aggregateRating": "enables aggregate star ratings",
-  "Product.brand": "shown in product rich results",
-  "LocalBusiness.openingHoursSpecification": "shows business hours in maps",
-  "LocalBusiness.image": "shown in local pack results",
-  "Event.image": "shown in event rich results",
-  "Event.offers": "shows ticket prices in search",
-  "Recipe.author": "shown in recipe rich results",
-  "VideoObject.duration": "shown in video rich results",
-  "SoftwareApplication.applicationCategory": "shown in software rich results",
-  "SoftwareApplication.operatingSystem": "shown in software rich results",
-  "SoftwareApplication.review": "enables star ratings",
-  "SoftwareApplication.aggregateRating": "enables aggregate star ratings",
-  "Dataset.distribution": "enables dataset download in search",
-  "Dataset.creator": "shown in dataset rich results",
-  "Dataset.license": "shown in dataset rich results",
-  "Course.provider": "shown in course rich results",
-  "Course.offers": "enables price display for courses",
-  "JobPosting.employmentType": "shown in job search results",
-  "JobPosting.jobLocation": "shown in job search results",
-  "JobPosting.baseSalary": "enables salary display in job search",
-};
-
 function formatValidation(issues: ValidationIssue[], validatedTypes: Set<string>): string[] {
-  const lines: string[] = [];
+  const lines: string[] = [
+    "Selected field-presence checks only; values, conditional rules, and Google eligibility are not fully checked.",
+  ];
 
-  // Show PASS for types with no required issues
+  // Report only the subset checked here, not complete rich-result eligibility.
   const typesWithRequiredIssues = new Set(issues.filter((i) => i.level === "required").map((i) => i.type));
   for (const type of validatedTypes) {
     if (!typesWithRequiredIssues.has(type)) {
-      lines.push(`PASS     ${type} — all required fields present`);
+      lines.push(`CHECKED  ${type} — no missing required fields in the checked subset`);
     }
   }
+
+  for (const type of validatedTypes) lines.push(`Source (${type}): ${SCHEMA_RULES[type].source}`);
 
   const required = issues.filter((i) => i.level === "required");
   const recommended = issues.filter((i) => i.level === "recommended");
 
   if (required.length > 0) {
     for (const i of required) {
-      lines.push(`MISSING  ${i.type}.${i.field} (required for Rich Results)`);
+      lines.push(`MISSING  ${i.type}.${i.field} (required in checked subset)`);
     }
   }
   if (recommended.length > 0) {
     for (const i of recommended) {
-      const hint = FIELD_HINTS[`${i.type}.${i.field}`];
-      lines.push(`OPTIONAL ${i.type}.${i.field}${hint ? ` — ${hint}` : ""}`);
+      lines.push(`OPTIONAL ${i.type}.${i.field}`);
     }
   }
 
@@ -466,7 +441,7 @@ async function followRedirects(
     return { chain, response: res };
   }
 
-  // If we exhausted hops, do a final follow-redirect fetch
+  // Retry with automatic redirects after the hop limit or a missing Location header.
   const res = await fetch(current, {
     headers: { "User-Agent": ua, Accept: "text/html" },
     redirect: "follow",
@@ -930,10 +905,10 @@ export function registerPageTool(server: McpServer): void {
               const { issues: valIssues } = validateJsonLd(parsed.jsonLd);
               const requiredMissing = valIssues.filter((i) => i.level === "required").length;
               if (jsonLdTypes.length > 0) {
-                jsonLdSummary = jsonLdTypes.join(", ");
+                jsonLdSummary = `${jsonLdTypes.join(", ")} (selected fields only)`;
                 if (requiredMissing > 0) {
                   jsonLdSummary += ` (${requiredMissing} required missing)`;
-                  issues.push(`${requiredMissing} missing required fields in JSON-LD`);
+                  issues.push(`${requiredMissing} missing required fields in checked JSON-LD subset`);
                 }
               }
             }
@@ -1160,7 +1135,6 @@ export function registerPageTool(server: McpServer): void {
             }
           }
 
-          // Contrast check (before links, after structured data)
           if (foreground && background) {
             const fg = parseHex(foreground);
             const bg = parseHex(background);
@@ -1200,7 +1174,6 @@ export function registerPageTool(server: McpServer): void {
                 "Note: this page may use client-side rendering (SPA). Only static <a href> links in the HTML are detected.",
               );
             } else {
-              // Check links with concurrency 5
               const concurrency = 5;
               const results: LinkResult[] = [];
               let i = 0;

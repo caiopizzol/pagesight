@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { pacificDaysAgo } from "../api/dates.js";
 import {
   type GscSite,
   type GscSitemap,
@@ -75,7 +76,7 @@ function formatInspection(url: string, siteUrl: string, r: InspectionResult): st
     }
   }
 
-  // Mobile Usability (deprecated but still returned)
+  // Display deprecated mobile-usability evidence when supplied.
   if (r.mobileUsabilityResult) {
     lines.push("", "--- Mobile Usability (deprecated) ---", "");
     lines.push(`Verdict: ${r.mobileUsabilityResult.verdict}`);
@@ -536,7 +537,6 @@ export function formatComparison(
 
   lines.push("Movers include only rows observed in both periods. Missing rows are unknown, not zero.", "");
 
-  // Sort by absolute click change descending
   movers.sort((a, b) => Math.abs(b.curClicks - b.prevClicks) - Math.abs(a.curClicks - a.prevClicks));
 
   const improved = movers.filter((m) => m.curClicks > m.prevClicks).slice(0, 10);
@@ -569,23 +569,10 @@ export function formatComparison(
   return lines.join("\n");
 }
 
-function daysAgo(n: number): string {
-  // GSC dates are in Pacific Time. Use Intl to handle DST correctly.
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-  return parts; // en-CA formats as YYYY-MM-DD
-}
-
 // ── Keyword gap analysis ──
 
 function extractPageText(html: string): string {
-  // Strip scripts, styles, and HTML tags to get visible text content
+  // Extract text from HTML; this does not check rendered visibility.
   let text = html;
   text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ");
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ");
@@ -908,7 +895,6 @@ export function registerSearchTool(server: McpServer): void {
             return textResult(lines.join("\n"));
           }
 
-          // Unfiltered sample (original behavior)
           const sampled = sampleUrls(parsed.urls, count, strategy);
 
           const results: InspectionSummary[] = [];
@@ -991,8 +977,8 @@ export function registerSearchTool(server: McpServer): void {
         if (resolvedAction === "analytics") {
           if (!site_url) return textResult("Error: site_url is required for analytics.");
 
-          const startDate = start_date ?? daysAgo(28);
-          const endDate = end_date ?? daysAgo(3);
+          const startDate = start_date ?? pacificDaysAgo(28);
+          const endDate = end_date ?? pacificDaysAgo(3);
 
           if (start_date && Number.isNaN(new Date(start_date).getTime())) {
             return textResult(`Error: invalid start_date "${start_date}". Use YYYY-MM-DD format.`);
@@ -1055,8 +1041,8 @@ export function registerSearchTool(server: McpServer): void {
               redirect: "follow",
             }),
             querySearchAnalytics(site_url, {
-              startDate: start_date ?? daysAgo(28),
-              endDate: end_date ?? daysAgo(3),
+              startDate: start_date ?? pacificDaysAgo(28),
+              endDate: end_date ?? pacificDaysAgo(3),
               dimensions: ["query"],
               rowLimit: row_limit ?? 500,
               dimensionFilterGroups: [

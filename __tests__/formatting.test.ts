@@ -1,18 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-// Import the tool files to access formatting functions
-// Since formatters aren't exported, we test them indirectly through the robots tool's normalizeCategory
-// For now, test the robots.ts formatting output via the full audit flow
-
 import { parseRobotsTxt } from "../src/lib/robots.js";
 
-describe("robots output formatting", () => {
-  test("normalizeCategory buckets training correctly", async () => {
-    // We can't import normalizeCategory directly (not exported), but we can verify
-    // the audit output categories by checking the formatted output structure
-    // This is tested indirectly through the tool — here we verify parser edge cases
-    // that affect formatting
-
+describe("robots access rules", () => {
+  test("specific bot rules override the wildcard", async () => {
     const robots = parseRobotsTxt("User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nAllow: /");
     expect(robots.groups).toHaveLength(2);
 
@@ -27,7 +18,7 @@ describe("robots output formatting", () => {
   });
 });
 
-describe("parseRobotsTxt edge cases for formatting", () => {
+describe("robots group examples", () => {
   test("real-world CNN-style robots.txt with many user-agents in one group", () => {
     const robots = parseRobotsTxt(
       [

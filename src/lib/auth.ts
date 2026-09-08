@@ -94,7 +94,6 @@ export async function getOAuthToken(clientId: string, clientSecret: string, refr
 // --- Public API ---
 
 export async function getAccessToken(): Promise<string> {
-  // Return cached token if still valid
   if (cachedToken && Date.now() < cachedToken.expiresAt) {
     return cachedToken.token;
   }

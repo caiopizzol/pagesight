@@ -38,3 +38,26 @@ export async function requestJson<T>(url: string, init: RequestInit = {}, timeou
     throw new RequestError("Provider returned invalid JSON", response.status, "invalid_response");
   }
 }
+
+export async function readBounded(response: Response, maxBytes: number): Promise<string> {
+  if (Number(response.headers.get("content-length")) > maxBytes) {
+    await response.body?.cancel();
+    throw new RequestError("Response exceeds byte limit", null, "size_limit");
+  }
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) throw new RequestError("Response exceeds byte limit", null, "size_limit");
+      chunks.push(value);
+    }
+  } finally {
+    await reader.cancel();
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}

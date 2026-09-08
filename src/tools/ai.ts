@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { readBounded, RequestError } from "../lib/http.js";
 import { auditAiCrawlers, type CrawlerStatus, fetchRobotsTxt, isAllowed, type RobotsTxt } from "../lib/robots.js";
 
 // --- llms.txt detection ---
@@ -15,32 +16,20 @@ interface LlmsTxtResult {
 
 async function checkLlmsTxt(origin: string, path: string): Promise<LlmsTxtResult> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
     const res = await fetch(`${origin}${path}`, {
       headers: { "User-Agent": "Pagesight/1.0" },
       redirect: "follow",
-      signal: controller.signal,
+      signal: AbortSignal.timeout(10_000),
     });
-    clearTimeout(timeout);
     if (!res.ok) return { exists: false, size: null, firstLine: null, lineCount: null, sections: [], linkCount: null };
-    // Cap at 1MB to avoid OOM on large responses
-    const contentLength = Number(res.headers.get("content-length") ?? 0);
-    if (contentLength > 1_048_576) {
+    let text: string;
+    try {
+      text = await readBounded(res, 1_048_576);
+    } catch (error) {
+      if (!(error instanceof RequestError) || error.code !== "size_limit") throw error;
       return {
         exists: true,
-        size: contentLength,
-        firstLine: "(file too large to preview)",
-        lineCount: null,
-        sections: [],
-        linkCount: null,
-      };
-    }
-    const text = await res.text();
-    if (text.length > 1_048_576) {
-      return {
-        exists: true,
-        size: text.length,
+        size: null,
         firstLine: "(file too large to preview)",
         lineCount: null,
         sections: [],
@@ -51,7 +40,14 @@ async function checkLlmsTxt(origin: string, path: string): Promise<LlmsTxtResult
     const firstLine = textLines.find((l) => l.trim().length > 0)?.trim() ?? null;
     const sections = textLines.filter((l) => /^##\s/.test(l)).map((l) => l.replace(/^##\s+/, "").trim());
     const linkCount = (text.match(/\[.*?\]\(https?:\/\/[^)]+\)/g) ?? []).length;
-    return { exists: true, size: text.length, firstLine, lineCount: textLines.length, sections, linkCount };
+    return {
+      exists: true,
+      size: new TextEncoder().encode(text).byteLength,
+      firstLine,
+      lineCount: textLines.length,
+      sections,
+      linkCount,
+    };
   } catch {
     return { exists: false, size: null, firstLine: null, lineCount: null, sections: [], linkCount: null };
   }
@@ -86,7 +82,7 @@ function formatLlmsTxt(llmsTxt: LlmsTxtResult, llmsFullTxt: LlmsTxtResult): stri
 
 // --- Category summary ---
 
-function formatCategorySummary(crawlers: CrawlerStatus[]): string[] {
+export function formatCategorySummary(crawlers: CrawlerStatus[]): string[] {
   const categoryOrder = ["Training", "Search", "Assistant", "Agent", "Other"];
   const summary = new Map<string, { blocked: number; allowed: number }>();
 
@@ -245,7 +241,7 @@ function formatRobotsAudit(origin: string, robots: RobotsTxt, statusCode: number
 export function registerAiTool(server: McpServer): void {
   server.tool(
     "ai",
-    "Analyze your site's AI visibility. Audits AI crawler access (training, search, assistant, agent) via robots.txt, checks for llms.txt and llms-full.txt, validates syntax per RFC 9309, and tests specific path access. Shows how AI systems see your site.",
+    "Analyze your site's AI visibility. Audits AI crawler access (training, search, assistant, agent) via robots.txt, checks for llms.txt and llms-full.txt, reports robots.txt parse errors, and tests specific path access. Shows how AI systems see your site.",
     {
       url: z
         .string()
