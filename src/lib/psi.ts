@@ -1,3 +1,5 @@
+import { requestJson } from "./http.js";
+
 const PSI_API = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
 export interface PsiCategory {
@@ -106,18 +108,5 @@ export async function runPagespeed(
 
   if (options?.locale) params.set("locale", options.locale);
 
-  const res = await fetch(`${PSI_API}?${params}`, {
-    headers: { "User-Agent": "Pagesight/0.1" },
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`PageSpeed API error (${res.status}): ${err}`);
-  }
-
-  try {
-    return (await res.json()) as PsiResult;
-  } catch {
-    throw new Error(`PageSpeed API returned invalid JSON (${res.status})`);
-  }
+  return requestJson<PsiResult>(`${PSI_API}?${params}`, { headers: { "User-Agent": "Pagesight/0.17" } }, 60_000);
 }

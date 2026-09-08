@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { RequestError, requestJson } from "./http.js";
 
 const SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"];
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -13,7 +14,7 @@ let cachedToken: { token: string; expiresAt: number } | null = null;
 
 // --- Service Account Auth ---
 
-async function getServiceAccountToken(keyPath: string): Promise<string> {
+export async function getServiceAccountToken(keyPath: string, scope = SCOPES.join(" ")): Promise<string> {
   const keyFile = JSON.parse(await Bun.file(keyPath).text());
   if (!keyFile.client_email || !keyFile.private_key) {
     throw new Error("Service account key file missing client_email or private_key");
@@ -24,7 +25,7 @@ async function getServiceAccountToken(keyPath: string): Promise<string> {
   const payload = toBase64Url(
     JSON.stringify({
       iss: keyFile.client_email,
-      scope: SCOPES.join(" "),
+      scope,
       aud: TOKEN_URL,
       iat: now,
       exp: now + 3600,
@@ -42,18 +43,12 @@ async function getServiceAccountToken(keyPath: string): Promise<string> {
   const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(signingInput));
   const jwt = `${signingInput}.${bufferToBase64Url(signature)}`;
 
-  const res = await fetch(TOKEN_URL, {
+  const data = await requestJson<TokenResponse>(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt }),
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Service account token exchange failed: ${err}`);
-  }
-
-  const data: TokenResponse = await res.json();
+  if (!data.access_token) throw new RequestError("Token exchange returned no access token", null, "invalid_response");
   return data.access_token;
 }
 
@@ -81,8 +76,8 @@ function bufferToBase64Url(buf: ArrayBuffer): string {
 
 // --- OAuth Refresh Token Auth ---
 
-async function getOAuthToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
-  const res = await fetch(TOKEN_URL, {
+export async function getOAuthToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
+  const data = await requestJson<TokenResponse>(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -90,15 +85,9 @@ async function getOAuthToken(clientId: string, clientSecret: string, refreshToke
       client_id: clientId,
       client_secret: clientSecret,
       refresh_token: refreshToken,
-    }).toString(),
+    }),
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`OAuth token refresh failed: ${err}`);
-  }
-
-  const data: TokenResponse = await res.json();
+  if (!data.access_token) throw new RequestError("Token refresh returned no access token", null, "invalid_response");
   return data.access_token;
 }
 
@@ -129,10 +118,12 @@ export async function getAccessToken(): Promise<string> {
     return token;
   }
 
-  throw new Error(
+  throw new RequestError(
     "No GSC credentials configured. Set either:\n" +
       "  - GSC_SERVICE_ACCOUNT_KEY (path to service account JSON)\n" +
       "  - GSC_CLIENT_ID + GSC_CLIENT_SECRET + GSC_REFRESH_TOKEN (OAuth 2.0)",
+    null,
+    "not_configured",
   );
 }
 

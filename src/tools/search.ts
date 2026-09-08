@@ -190,7 +190,7 @@ function formatSampleResults(
   }
 
   const inspected = results.length - errors;
-  lines.push("--- Summary ---", "");
+  lines.push("--- Inspected sample ---", "");
   lines.push(`Indexed: ${indexed}/${inspected}`);
 
   if (indexed < inspected) {
@@ -285,19 +285,7 @@ function formatCoverage(siteUrl: string, sitemapUrl: string, totalUrls: number, 
     lines.push(`Inspection errors: ${errors.length}`);
   }
 
-  // Extrapolated estimates
-  if (totalUrls > total) {
-    lines.push("", "--- Estimated Totals ---", "");
-    const indexedEst = Math.round((indexed.length / total) * totalUrls);
-    const notIndexedEst = Math.round((notIndexed.length / total) * totalUrls);
-    lines.push(`~${indexedEst.toLocaleString()} indexed (of ${totalUrls.toLocaleString()})`);
-    lines.push(`~${notIndexedEst.toLocaleString()} not indexed`);
-    for (const [state, urls] of sortedIssues) {
-      const est = Math.round((urls.length / total) * totalUrls);
-      lines.push(`  ~${est.toLocaleString()} ${state}`);
-    }
-    lines.push("", `Estimates based on ${total}-URL sample — actual numbers may vary.`);
-  }
+  lines.push("", "These verdicts describe only the inspected sample, not site-wide coverage.");
 
   // Example URLs per issue
   if (sortedIssues.length > 0) {
@@ -352,7 +340,7 @@ function formatSitemapDetail(sm: GscSitemap): string {
   if (sm.contents && sm.contents.length > 0) {
     lines.push("", "Contents:");
     for (const c of sm.contents) {
-      lines.push(`  ${c.type}: ${c.submitted ?? "?"} submitted, ${c.indexed ?? "?"} indexed`);
+      lines.push(`  ${c.type}: ${c.submitted ?? "?"} submitted; indexed count unavailable (deprecated API field)`);
     }
   }
   return lines.join("\n");
@@ -374,7 +362,7 @@ function formatSitemaps(siteUrl: string, sitemaps: GscSitemap[]): string {
     if (sm.errors) lines.push(`  Errors: ${sm.errors}`);
     if (sm.contents) {
       for (const c of sm.contents) {
-        lines.push(`  ${c.type}: ${c.submitted ?? "?"} submitted, ${c.indexed ?? "?"} indexed`);
+        lines.push(`  ${c.type}: ${c.submitted ?? "?"} submitted; indexed count unavailable (deprecated API field)`);
       }
     }
     lines.push("");
@@ -444,7 +432,8 @@ function formatPerformance(
   }
 
   lines.push(
-    `--- Summary (${rows.length} rows returned) ---`,
+    `--- Returned-row summary (${rows.length} rows; not property totals) ---`,
+    "API top-row limits and query privacy exclusions may omit data.",
     "",
     `Clicks: ${totals.clicks.toLocaleString()}`,
     `Impressions: ${totals.impressions.toLocaleString()}`,
@@ -471,7 +460,7 @@ function formatPerformance(
   return lines.join("\n");
 }
 
-function formatComparison(
+export function formatComparison(
   siteUrl: string,
   current: SearchAnalyticsResponse,
   previous: SearchAnalyticsResponse,
@@ -498,7 +487,9 @@ function formatComparison(
     lines.push("⚠ Low data volume — trends may not be meaningful.", "");
   }
 
-  lines.push("--- Summary ---", "");
+  lines.push("--- Returned-row summary (not property totals) ---", "");
+  lines.push("Query privacy exclusions, top-row limits and aggregation may omit data.");
+  lines.push("Position changes can reflect a different mix of impressions, not a ranking change.", "");
   lines.push("             Current     Previous    Change");
   lines.push(
     `Clicks:      ${String(cur.clicks.toLocaleString()).padEnd(12)} ${String(prev.clicks.toLocaleString()).padEnd(12)} ${pctChange(cur.clicks, prev.clicks)}`,
@@ -525,37 +516,25 @@ function formatComparison(
   // Build lookup for previous period rows
   const prevMap = new Map<string, (typeof prevRows)[0]>();
   for (const row of prevRows) {
-    prevMap.set(row.keys.join("|"), row);
+    prevMap.set(JSON.stringify(row.keys), row);
   }
 
   // Find biggest movers (by click change)
   const movers: Array<{ keys: string[]; curClicks: number; prevClicks: number; curPos: number; prevPos: number }> = [];
   for (const row of curRows) {
-    const key = row.keys.join("|");
+    const key = JSON.stringify(row.keys);
     const prevRow = prevMap.get(key);
+    if (!prevRow) continue;
     movers.push({
       keys: row.keys,
       curClicks: row.clicks,
-      prevClicks: prevRow?.clicks ?? 0,
+      prevClicks: prevRow.clicks,
       curPos: row.position,
-      prevPos: prevRow?.position ?? 0,
+      prevPos: prevRow.position,
     });
   }
 
-  // Also include rows that disappeared (were in previous but not in current)
-  const curKeys = new Set(curRows.map((r) => r.keys.join("|")));
-  for (const row of prevRows) {
-    const key = row.keys.join("|");
-    if (!curKeys.has(key)) {
-      movers.push({
-        keys: row.keys,
-        curClicks: 0,
-        prevClicks: row.clicks,
-        curPos: 0,
-        prevPos: row.position,
-      });
-    }
-  }
+  lines.push("Movers include only rows observed in both periods. Missing rows are unknown, not zero.", "");
 
   // Sort by absolute click change descending
   movers.sort((a, b) => Math.abs(b.curClicks - b.prevClicks) - Math.abs(a.curClicks - a.prevClicks));

@@ -1,30 +1,20 @@
 import { clearTokenCache, getAccessToken } from "./auth.js";
+import { RequestError, requestJson } from "./http.js";
 
 const GSC_API = "https://searchconsole.googleapis.com/v1";
 const WEBMASTERS_API = "https://www.googleapis.com/webmasters/v3";
 
 async function gscFetch(url: string, body?: unknown): Promise<Record<string, unknown>> {
   const token = await getAccessToken();
-  const res = await fetch(url, {
-    method: body ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!res.ok) {
-    // Clear cached token on 401 so next call gets a fresh one
-    if (res.status === 401) clearTokenCache();
-    const err = await res.text();
-    throw new Error(`GSC API error (${res.status}): ${err}`);
-  }
-
   try {
-    return (await res.json()) as Record<string, unknown>;
-  } catch {
-    throw new Error(`GSC API returned invalid JSON (${res.status})`);
+    return await requestJson<Record<string, unknown>>(url, {
+      method: body ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    if (error instanceof RequestError && error.status === 401) clearTokenCache();
+    throw error;
   }
 }
 
@@ -62,6 +52,11 @@ export interface InspectionResult {
 }
 
 export async function inspectUrl(inspectionUrl: string, siteUrl: string): Promise<InspectionResult> {
+  const data = await inspectUrlResponse(inspectionUrl, siteUrl);
+  return data.inspectionResult as InspectionResult;
+}
+
+export async function inspectUrlResponse(inspectionUrl: string, siteUrl: string): Promise<Record<string, unknown>> {
   const data = await gscFetch(`${GSC_API}/urlInspection/index:inspect`, {
     inspectionUrl,
     siteUrl,
@@ -69,7 +64,7 @@ export async function inspectUrl(inspectionUrl: string, siteUrl: string): Promis
   if (!data.inspectionResult) {
     throw new Error("GSC API returned no inspection result");
   }
-  return data.inspectionResult as InspectionResult;
+  return data;
 }
 
 // --- Search Analytics ---
@@ -121,7 +116,7 @@ export async function querySearchAnalytics(
     dimensions: options.dimensions ?? ["query", "page"],
     type: options.type ?? "web",
     rowLimit: options.rowLimit ?? 1000,
-    dataState: options.dataState ?? "all",
+    dataState: options.dataState ?? "final",
   };
 
   if (options.startRow !== undefined) body.startRow = options.startRow;
@@ -140,8 +135,12 @@ export interface GscSite {
 }
 
 export async function listSites(): Promise<GscSite[]> {
-  const data = await gscFetch(`${WEBMASTERS_API}/sites`);
+  const data = await listSitesResponse();
   return (data.siteEntry as GscSite[] | undefined) ?? [];
+}
+
+export function listSitesResponse(): Promise<Record<string, unknown>> {
+  return gscFetch(`${WEBMASTERS_API}/sites`);
 }
 
 export async function getSite(siteUrl: string): Promise<GscSite> {
@@ -170,8 +169,12 @@ export interface GscSitemap {
 }
 
 export async function listSitemaps(siteUrl: string): Promise<GscSitemap[]> {
-  const data = await gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
+  const data = await listSitemapsResponse(siteUrl);
   return (data.sitemap as GscSitemap[] | undefined) ?? [];
+}
+
+export function listSitemapsResponse(siteUrl: string): Promise<Record<string, unknown>> {
+  return gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
 }
 
 export async function getSitemap(siteUrl: string, feedpath: string): Promise<GscSitemap> {
