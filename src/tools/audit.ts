@@ -1,9 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { inspectUrl, listSitemaps } from "../lib/gsc.js";
+import { type GscSitemap, inspectUrl, listSitemaps } from "../lib/gsc.js";
+import { RequestError } from "../lib/http.js";
 import { type PsiCategoryType, type PsiResult, runPagespeed } from "../lib/psi.js";
 import { auditAiCrawlers, fetchRobotsTxt, isAllowed } from "../lib/robots.js";
-import { fetchSitemap, inspectSingle, sampleUrls } from "../lib/sitemap.js";
 
 type Severity = "HIGH" | "MEDIUM" | "LOW";
 
@@ -182,68 +182,28 @@ function addRobotsFindings(
   }
 }
 
-function addSitemapFindings(sitemapCount: number, totalSubmitted: number, totalIndexed: number, findings: Finding[]) {
-  if (sitemapCount === 0) {
+export function addSitemapFindings(sitemaps: GscSitemap[], findings: Finding[]) {
+  if (sitemaps.length === 0) {
     findings.push({ severity: "MEDIUM", message: "No sitemaps submitted to GSC", source: "sitemaps" });
-    return;
   }
-  if (totalSubmitted > 0 && totalIndexed === 0) {
-    findings.push({
-      severity: "HIGH",
-      message: `${totalSubmitted.toLocaleString()} sitemap URLs submitted, 0 indexed`,
-      source: "sitemaps",
-    });
-  } else if (totalSubmitted > 0) {
-    const pct = Math.round((totalIndexed / totalSubmitted) * 100);
-    if (pct < 50) {
+  // AIDEV-NOTE: contents[].indexed is deprecated; sitemap submission is not indexing evidence.
+  // https://developers.google.com/webmaster-tools/v1/sitemaps
+  for (const sitemap of sitemaps) {
+    if (Number(sitemap.errors) > 0) {
       findings.push({
         severity: "HIGH",
-        message: `${totalSubmitted.toLocaleString()} sitemap URLs, only ${pct}% indexed (${totalIndexed.toLocaleString()})`,
+        message: `${sitemap.path}: ${sitemap.errors} sitemap errors`,
         source: "sitemaps",
       });
-    } else if (pct < 80) {
+    }
+    if (Number(sitemap.warnings) > 0) {
       findings.push({
         severity: "MEDIUM",
-        message: `${totalSubmitted.toLocaleString()} sitemap URLs, ${pct}% indexed (${totalIndexed.toLocaleString()})`,
+        message: `${sitemap.path}: ${sitemap.warnings} sitemap warnings`,
         source: "sitemaps",
       });
     }
   }
-}
-
-function formatDrillDown(
-  inspections: Array<{ url: string; verdict: string; coverageState: string; error: string | null }>,
-): string {
-  const valid = inspections.filter((r) => !r.error);
-  if (valid.length === 0) return "";
-
-  const indexed = valid.filter((r) => r.verdict === "PASS").length;
-  const lines: string[] = [`        Auto-inspected ${valid.length} URLs:`];
-  lines.push(`        - ${indexed}/${valid.length} indexed`);
-
-  const stateCounts: Record<string, { count: number; urls: string[] }> = {};
-  for (const r of valid) {
-    if (r.verdict !== "PASS") {
-      let path: string;
-      try {
-        path = new URL(r.url).pathname;
-      } catch {
-        path = r.url;
-      }
-      const existing = stateCounts[r.coverageState];
-      if (existing) {
-        existing.count++;
-        existing.urls.push(path);
-      } else {
-        stateCounts[r.coverageState] = { count: 1, urls: [path] };
-      }
-    }
-  }
-  for (const [state, { count, urls }] of Object.entries(stateCounts)) {
-    lines.push(`        - ${count}/${valid.length} ${state}: ${urls.join(", ")}`);
-  }
-
-  return lines.join("\n");
 }
 
 function addInspectFindings(verdict: string, coverageState: string, findings: Finding[]) {
@@ -312,7 +272,7 @@ export function registerAuditTool(server: McpServer): void {
           return { robotsTxt, crawlers, googlebotAllowed };
         }),
         site_url ? listSitemaps(site_url) : Promise.resolve(null),
-        site_url ? inspectUrl(url, site_url).catch(() => null) : Promise.resolve(null),
+        site_url ? inspectUrl(url, site_url) : Promise.resolve(null),
       ]);
 
       // Process meta
@@ -327,8 +287,7 @@ export function registerAuditTool(server: McpServer): void {
         addPagespeedFindings(pagespeedResult.value, findings);
       } else {
         const psiErr = String(pagespeedResult.reason);
-        const statusMatch = psiErr.match(/\((\d{3})\)/);
-        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        const status = pagespeedResult.reason instanceof RequestError ? pagespeedResult.reason.status : null;
         if (status === 403) {
           errors.push("PageSpeed: SKIPPED (API key not authorized — enable PageSpeed Insights API in Google Cloud)");
         } else if (status === 429) {
@@ -349,40 +308,7 @@ export function registerAuditTool(server: McpServer): void {
 
       // Process sitemaps
       if (sitemapResult.status === "fulfilled" && sitemapResult.value) {
-        const sitemaps = sitemapResult.value;
-        let totalSubmitted = 0;
-        let totalIndexed = 0;
-        for (const sm of sitemaps) {
-          for (const c of sm.contents ?? []) {
-            totalSubmitted += Number(c.submitted ?? 0);
-            totalIndexed += Number(c.indexed ?? 0);
-          }
-        }
-        addSitemapFindings(sitemaps.length, totalSubmitted, totalIndexed, findings);
-
-        // Auto-drill-down: when indexing is low, sample-inspect to explain why
-        const indexPct = totalSubmitted > 0 ? (totalIndexed / totalSubmitted) * 100 : 100;
-        if (site_url && indexPct < 50 && sitemaps.length > 0) {
-          try {
-            const sitemapPath = (sitemaps.find((s) => !s.isSitemapsIndex) ?? sitemaps[0]).path;
-            let parsed = await fetchSitemap(sitemapPath);
-            if (parsed.isSitemapIndex && parsed.childSitemaps.length > 0) {
-              parsed = await fetchSitemap(parsed.childSitemaps[0]);
-            }
-            if (parsed.urls.length > 0) {
-              const sampled = sampleUrls(parsed.urls, 5, "spread");
-              const inspections = await Promise.all(sampled.map((u) => inspectSingle(u, site_url)));
-              const drillDown = formatDrillDown(inspections);
-              // Append drill-down to the sitemap finding
-              const sitemapFinding = findings.find((f) => f.source === "sitemaps" && f.severity === "HIGH");
-              if (sitemapFinding) {
-                sitemapFinding.message += `\n${drillDown}`;
-              }
-            }
-          } catch {
-            // Drill-down is best-effort — don't fail the audit
-          }
-        }
+        addSitemapFindings(sitemapResult.value, findings);
       } else if (sitemapResult.status === "rejected") {
         errors.push(`Sitemaps: ${sitemapResult.reason}`);
       }

@@ -1,8 +1,10 @@
+import { RequestError, requestJson } from "./http.js";
+
 const CRUX_API = "https://chromeuxreport.googleapis.com/v1/records";
 
 function getApiKey(): string {
   const key = process.env.GOOGLE_API_KEY;
-  if (!key) throw new Error("GOOGLE_API_KEY is required for CrUX API.");
+  if (!key) throw new RequestError("GOOGLE_API_KEY is required for CrUX API", null, "not_configured");
   return key;
 }
 
@@ -91,18 +93,11 @@ async function cruxFetch<T>(
     body.collectionPeriodCount = options.collectionPeriodCount;
   }
 
-  const res = await fetch(`${CRUX_API}:${endpoint}?key=${key}`, {
+  return requestJson<T>(`${CRUX_API}:${endpoint}?key=${key}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`CrUX API error (${res.status}): ${err}`);
-  }
-
-  return res.json() as Promise<T>;
 }
 
 // --- CrUX Daily API ---

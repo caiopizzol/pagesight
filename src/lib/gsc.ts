@@ -1,30 +1,20 @@
 import { clearTokenCache, getAccessToken } from "./auth.js";
+import { RequestError, requestJson } from "./http.js";
 
 const GSC_API = "https://searchconsole.googleapis.com/v1";
 const WEBMASTERS_API = "https://www.googleapis.com/webmasters/v3";
 
 async function gscFetch(url: string, body?: unknown): Promise<Record<string, unknown>> {
   const token = await getAccessToken();
-  const res = await fetch(url, {
-    method: body ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!res.ok) {
-    // Clear cached token on 401 so next call gets a fresh one
-    if (res.status === 401) clearTokenCache();
-    const err = await res.text();
-    throw new Error(`GSC API error (${res.status}): ${err}`);
-  }
-
   try {
-    return (await res.json()) as Record<string, unknown>;
-  } catch {
-    throw new Error(`GSC API returned invalid JSON (${res.status})`);
+    return await requestJson<Record<string, unknown>>(url, {
+      method: body ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    if (error instanceof RequestError && error.status === 401) clearTokenCache();
+    throw error;
   }
 }
 
@@ -121,7 +111,7 @@ export async function querySearchAnalytics(
     dimensions: options.dimensions ?? ["query", "page"],
     type: options.type ?? "web",
     rowLimit: options.rowLimit ?? 1000,
-    dataState: options.dataState ?? "all",
+    dataState: options.dataState ?? "final",
   };
 
   if (options.startRow !== undefined) body.startRow = options.startRow;
