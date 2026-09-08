@@ -91,10 +91,11 @@ Pagesight reports what the sources report. Nothing more.
 
 ## Development
 
-Install with Bun 1.3.12 (`bun install --frozen-lockfile`). Vite+ 0.3.0 provides formatting, linting, type checks, and commit hooks.
+Install with Bun 1.3.12 (`bun install --frozen-lockfile`). Vite+ 0.3.0 provides formatting, linting, type checks, and commit hooks. TypeScript 7.0.2 provides the standalone typecheck command.
 
 ```sh
 bun run check       # Format, lint, and type checks
+bun run typecheck   # Check all TypeScript files without emitting output
 bun run test        # Existing Bun test suite
 bun run format      # Apply formatting
 bun run start       # Start the MCP server with Bun

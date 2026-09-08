@@ -1,11 +1,8 @@
 {
   "compilerOptions": {
     "strict": true,
-    "moduleResolution": "bundler",
-    "target": "ESNext",
-    "module": "ESNext",
+    "noEmit": true,
     "skipLibCheck": true,
-    "types": ["bun-types"]
-  },
-  "include": ["src", "__tests__", "vite.config.ts"]
+    "types": ["bun"]
+  }
 }
