@@ -145,5 +145,7 @@ partial pagination and image parser behavior. Package version remains 0.17.0.
 Rebased onto main at 04d4564, including merged PRs #10 and #11. The only
 conflict was the shared HTTP reader import; retained the upstream bounded reader
 and the new image inspection import. Final tests and Vite+ checks passed after
-resolution. Implementation criteria are complete; publish branch feat/bing-assessment
-for review. No merge is authorized.
+resolution. Implementation criteria are complete. Published for review as
+[PR #12](https://github.com/caiopizzol/pagesight/pull/12), branch feat/bing-assessment.
+Implementation and publication are complete; hosted CI/review readiness is separate.
+No merge is authorized.
