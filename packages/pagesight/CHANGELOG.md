@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.20.0](https://github.com/caiopizzol/pagesight/compare/v0.19.0...v0.20.0) (2026-09-08)
+
+
+### Features
+
+* **changes:** evaluate deployment context against saved evidence ([#27](https://github.com/caiopizzol/pagesight/issues/27)) ([ccd4fe8](https://github.com/caiopizzol/pagesight/commit/ccd4fe8d6e362e5bfbdb6f2ad37448ca15e414af))
+* **cloudflare:** expose bounded edge and security evidence ([#26](https://github.com/caiopizzol/pagesight/issues/26)) ([6a518c8](https://github.com/caiopizzol/pagesight/commit/6a518c88e01985ec1084ab4956d463e9d3188939))
+* **monitoring:** collect daily SEO observations ([#29](https://github.com/caiopizzol/pagesight/issues/29)) ([021b61d](https://github.com/caiopizzol/pagesight/commit/021b61dbc72654f3813924257311dab5c8f5f7a1))
+* **seo:** audit bounded site discovery graphs ([#25](https://github.com/caiopizzol/pagesight/issues/25)) ([837d0b1](https://github.com/caiopizzol/pagesight/commit/837d0b1d6782fc379ff787455efe3596b9516f65))
+* **seo:** investigate individual search candidates ([#23](https://github.com/caiopizzol/pagesight/issues/23)) ([33170fc](https://github.com/caiopizzol/pagesight/commit/33170fc20189e43da5aeffb55861dd386c9cdbac))
+* **seo:** plan experiment follow-ups ([#31](https://github.com/caiopizzol/pagesight/issues/31)) ([3657803](https://github.com/caiopizzol/pagesight/commit/365780382608e37769edfe0529695bee45199751))
+* **seo:** verify rendered page metadata ([#32](https://github.com/caiopizzol/pagesight/issues/32)) ([0133c5b](https://github.com/caiopizzol/pagesight/commit/0133c5bffe44dbd1fede968eb8a8b7128920a7c8))
+
 ## [0.19.0](https://github.com/caiopizzol/pagesight/compare/v0.18.0...v0.19.0) (2026-09-08)
 
 
