@@ -12,6 +12,7 @@ pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight change evaluate --record change.json --baseline before.json [--current after.json] [--max-rows 20]
+pagesight technical compare --current current.json [--baseline previous.json]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
 pagesight gsc sitemaps --site sc-domain:example.com
@@ -99,13 +100,16 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (positionals.length > (["gsc", "ga", "bing", "speed", "evidence", "change"].includes(family) ? 2 : 1))
+    if (
+      positionals.length > (["gsc", "ga", "bing", "speed", "evidence", "change", "technical"].includes(family) ? 2 : 1)
+    )
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "bing", "speed", "evidence", "change"].includes(family)
+    const operation = ["gsc", "ga", "bing", "speed", "evidence", "change", "technical"].includes(family)
       ? `${family}.${action ?? ""}`
       : family;
     const flags: Record<string, string[]> = {
       "change.evaluate": ["record", "baseline", "current", "max-rows"],
+      "technical.compare": ["baseline", "current"],
       "evidence.import": ["request"],
       investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
       assess: ["snapshot", "max-rows", "format"],
@@ -167,6 +171,12 @@ export async function runCli(args: string[]): Promise<number> {
         baseline: await jsonFile(values.baseline, "baseline"),
         ...(values.current ? { current: await jsonFile(values.current, "current") } : {}),
         maxRows: Number(values["max-rows"] ?? 20),
+      };
+    else if (operation === "technical.compare")
+      input = {
+        operation,
+        current: await jsonFile(values.current, "current"),
+        ...(values.baseline ? { baseline: await jsonFile(values.baseline, "baseline") } : {}),
       };
     else if (operation === "opportunities")
       input = {
