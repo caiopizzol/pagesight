@@ -1,5 +1,6 @@
 import { cloudflareAudit } from "./cloudflare.js";
 
+import { crawl } from "./crawl.js";
 import { technicalChanges } from "./technical-changes.js";
 import { investigate } from "./investigation.js";
 import { assessSnapshot } from "./assessment.js";
@@ -55,6 +56,8 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
     case "cloudflare.audit":
       return cloudflareAudit(op);
 
+    case "crawl":
+      return crawl(op, execute);
     case "technical.compare":
       return technicalChanges(op.baseline, op.current);
     case "investigate":

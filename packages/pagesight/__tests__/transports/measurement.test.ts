@@ -278,3 +278,55 @@ test("URL investigation collects live HTML through API, CLI, HTTP and MCP with e
     await rm(dir, { recursive: true });
   }
 });
+
+test("bounded crawl is reachable through CLI, HTTP and MCP with the shared graph contract", async () => {
+  const web = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: (req) =>
+      new URL(req.url).pathname === "/robots.txt"
+        ? new Response("", { status: 404 })
+        : new Response('<title>Crawl fixture</title><a href="/next">Next</a>', {
+            headers: { "Content-Type": "text/html" },
+          }),
+  });
+  const dir = await mkdtemp(`${tmpdir()}/pagesight-crawl-`);
+  const config = { site: web.url.href };
+  await Bun.write(`${dir}/config.json`, JSON.stringify(config));
+  const request = { operation: "crawl", config, maxPages: 2, inspectLimit: 0 };
+  const server = startHttpApi(token, 0);
+  const client = new Client({ name: "crawl-test", version: "1" });
+  const graph = (e: any) => {
+    const g = e.pages[0].response.observations[0].pages[0].response;
+    return {
+      edges: g.edges,
+      pages: g.pages.map((p: any) => ({ url: p.url, status: p.status, depth: p.observedDepthFromSeeds })),
+      skipped: g.skipped,
+    };
+  };
+  try {
+    const direct = await execute(request);
+    const child = Bun.spawn(
+      [process.execPath, entry, "crawl", "--config", `${dir}/config.json`, "--max-pages", "2", "--inspect-limit", "0"],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    const cli = await new Response(child.stdout).json();
+    expect(await child.exited).toBe(0);
+    expect(graph(cli)).toEqual(graph(direct));
+    const response = await fetch(new URL("v1/query", server.url), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    expect(response.status).toBe(200);
+    expect(graph(await response.json())).toEqual(graph(direct));
+    await client.connect(new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" }));
+    const mcp = await client.callTool({ name: "observe", arguments: { request } });
+    expect(graph(mcp.structuredContent)).toEqual(graph(direct));
+  } finally {
+    await client.close();
+    await server.stop(true);
+    await web.stop(true);
+    await rm(dir, { recursive: true });
+  }
+});
