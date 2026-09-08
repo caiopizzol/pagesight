@@ -1,7 +1,5 @@
+import { callTool } from "./support/mcp.js";
 import { expect, spyOn, test } from "bun:test";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { pacificDaysAgo } from "../src/api/dates.js";
 import { capture } from "../src/api/evidence.js";
 import { configSchema } from "../src/api/schema.js";
@@ -10,21 +8,6 @@ import { readBounded } from "../src/lib/http.js";
 import { fetchRobotsTxt, isAllowed, parseRobotsTxt } from "../src/lib/robots.js";
 import { formatCategorySummary, registerAiTool } from "../src/tools/ai.js";
 import { registerPageTool } from "../src/tools/page.js";
-
-async function callTool(register: (server: McpServer) => void, name: string, args: Record<string, unknown>) {
-  const server = new McpServer({ name: "comment-check", version: "1" });
-  const client = new Client({ name: "comment-check", version: "1" });
-  const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
-  register(server);
-  try {
-    await server.connect(serverTransport);
-    await client.connect(clientTransport);
-    return JSON.stringify((await client.callTool({ name, arguments: args })).content);
-  } finally {
-    await client.close();
-    await server.close();
-  }
-}
 
 test("robots matching normalizes unreserved escapes without decoding reserved separators or wildcards", () => {
   for (const [rule, path, allowed] of [
