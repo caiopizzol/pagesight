@@ -1,3 +1,4 @@
+import { evaluateChange } from "./evaluate-change.js";
 import { investigate } from "./investigation.js";
 import { assessSnapshot } from "./assessment.js";
 import { opportunities } from "./opportunities.js";
@@ -49,6 +50,8 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
+    case "change.evaluate":
+      return evaluateChange(op.record, op.baseline, op.current, op.maxRows);
     case "investigate":
       return investigate(op, execute);
     case "opportunities":

@@ -1,3 +1,4 @@
+import { changeRecordSchema } from "./change-record.js";
 import { uiFindingsSchema } from "./ui-findings.js";
 import { z } from "zod";
 import { snapshotEvidenceSchema } from "./evidence-schema.js";
@@ -161,6 +162,15 @@ const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx
       ctx.addIssue({ ...issue, path: ["pages", 0, "response", "context", "config", ...issue.path] });
 });
 const operationVariants = z.discriminatedUnion("operation", [
+  z
+    .object({
+      operation: z.literal("change.evaluate"),
+      record: changeRecordSchema,
+      baseline: assessedSnapshotSchema,
+      current: assessedSnapshotSchema.optional(),
+      maxRows: z.number().int().min(1).max(100).default(20),
+    })
+    .strict(),
   z
     .object({
       operation: z.literal("investigate"),
