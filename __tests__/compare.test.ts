@@ -163,6 +163,46 @@ test("GA unknown or changed timezone and malformed headers prevent comparison", 
   expect((await compare([await ga(0, "1")], [current]))[0].status).toBe("incompatible");
 });
 
+test("GA duplicate metric names cannot silently replace a compared value", async () => {
+  const baseline = await ga(0, "2"),
+    current = await ga(1, "4");
+  for (const [observation, extra] of [
+    [baseline, "9"],
+    [current, "7"],
+  ] as const) {
+    const request = observation.pages[0].request as { metrics: Array<{ name: string }> };
+    const response = observation.pages[0].response as {
+      metricHeaders: Array<{ name: string; type: string }>;
+      rows: Array<{ metricValues: Array<{ value: string }> }>;
+    };
+    request.metrics.push({ name: "eventCount" });
+    response.metricHeaders.push({ name: "eventCount", type: "TYPE_INTEGER" });
+    response.rows[0].metricValues.push({ value: extra });
+  }
+  const [result] = await compare([baseline], [current]);
+  expect(result.status).toBe("incompatible");
+  expect(result.reason).toContain("unique");
+  expect(result.rows).toBeUndefined();
+});
+
+test("imported pagination must agree with retained report rows", async () => {
+  for (const provider of [gsc, (period: number) => ga(period, "2")]) {
+    const baseline = await provider(0);
+    for (const pagination of [
+      { exhausted: true, rowsReturned: 2, nextOffset: null },
+      { exhausted: true, rowsReturned: 1, nextOffset: 1 },
+      { exhausted: false, rowsReturned: 1, nextOffset: 2 },
+    ]) {
+      const current = await provider(1);
+      current.pagination = pagination;
+      const [result] = await compare([baseline], [current]);
+      expect(result.status).toBe("incompatible");
+      expect(result.reason).toContain("pagination");
+      expect(result.rows).toBeUndefined();
+    }
+  }
+});
+
 test("invalid and unsafe numbers retain raw values without a fabricated delta", async () => {
   for (const value of ["9007199254740993", "NaN", "", "1e999", "1e-999", "9007199254740991.1", "1.00000000000000001"]) {
     const [result] = await compare([await ga(0, value)], [await ga(1, "2")]);

@@ -103,6 +103,8 @@ function report(observation: Evidence, context: SnapshotContext): Report {
       const { dateRanges, offset: _offset, limit: _limit, returnPropertyQuota: _quota, ...scope } = q;
       const dimensions = q.dimensions.map((d) => d.name);
       const metrics = q.metrics.map((m) => m.name);
+      if (new Set(metrics).size !== metrics.length)
+        throw new Incompatible("GA metric names must be unique to preserve every compared value.");
       requireSame(
         response.dimensionHeaders.map((h) => h.name),
         dimensions,
@@ -181,6 +183,12 @@ function report(observation: Evidence, context: SnapshotContext): Report {
     offset += rows.length;
   }
   if (!report) throw new Incompatible("No report pages available.");
+  if (
+    observation.pagination &&
+    (observation.pagination.rowsReturned !== offset ||
+      observation.pagination.nextOffset !== (observation.pagination.exhausted ? null : offset))
+  )
+    throw new Incompatible("Report pagination does not match the retained rows.");
   if (observation.status !== "ok" || !observation.pagination?.exhausted || observation.error)
     report.warnings.push(
       "Report has incomplete pagination or a provider failure; only observed common rows can be compared.",

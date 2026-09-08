@@ -106,3 +106,10 @@ All three increments are published in verified managed GitHub stack #5:
   monitoring of #6 and #8 plus any verified findings. PR6 owner found no current issue;
   89 final tests and package-import smoke pass at the top layer. No initiating-site
   integration was added, and no live Bing access has been claimed.
+
+PR #8 owner validation reproduced two malformed-import failures: duplicate GA metric
+names silently replaced values, and pagination counts/offsets could contradict the
+retained rows while reporting a comparison. Both now return incompatible with
+focused regressions. All 91 Bun tests, TypeScript 7 and Vite+ pass (four unchanged
+legacy warnings). CI passed on the assigned remote head; Cubic review was queued.
+These owner fixes still require publication and review at their new head.
