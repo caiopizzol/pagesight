@@ -9,7 +9,8 @@ import { defaultDates } from "./dates.js";
 import { capture, type Evidence } from "./evidence.js";
 import { gaReport, gscReport } from "./reports.js";
 import { operationSchema } from "./schema.js";
-import { aggregate, snapshot } from "./snapshot.js";
+import { discover } from "./setup.js";
+import { aggregate, providerSelection, snapshot } from "./snapshot.js";
 import { observePage } from "./web.js";
 
 export type { Evidence } from "./evidence.js";
@@ -40,6 +41,8 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ReturnType<typeof operationSchema.parse>): Promise<Evidence> {
   switch (op.operation) {
+    case "discover":
+      return discover(op.url, op.providers, execute);
     case "gsc.sites":
       return capture("gsc", "sites", "accessible-properties", {}, listSitesResponse);
     case "gsc.sitemaps":
@@ -112,23 +115,30 @@ async function dispatch(op: ReturnType<typeof operationSchema.parse>): Promise<E
       );
     }
     case "doctor": {
-      const checks = await Promise.all([
-        capture("gsc", "access", op.config.gscSite, { site: op.config.gscSite, method: getAuthMethod() }, () =>
-          getSite(op.config.gscSite),
-        ),
-        execute({ operation: "ga.property", property: op.config.gaProperty }),
-        execute({
-          operation: "ga.report",
-          property: op.config.gaProperty,
-          request: {
-            dateRanges: [{ startDate: defaultDates().endDate, endDate: defaultDates().endDate }],
-            metrics: [{ name: "sessions" }],
-            limit: 1,
-          },
-        }),
-        execute({ operation: "page", url: op.config.site }),
-      ]);
-      return aggregate("doctor", op.config.site, op.config, checks);
+      const pending: Promise<Evidence>[] = [execute({ operation: "page", url: op.config.site })];
+      const site = op.config.gscSite;
+      const property = op.config.gaProperty;
+      if (site) pending.push(capture("gsc", "access", site, { site, method: getAuthMethod() }, () => getSite(site)));
+      if (property)
+        pending.push(
+          execute({ operation: "ga.property", property }),
+          execute({
+            operation: "ga.report",
+            property,
+            request: {
+              dateRanges: [{ startDate: defaultDates().endDate, endDate: defaultDates().endDate }],
+              metrics: [{ name: "sessions" }],
+              limit: 1,
+            },
+          }),
+        );
+      const result = aggregate("doctor", op.config.site, op.config, await Promise.all(pending));
+      (result.pages[0].response as Record<string, unknown>).providers = {
+        ...providerSelection(op.config),
+        web: "selected",
+        sitemap: "not_checked",
+      };
+      return result;
     }
     case "snapshot":
       return snapshot(op, execute);

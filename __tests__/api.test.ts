@@ -7,6 +7,7 @@ import { capture } from "../src/api/evidence.js";
 import { execute } from "../src/api/index.js";
 import { gaReport, gscReport } from "../src/api/reports.js";
 import { configSchema, gaRequestSchema, gscRequestSchema, operationSchema } from "../src/api/schema.js";
+import { discover } from "../src/api/setup.js";
 import { snapshot, snapshotOperations } from "../src/api/snapshot.js";
 import { observePage, observeSitemap } from "../src/api/web.js";
 import { startHttpApi } from "../src/http.js";
@@ -179,6 +180,72 @@ test("snapshot keeps config and successful observations when a provider fails", 
     ]),
   });
   expect(r.warnings.join(" ")).toContain("No validated success events");
+});
+
+test("site-only doctor and snapshot need no provider credentials and expose selection", async () => {
+  const minimal = { site: fixture.url.href };
+  const doctor = await execute({ operation: "doctor", config: minimal });
+  expect(doctor.status).toBe("ok");
+  expect(doctor.pages[0].response).toMatchObject({ providers: { gsc: "not_selected", ga: "not_selected" } });
+  const result = await execute({
+    operation: "snapshot",
+    config: minimal,
+    startDate: "2026-08-01",
+    endDate: "2026-08-28",
+  });
+  expect(result.status).toBe("ok");
+  expect(result.pages[0].response).toMatchObject({
+    snapshotVersion: 1,
+    observations: [expect.objectContaining({ provider: "web", name: `page:${fixture.url}` })],
+  });
+});
+
+test("provider selection gates every dependent report and inspection", () => {
+  for (const provider of ["gsc", "ga"]) {
+    const selected = configSchema.parse({
+      site: fixture.url.href,
+      ...(provider === "gsc" ? { gscSite: "sc-domain:example.com" } : { gaProperty: "123" }),
+    });
+    const ops = snapshotOperations(selected, "2026-08-01", "2026-08-28", 1);
+    expect(ops.every((op) => op.operation === "page" || op.operation.startsWith(provider))).toBe(true);
+    expect(ops.some((op) => op.operation === `${provider}.report`)).toBe(true);
+  }
+  expect(configSchema.safeParse({ site: fixture.url.href, pages: [] }).success).toBe(false);
+});
+
+test("named observations remain unique and stable when a provider is removed", async () => {
+  const collect = (raw: unknown) => {
+    const op = operationSchema.parse(raw);
+    return capture(op.operation.split(".")[0], op.operation, "site", op, async () => ({ rows: [] }));
+  };
+  const all = await snapshot({ config, startDate: "2026-08-01", endDate: "2026-08-28", maxPages: 1 }, collect);
+  const gaOnly = await snapshot(
+    {
+      config: configSchema.parse({ ...config, gscSite: undefined }),
+      startDate: "2026-08-01",
+      endDate: "2026-08-28",
+      maxPages: 1,
+    },
+    collect,
+  );
+  const names = (e: typeof all) =>
+    (e.pages[0].response as { observations: Array<{ name: string }> }).observations.map((o) => o.name);
+  expect(new Set(names(all)).size).toBe(names(all).length);
+  expect(names(gaOnly)).toEqual(names(all).filter((name) => !name.startsWith("gsc.")));
+});
+
+test("discovery keeps independent failures and never infers a GA hostname from its name", async () => {
+  const result = await discover(fixture.url.href, ["gsc", "ga"], async (raw) => {
+    const op = operationSchema.parse(raw);
+    return capture(op.operation.split(".")[0], op.operation, "accounts", op, async () => {
+      if (op.operation === "gsc.sites") throw new RequestError("Not configured", null, "not_configured");
+      return { accountSummaries: [{ propertySummaries: [{ property: "properties/123", displayName: "127.0.0.1" }] }] };
+    });
+  });
+  expect(result.status).toBe("partial");
+  const response = result.pages[0].response as { config: unknown; candidates: unknown };
+  expect(configSchema.parse(response.config).gaProperty).toBeUndefined();
+  expect(response.candidates).toMatchObject({ ga: [{ property: "properties/123" }] });
 });
 
 test("page inventory reads attribute order and preserves noindex without declaring index status", async () => {

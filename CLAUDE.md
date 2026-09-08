@@ -3,7 +3,7 @@
 Shared API for SEO, analytics, GEO, and web performance evidence, with CLI,
 local HTTP, and MCP interfaces. npm package: `pagesight`.
 
-The agent SEO observability goal and verification live in `../fipe-chat/seo-goal.md`.
+The active agent SEO observability goal and verification live in `seo-goal.md`.
 
 ## Stack
 
