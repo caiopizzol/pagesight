@@ -1,3 +1,4 @@
+import { followupChanges } from "./followup-changes.js";
 import { cloudflareAudit } from "./cloudflare.js";
 
 import { evaluateChange } from "./evaluate-change.js";
@@ -57,6 +58,8 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
     case "cloudflare.audit":
       return cloudflareAudit(op);
 
+    case "change.followup":
+      return followupChanges(op.experiments, op.asOf ?? new Date().toISOString(), op.lagDays);
     case "change.evaluate":
       return evaluateChange(op.record, op.baseline, op.current, op.maxRows);
     case "crawl":

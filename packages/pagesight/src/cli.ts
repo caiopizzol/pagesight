@@ -1,3 +1,5 @@
+import { loadFollowupManifest } from "./followup-manifest.js";
+import { renderFollowup } from "./followup-text.js";
 import { renderInvestigation } from "./investigation-text.js";
 import { renderAssessment } from "./assessment-text.js";
 import { renderOpportunities } from "./opportunities-text.js";
@@ -13,6 +15,7 @@ pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight cloudflare audit --zone ZONE_ID --hostname example.com --start UTC_TIME --end UTC_TIME [--limit 50]
 
+pagesight change followup --manifest experiments.json [--as-of UTC_TIME] [--lag-days 3] [--format text]
 pagesight change evaluate --record change.json --baseline before.json [--current after.json] [--max-rows 20]
 pagesight technical compare --current current.json [--baseline previous.json]
 pagesight doctor --config seo.config.json
@@ -48,7 +51,7 @@ pagesight evidence import --request findings.json
 pagesight api --request operation.json
 pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
-Data commands emit JSON by default; assess, opportunities and investigate accept --format text for readable summaries. --json is accepted for clarity.
+Data commands emit JSON by default; assess, opportunities, investigate and change followup accept --format text for readable summaries. --json is accepted for clarity.
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
 2 invalid input, 3 partial evidence. Snapshot defaults to 28 days ending Pacific
 today minus 3 days; max-pages defaults to 4 (ad hoc reports: 1; maximum: 20).
@@ -76,6 +79,9 @@ export async function runCli(args: string[]): Promise<number> {
         hostname: { type: "string" },
         limit: { type: "string" },
         record: { type: "string" },
+        manifest: { type: "string" },
+        "as-of": { type: "string" },
+        "lag-days": { type: "string" },
         port: { type: "string" },
         help: { type: "boolean", short: "h" },
         json: { type: "boolean" },
@@ -120,6 +126,7 @@ export async function runCli(args: string[]): Promise<number> {
       : family;
     const flags: Record<string, string[]> = {
       "cloudflare.audit": ["zone", "hostname", "start", "end", "limit"],
+      "change.followup": ["manifest", "as-of", "lag-days", "format"],
       "change.evaluate": ["record", "baseline", "current", "max-rows"],
       "technical.compare": ["baseline", "current"],
       "evidence.import": ["request"],
@@ -185,6 +192,13 @@ export async function runCli(args: string[]): Promise<number> {
         startTime: values.start,
         endTime: values.end,
         limit: Number(values.limit ?? 50),
+      };
+    else if (operation === "change.followup")
+      input = {
+        operation,
+        experiments: await loadFollowupManifest(values.manifest),
+        asOf: values["as-of"],
+        lagDays: Number(values["lag-days"] ?? 3),
       };
     else if (operation === "change.evaluate")
       input = {
@@ -263,11 +277,13 @@ export async function runCli(args: string[]): Promise<number> {
     const result = await execute(input);
     const output =
       values.format === "text"
-        ? operation === "investigate"
-          ? renderInvestigation(result)
-          : operation === "opportunities"
-            ? renderOpportunities(result)
-            : renderAssessment(result)
+        ? operation === "change.followup"
+          ? renderFollowup(result)
+          : operation === "investigate"
+            ? renderInvestigation(result)
+            : operation === "opportunities"
+              ? renderOpportunities(result)
+              : renderAssessment(result)
         : `${JSON.stringify(result, null, 2)}\n`;
     if (values.out) await Bun.write(values.out, output);
     process.stdout.write(output);
