@@ -11,6 +11,7 @@ export const help = `Pagesight — read-only site evidence
 pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
+pagesight technical compare --current current.json [--baseline previous.json]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
 pagesight gsc sitemaps --site sc-domain:example.com
@@ -102,12 +103,13 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (positionals.length > (["gsc", "ga", "bing", "speed", "evidence"].includes(family) ? 2 : 1))
+    if (positionals.length > (["gsc", "ga", "bing", "speed", "evidence", "technical"].includes(family) ? 2 : 1))
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "bing", "speed", "evidence"].includes(family)
+    const operation = ["gsc", "ga", "bing", "speed", "evidence", "technical"].includes(family)
       ? `${family}.${action ?? ""}`
       : family;
     const flags: Record<string, string[]> = {
+      "technical.compare": ["baseline", "current"],
       "evidence.import": ["request"],
       crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
       investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
@@ -172,6 +174,12 @@ export async function runCli(args: string[]): Promise<number> {
         maxLinks: Number(values["max-links"] ?? 500),
         inspectLimit: Number(values["inspect-limit"] ?? 3),
         includeQuery: values["include-query"] ?? false,
+      };
+    else if (operation === "technical.compare")
+      input = {
+        operation,
+        current: await jsonFile(values.current, "current"),
+        ...(values.baseline ? { baseline: await jsonFile(values.baseline, "baseline") } : {}),
       };
     else if (operation === "opportunities")
       input = {
