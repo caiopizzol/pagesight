@@ -100,11 +100,15 @@ export const gaRealtimeRequestSchema = z
   .strict();
 export type GaRealtimeRequest = z.infer<typeof gaRealtimeRequestSchema>;
 
-const httpUrl = z
+export const httpUrl = z
   .string()
   .url()
   .refine(
-    (v) => ["http:", "https:"].includes(new URL(v).protocol) && !new URL(v).username && !new URL(v).password,
+    (v) =>
+      URL.canParse(v) &&
+      ["http:", "https:"].includes(new URL(v).protocol) &&
+      !new URL(v).username &&
+      !new URL(v).password,
     "Use an HTTP(S) URL without credentials",
   );
 export const configSchema = z
@@ -150,16 +154,26 @@ export const configSchema = z
     "Select at least one page or provider",
   );
 export type SiteConfig = z.infer<typeof configSchema>;
+const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
+  const config = configSchema.safeParse(snapshot.pages[0].response.context.config);
+  if (!config.success)
+    for (const issue of config.error.issues)
+      ctx.addIssue({ ...issue, path: ["pages", 0, "response", "context", "config", ...issue.path] });
+});
 const operationVariants = z.discriminatedUnion("operation", [
   z
     .object({
+      operation: z.literal("opportunities"),
+      snapshot: assessedSnapshotSchema,
+      minImpressions: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).default(20),
+      maxClicks: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(2),
+      maxRows: z.number().int().min(1).max(100).default(10),
+    })
+    .strict(),
+  z
+    .object({
       operation: z.literal("assess"),
-      snapshot: snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
-        const config = configSchema.safeParse(snapshot.pages[0].response.context.config);
-        if (!config.success)
-          for (const issue of config.error.issues)
-            ctx.addIssue({ ...issue, path: ["pages", 0, "response", "context", "config", ...issue.path] });
-      }),
+      snapshot: assessedSnapshotSchema,
       maxRows: z.number().int().min(1).max(100).default(10),
     })
     .strict(),

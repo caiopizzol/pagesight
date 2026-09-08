@@ -22,6 +22,7 @@ raw observations, failures, and limits; missing data is not zero.
 
 - [API, CLI, HTTP, and MCP](docs/usage.md)
 - [Snapshots and comparisons](docs/snapshots.md)
+- [Choose pages to investigate](docs/opportunities.md)
 - [Provider access](docs/credentials.md)
 - [Bing diagnostics, HTML images, and UI findings](docs/diagnostics.md)
 

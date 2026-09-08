@@ -1,4 +1,5 @@
 import { renderAssessment } from "./assessment-text.js";
+import { renderOpportunities } from "./opportunities-text.js";
 import { parseArgs } from "node:util";
 import { defaultDates } from "./shared/dates.js";
 import { execute } from "./api/index.js";
@@ -34,6 +35,7 @@ pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
 pagesight assess --snapshot saved.json [--format text] [--max-rows 10]
+pagesight opportunities --snapshot saved.json [--min-impressions 20] [--max-clicks 2] [--max-rows 10] [--format text]
 pagesight compare --baseline before.json --current after.json [--max-rows 100]
 pagesight evidence import --request findings.json
 pagesight api --request operation.json
@@ -84,6 +86,8 @@ export async function runCli(args: string[]): Promise<number> {
         baseline: { type: "string" },
         current: { type: "string" },
         "max-rows": { type: "string" },
+        "min-impressions": { type: "string" },
+        "max-clicks": { type: "string" },
       },
     });
     if (args.length === 0 || values.help || positionals[0] === "help") {
@@ -99,6 +103,7 @@ export async function runCli(args: string[]): Promise<number> {
     const flags: Record<string, string[]> = {
       "evidence.import": ["request"],
       assess: ["snapshot", "max-rows", "format"],
+      opportunities: ["snapshot", "max-rows", "format", "min-impressions", "max-clicks"],
       discover: ["url", "providers"],
       compare: ["baseline", "current", "max-rows"],
       "bing.crawl-stats": ["site"],
@@ -149,6 +154,14 @@ export async function runCli(args: string[]): Promise<number> {
     if (operation === "api") input = await jsonFile(values.request, "request");
     else if (operation === "evidence.import")
       input = { operation, document: await jsonFile(values.request, "request") };
+    else if (operation === "opportunities")
+      input = {
+        operation,
+        snapshot: await jsonFile(values.snapshot, "snapshot"),
+        minImpressions: Number(values["min-impressions"] ?? 20),
+        maxClicks: Number(values["max-clicks"] ?? 2),
+        maxRows: Number(values["max-rows"] ?? 10),
+      };
     else if (operation === "assess")
       input = {
         operation,
@@ -186,7 +199,12 @@ export async function runCli(args: string[]): Promise<number> {
       };
     }
     const result = await execute(input);
-    const output = values.format === "text" ? renderAssessment(result) : `${JSON.stringify(result, null, 2)}\n`;
+    const output =
+      values.format === "text"
+        ? operation === "opportunities"
+          ? renderOpportunities(result)
+          : renderAssessment(result)
+        : `${JSON.stringify(result, null, 2)}\n`;
     if (values.out) await Bun.write(values.out, output);
     process.stdout.write(output);
     return result.status === "ok" ? 0 : result.status === "partial" ? 3 : 1;

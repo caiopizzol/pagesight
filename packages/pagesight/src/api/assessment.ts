@@ -13,7 +13,7 @@ interface Finding {
   sources: string[];
   nextCheck: string;
 }
-interface Table {
+export interface AssessmentTable {
   observation: string;
   scope: "search-property" | "production" | "production-organic" | "all-hostnames";
   dimensions: string[];
@@ -41,7 +41,7 @@ export async function assessSnapshot(snapshot: ImportedSnapshot, maxRows: number
   const hash = Bun.CryptoHasher.hash("sha256", canonical(snapshot), "hex");
   const result = await capture("pagesight", "assess", snapshot.target, { snapshotSha256: hash, maxRows }, async () => {
     const findings: Finding[] = [];
-    const tables: Table[] = [];
+    const tables: AssessmentTable[] = [];
     let configuredKeyEvents: Array<{ eventName: string; countingMethod?: string }> = [];
     const keyEventSource = observations.find((o) => o.name === "ga.key-events");
     const add = (code: string, level: Finding["level"], message: string, sources: string[], nextCheck: string) =>
@@ -302,7 +302,7 @@ export async function assessSnapshot(snapshot: ImportedSnapshot, maxRows: number
       ],
     };
   });
-  const assessment = result.pages[0]?.response as { findings: Finding[]; tables: Table[] } | undefined;
+  const assessment = result.pages[0]?.response as { findings: Finding[]; tables: AssessmentTable[] } | undefined;
   if (
     result.status !== "error" &&
     (snapshot.status !== "ok" ||

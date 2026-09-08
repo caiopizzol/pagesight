@@ -1,4 +1,5 @@
 import { assessSnapshot } from "./assessment.js";
+import { opportunities } from "./opportunities.js";
 import { gaRealtime } from "./ga-realtime.js";
 import { importUiFindings } from "./ui-findings.js";
 import { doctor } from "./doctor.js";
@@ -47,6 +48,12 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
+    case "opportunities":
+      return opportunities(op.snapshot, {
+        minImpressions: op.minImpressions,
+        maxClicks: op.maxClicks,
+        maxRows: op.maxRows,
+      });
     case "assess":
       return assessSnapshot(op.snapshot, op.maxRows);
     case "evidence.import":
