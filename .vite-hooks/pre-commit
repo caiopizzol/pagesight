@@ -1,0 +1,3 @@
+[ -x node_modules/.bin/vp ] || exit 0
+vp staged
+vp check --no-fmt --no-lint

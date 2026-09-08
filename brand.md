@@ -51,6 +51,7 @@ LOW     No structured data (JSON-LD) found
 **One-liner:** Your AI assistant's sight into how search engines and AI crawlers evaluate your site.
 
 **What it replaces:**
+
 - Opening search consoles in a browser tab
 - Running performance audits in DevTools and reading the report yourself
 - Checking robots.txt manually
@@ -61,6 +62,7 @@ LOW     No structured data (JSON-LD) found
 **Why it's trustworthy:** Every data point comes from a verifiable source. Official APIs, real user data, published standards, community-maintained registries. Nothing is invented. No proprietary scores. No thresholds without citation.
 
 **Structural differentials:**
+
 - AI-native: designed to be used by AI assistants, not by humans clicking a dashboard
 - Intent-based: 6 tools named for what you're trying to do (page, speed, search, ai, audit, setup), not which API to call
 - Unified: indexing + performance + meta tags + structured data + link health + bot access + accessibility in one package
@@ -82,12 +84,14 @@ One call. Prioritized findings. Fix what matters.
 **Attributes:** clear, precise, developer-native, evidence-based, calm, actionable
 
 **What Pagesight is:**
+
 - A sense organ for AI assistants — sight into search
 - Evidence delivered where you already work
 - A complete picture in one call
 - Open source
 
 **Pagesight is not:**
+
 - A score generator
 - A dashboard
 - A subscription
@@ -100,6 +104,7 @@ One call. Prioritized findings. Fix what matters.
 **Litmus test:** If Google's own engineers would disagree with what we're saying, don't say it.
 
 **What the brand cannot be:**
+
 - A tool that invents rules or scores
 - A dashboard that demands attention
 - A brand that uses marketing superlatives
@@ -120,9 +125,10 @@ Six tools. Five questions. One package.
 ### Tagline & Slogans
 
 **Primary tagline:** See your site the way search engines and AI see it.
-*Use everywhere: npm, GitHub, homepage, social bios.*
+_Use everywhere: npm, GitHub, homepage, social bios._
 
 **Context-specific:**
+
 - Hero: "Your AI assistant can write your code. Now it can see your site."
 - Technical: "Google Search Console + PageSpeed + CrUX + 139 AI crawlers + link health + accessibility. One package."
 - Developer pitch: "Six tools. Five questions. Fix what matters."
@@ -195,15 +201,15 @@ Pagesight gives AI assistants sight into how search engines and AI crawlers eval
 9. Acknowledge what we don't cover. Silence is deception.
 10. The strongest argument is a direct quote from an authoritative source.
 
-| We Say | We Never Say |
-|---|---|
-| "See what Google sees" | "Optimize your digital presence" |
-| "Google reports this page is not indexed" | "Your SEO score is 73/100" |
-| "139 AI crawlers checked" | "Comprehensive AI-powered analysis" |
-| "npm install pagesight" | "Sign up for a free trial" |
-| "One call, prioritized findings" | "All-in-one platform" |
-| "Works with your AI assistant" | "Seamless integration ecosystem" |
-| "Direct from source" | "Industry-leading insights" |
+| We Say                                    | We Never Say                        |
+| ----------------------------------------- | ----------------------------------- |
+| "See what Google sees"                    | "Optimize your digital presence"    |
+| "Google reports this page is not indexed" | "Your SEO score is 73/100"          |
+| "139 AI crawlers checked"                 | "Comprehensive AI-powered analysis" |
+| "npm install pagesight"                   | "Sign up for a free trial"          |
+| "One call, prioritized findings"          | "All-in-one platform"               |
+| "Works with your AI assistant"            | "Seamless integration ecosystem"    |
+| "Direct from source"                      | "Industry-leading insights"         |
 
 ---
 
