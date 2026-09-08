@@ -8,7 +8,7 @@ export function startHttpApi(token: string, port = 6095) {
   return Bun.serve({
     hostname: "127.0.0.1",
     port,
-    maxRequestBodySize: 1_000_000,
+    maxRequestBodySize: 32_000_000,
     idleTimeout: 255,
     async fetch(request) {
       const authorization = Buffer.from(request.headers.get("authorization") ?? "");

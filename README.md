@@ -284,3 +284,50 @@ Contracts were checked against Microsoft Learn's [GetUserSites](https://learn.mi
 and [GetRankAndTrafficStats](https://learn.microsoft.com/en-us/dotnet/api/microsoft.bing.webmaster.api.interfaces.iwebmasterapi.getrankandtrafficstats).
 Fixture tests verify these contracts and safe failures. Live Bing access has not
 been verified because no API key is configured in the development environment.
+
+## Compare saved snapshots
+
+Capture two snapshots with the same config and equal-length, nonoverlapping report
+periods, then compare them locally:
+
+```sh
+pagesight snapshot --config seo.config.json --start 2026-07-04 --end 2026-07-31 --out before.json
+pagesight snapshot --config seo.config.json --start 2026-08-01 --end 2026-08-28 --out after.json
+pagesight compare --baseline before.json --current after.json --max-rows 100
+```
+
+The shared operation is `{ operation: "compare", baseline, current, maxRows: 100 }`,
+where baseline and current are parsed snapshot evidence objects. Only the CLI reads
+file paths. HTTP accepts objects up to 32 MB per request; larger pairs can use the
+local API or CLI. MCP `observe` accepts the same object. `evidenceSchema` and
+`snapshotEvidenceSchema` are exported for callers validating stored reports.
+
+This first comparison supports GSC reports with non-time row keys and GA reports
+using snapshot dimensions: `hostName`, `sessionDefaultChannelGroup`,
+`sessionSourceMedium`, `eventName`, `landingPagePlusQueryString`, and `sessionSource`.
+Reports without dimensions are also supported. Other GA dimensions and
+`dimensionExpression` aliases require a separate comparison policy. It checks
+snapshot format version 1, unique observation names, site, property, dimensions,
+metrics, filters, aggregation, report periods and GA timezone/currency/metric types.
+GSC data must be finalized. Time dimensions, Bing's provider-defined windows, HTML,
+sitemap and provider metadata observations are explicitly unsupported for comparison.
+Recapture snapshots created before versioned, named observations were introduced.
+
+Each observation is `compared`, `limited`, `incompatible`, `unavailable`, or
+`unsupported`. The outer evidence reports whether the comparison operation ran;
+inspect the response status-count summary and per-observation statuses before using deltas. Partial pagination,
+sampling, thresholding and high-cardinality aggregation remain visible limitations.
+Missing trailing GSC date rows and recently collected GA data also mark comparisons
+as limited; observed dates cannot prove complete coverage.
+Only keys observed in both periods get numeric deltas. Keys seen in one period stay
+unknown in the other, and their bounded lists include full counts. No row sums or
+site-wide extrapolations are generated. Each row retains the original numeric values,
+including GA strings; invalid or unsafe numbers get a null delta. Percent change is
+null when the baseline is zero. CTR and position remain in their provider units.
+
+`maxRows` defaults to 100 and is capped at 1,000 per observation/list; omitted counts
+are explicit. The comparison includes `canonicalSha256` hashes of validated source objects, with
+object keys sorted lexically and array order retained. These identify comparison
+inputs, not raw file bytes; whitespace changes in saved JSON do not change them. Keep source snapshots for their full requests,
+responses and metadata. Changes are descriptive and do not establish that an SEO
+edit caused traffic changes; Pagesight does not apply SEO edits automatically.

@@ -30,6 +30,8 @@ src/
     schema.ts           # Shared request and site-context validation
     evidence.ts         # Raw observations, failures and provenance
     reports.ts          # Bounded GA/GSC pagination
+    compare.ts          # Validated descriptive snapshot comparisons
+    imported.ts         # Stored evidence and snapshot validation
     snapshot.ts         # Independent observations and aggregation
     web.ts              # Bounded deployed HTML and sitemap inventory
     dates.ts            # Pacific reporting-window defaults
