@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { isAllowed, parseRobotsTxt } from "../src/lib/robots.js";
 
-// --- parseRobotsTxt ---
-
 describe("parseRobotsTxt", () => {
   test("parses basic allow/disallow rules", () => {
     const r = parseRobotsTxt("User-agent: *\nDisallow: /private\nAllow: /public");
@@ -97,8 +95,6 @@ describe("parseRobotsTxt", () => {
     expect(r.groups[0].rules).toEqual([{ type: "disallow", path: "" }]);
   });
 });
-
-// --- isAllowed ---
 
 describe("isAllowed", () => {
   test("specific user-agent match takes precedence over wildcard", () => {

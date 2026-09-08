@@ -237,7 +237,7 @@ function formatPagespeed(url: string, result: PsiResult): string {
   }
   lines.push("");
 
-  // Core Web Vitals from audits
+  // Lab performance metrics
   const cwvIds = [
     "first-contentful-paint",
     "largest-contentful-paint",
@@ -254,7 +254,7 @@ function formatPagespeed(url: string, result: PsiResult): string {
     }
   }
   if (cwvLines.length > 0) {
-    lines.push("--- Core Web Vitals (Lab) ---", "", ...cwvLines, "");
+    lines.push("--- Lab Performance Metrics ---", "", ...cwvLines, "");
   }
 
   // CrUX field data
@@ -341,7 +341,7 @@ function formatBatchCompare(results: Array<{ url: string; result: PsiResult }>, 
   }
   lines.push("");
 
-  // CWV comparison
+  // Lab performance comparison
   const cwvIds = [
     "first-contentful-paint",
     "largest-contentful-paint",
@@ -358,7 +358,7 @@ function formatBatchCompare(results: Array<{ url: string; result: PsiResult }>, 
     cwvLines.push(`${auditA.title}: ${auditA.displayValue} → ${auditB.displayValue}`);
   }
   if (cwvLines.length > 0) {
-    lines.push("--- Core Web Vitals (Lab) ---", "", ...cwvLines, "");
+    lines.push("--- Lab Performance Metrics ---", "", ...cwvLines, "");
   }
 
   // Opportunities unique to each / shared

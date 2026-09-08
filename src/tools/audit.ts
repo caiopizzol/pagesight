@@ -66,7 +66,7 @@ async function checkMeta(url: string): Promise<MetaCheckResult> {
     };
   }
 
-  // Exhausted redirects
+  // The hop limit or a redirect without Location prevented a page response.
   return {
     title: null,
     description: null,
@@ -186,7 +186,7 @@ export function addSitemapFindings(sitemaps: GscSitemap[], findings: Finding[]) 
   if (sitemaps.length === 0) {
     findings.push({ severity: "MEDIUM", message: "No sitemaps submitted to GSC", source: "sitemaps" });
   }
-  // AIDEV-NOTE: contents[].indexed is deprecated; sitemap submission is not indexing evidence.
+  // contents[].indexed is deprecated; sitemap submission is not indexing evidence.
   // https://developers.google.com/webmaster-tools/v1/sitemaps
   for (const sitemap of sitemaps) {
     if (Number(sitemap.errors) > 0) {
@@ -226,7 +226,6 @@ function formatAudit(url: string, findings: Finding[], errors: string[]): string
     lines.push("");
   }
 
-  // Sort: HIGH first, then MEDIUM, then LOW
   const order: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
   findings.sort((a, b) => order[a.severity] - order[b.severity]);
 
@@ -259,7 +258,6 @@ export function registerAuditTool(server: McpServer): void {
       const errors: string[] = [];
       const origin = new URL(url).origin;
 
-      // Run independent checks in parallel
       const [metaResult, pagespeedResult, robotsResult, sitemapResult, inspectResult] = await Promise.allSettled([
         checkMeta(url),
         runPagespeed(url, {

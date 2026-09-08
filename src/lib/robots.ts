@@ -1,5 +1,5 @@
 /**
- * robots.txt parser per RFC 9309
+ * robots.txt parser based on RFC 9309
  * https://www.rfc-editor.org/rfc/rfc9309
  *
  * AI crawler registry sourced from:
@@ -152,17 +152,24 @@ export function parseRobotsTxt(raw: string): RobotsTxt {
   return { groups, sitemaps, raw, errors };
 }
 
-// --- Matching (per RFC 9309) ---
+// --- Matching ---
+
+// RFC 9309 §2.2.2: decode only unreserved ASCII; preserve reserved escapes on both sides.
+function normalizePath(path: string): string {
+  return path.replace(/%[0-9a-f]{2}|\P{ASCII}/giu, (part) => {
+    if (part.startsWith("%")) {
+      const decoded = String.fromCharCode(Number.parseInt(part.slice(1), 16));
+      return /^[a-z0-9._~-]$/i.test(decoded) ? decoded : part.toUpperCase();
+    }
+    return encodeURIComponent(part.toWellFormed());
+  });
+}
 
 function pathMatches(pattern: string, path: string): boolean {
   if (!pattern) return false;
 
-  // RFC 9309 §2.2.2: decode percent-encoded characters for comparison
-  try {
-    path = decodeURIComponent(path);
-  } catch {
-    // malformed encoding, use as-is
-  }
+  path = normalizePath(path);
+  pattern = normalizePath(pattern);
 
   let regex = "^";
   for (let i = 0; i < pattern.length; i++) {
@@ -231,7 +238,7 @@ export function isAllowed(
 
   for (const rule of matchedRules) {
     if (pathMatches(rule.path, path)) {
-      const ruleLength = rule.path.length;
+      const ruleLength = normalizePath(rule.path).length;
       if (ruleLength > bestLength || (ruleLength === bestLength && rule.type === "allow")) {
         bestRule = rule;
         bestLength = ruleLength;
@@ -278,14 +285,15 @@ export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: Robot
     redirect: "follow",
   });
 
-  // RFC 9309: 4xx (except 429) = no restrictions (allow all)
-  // 5xx and 429 = assume complete disallow
+  // RFC 9309 §§2.3.1.3–4 distinguish unavailable (4xx) from unreachable (5xx).
+  // Pagesight treats 429 conservatively; Google also excludes it from the allow-on-4xx rule.
+  // https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt#handling-http-status-codes
   if (res.status >= 500 || res.status === 429) {
     const disallowAll: RobotsTxt = {
       groups: [{ userAgents: ["*"], rules: [{ type: "disallow", path: "/" }] }],
       sitemaps: [],
       raw: "",
-      errors: [`Server returned ${res.status} — treating as full disallow per RFC 9309`],
+      errors: [`Server returned ${res.status} — treating as full disallow`],
     };
     return { robotsTxt: disallowAll, statusCode: res.status };
   }

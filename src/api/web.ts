@@ -1,26 +1,5 @@
-import { RequestError } from "../lib/http.js";
+import { readBounded, RequestError } from "../lib/http.js";
 import { parseInventorySitemap } from "./sitemap.js";
-
-async function readBounded(response: Response, maxBytes: number): Promise<string> {
-  if (Number(response.headers.get("content-length")) > maxBytes)
-    throw new RequestError("Response exceeds byte limit", null, "size_limit");
-  const reader = response.body?.getReader();
-  if (!reader) return "";
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > maxBytes) throw new RequestError("Response exceeds byte limit", null, "size_limit");
-      chunks.push(value);
-    }
-  } finally {
-    await reader.cancel();
-  }
-  return Buffer.concat(chunks).toString("utf8");
-}
 
 async function fetchText(url: string, maxBytes: number, origin?: string) {
   const redirects: Array<{ url: string; status: number; location: string }> = [];
