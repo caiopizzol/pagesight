@@ -1,4 +1,5 @@
 import { readBounded, RequestError } from "../lib/http.js";
+import { imageEvidence } from "./images.js";
 import { parseInventorySitemap } from "./sitemap.js";
 
 async function fetchText(url: string, maxBytes: number, origin?: string) {
@@ -81,6 +82,8 @@ export async function observePage(url: string) {
     xRobotsTag: response.headers.get("x-robots-tag"),
     title: title.trim() || null,
     description: metadata.description,
+    descriptionLength: metadata.description === null ? null : Array.from(metadata.description).length,
+    imageEvidence: await imageEvidence(body),
     canonical: metadata.canonical,
     robots,
     sha256: Bun.CryptoHasher.hash("sha256", body, "hex"),

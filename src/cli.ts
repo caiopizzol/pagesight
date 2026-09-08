@@ -13,6 +13,11 @@ pagesight gsc sites
 pagesight gsc sitemaps --site sc-domain:example.com
 pagesight gsc inspect --site sc-domain:example.com --url https://example.com/
 pagesight gsc report --site sc-domain:example.com --request report.json [--max-pages 4]
+pagesight bing crawl-stats --site https://example.com/
+pagesight bing crawl-issues --site https://example.com/
+pagesight bing url-info --site https://example.com/ --url https://example.com/page
+pagesight bing link-counts --site https://example.com/ [--max-pages 4]
+pagesight bing url-links --site https://example.com/ --url https://example.com/page [--max-pages 4]
 pagesight bing sites
 pagesight bing queries --site https://example.com/
 pagesight bing pages --site https://example.com/
@@ -27,6 +32,7 @@ pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
 pagesight compare --baseline before.json --current after.json [--max-rows 100]
+pagesight evidence import --request findings.json
 pagesight api --request operation.json
 pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
@@ -80,12 +86,20 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (positionals.length > (["gsc", "ga", "bing", "speed"].includes(family) ? 2 : 1))
+    if (positionals.length > (["gsc", "ga", "bing", "speed", "evidence"].includes(family) ? 2 : 1))
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "bing", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
+    const operation = ["gsc", "ga", "bing", "speed", "evidence"].includes(family)
+      ? `${family}.${action ?? ""}`
+      : family;
     const flags: Record<string, string[]> = {
+      "evidence.import": ["request"],
       discover: ["url", "providers"],
       compare: ["baseline", "current", "max-rows"],
+      "bing.crawl-stats": ["site"],
+      "bing.crawl-issues": ["site"],
+      "bing.url-info": ["site", "url"],
+      "bing.link-counts": ["site", "max-pages"],
+      "bing.url-links": ["site", "url", "max-pages"],
       "bing.sites": [],
       "bing.queries": ["site"],
       "bing.pages": ["site"],
@@ -122,6 +136,8 @@ export async function runCli(args: string[]): Promise<number> {
     }
     let input: unknown;
     if (operation === "api") input = await jsonFile(values.request, "request");
+    else if (operation === "evidence.import")
+      input = { operation, document: await jsonFile(values.request, "request") };
     else if (operation === "compare")
       input = {
         operation,

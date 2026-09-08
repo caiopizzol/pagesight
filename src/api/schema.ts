@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { uiFindingsSchema } from "./ui-findings.js";
 import { snapshotEvidenceSchema } from "./imported.js";
 import { dateSchema, pacificDate } from "./dates.js";
 
@@ -113,6 +114,7 @@ export const configSchema = z
   );
 export type SiteConfig = z.infer<typeof configSchema>;
 const operationVariants = z.discriminatedUnion("operation", [
+  z.object({ operation: z.literal("evidence.import"), document: uiFindingsSchema }).strict(),
   z
     .object({
       operation: z.literal("compare"),
@@ -132,6 +134,11 @@ const operationVariants = z.discriminatedUnion("operation", [
         .default(["gsc", "ga"]),
     })
     .strict(),
+  z.object({ operation: z.literal("bing.crawl-stats"), site: httpUrl }).strict(),
+  z.object({ operation: z.literal("bing.crawl-issues"), site: httpUrl }).strict(),
+  z.object({ operation: z.literal("bing.url-info"), site: httpUrl, url: httpUrl }).strict(),
+  z.object({ operation: z.literal("bing.link-counts"), site: httpUrl, maxPages: maxPagesSchema }).strict(),
+  z.object({ operation: z.literal("bing.url-links"), site: httpUrl, url: httpUrl, maxPages: maxPagesSchema }).strict(),
   z.object({ operation: z.literal("bing.sites") }).strict(),
   z.object({ operation: z.literal("bing.queries"), site: httpUrl }).strict(),
   z.object({ operation: z.literal("bing.pages"), site: httpUrl }).strict(),
