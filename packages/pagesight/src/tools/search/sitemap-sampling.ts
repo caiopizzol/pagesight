@@ -1,5 +1,3 @@
-import { inspectUrl } from "../providers/gsc.js";
-
 export interface SitemapParseResult {
   urls: string[];
   isSitemapIndex: boolean;
@@ -69,46 +67,4 @@ export function sampleUrls(urls: string[], count: number, strategy: string): str
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled.slice(0, count);
-}
-
-export interface InspectionSummary {
-  url: string;
-  verdict: string;
-  coverageState: string;
-  pageFetchState: string;
-  robotsTxtState: string;
-  indexingState: string;
-  lastCrawlTime: string | null;
-  googleCanonical: string | null;
-  error: string | null;
-}
-
-export async function inspectSingle(url: string, siteUrl: string): Promise<InspectionSummary> {
-  try {
-    const r = await inspectUrl(url, siteUrl);
-    const idx = r.indexStatusResult;
-    return {
-      url,
-      verdict: idx.verdict,
-      coverageState: idx.coverageState,
-      pageFetchState: idx.pageFetchState,
-      robotsTxtState: idx.robotsTxtState,
-      indexingState: idx.indexingState,
-      lastCrawlTime: idx.lastCrawlTime ?? null,
-      googleCanonical: idx.googleCanonical ?? null,
-      error: null,
-    };
-  } catch (err) {
-    return {
-      url,
-      verdict: "ERROR",
-      coverageState: "ERROR",
-      pageFetchState: "ERROR",
-      robotsTxtState: "ERROR",
-      indexingState: "ERROR",
-      lastCrawlTime: null,
-      googleCanonical: null,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
 }

@@ -3,7 +3,7 @@ import { registerAiTool } from "./tools/ai.js";
 import { registerAuditTool } from "./tools/audit.js";
 import { registerObserveTool } from "./tools/observe.js";
 import { registerPageTool } from "./tools/page/tool.js";
-import { registerSearchTool } from "./tools/search.js";
+import { registerSearchTool } from "./tools/search/tool.js";
 import { registerSetupTool } from "./tools/setup.js";
 import { registerSpeedTool } from "./tools/speed/tool.js";
 

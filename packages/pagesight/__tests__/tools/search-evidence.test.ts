@@ -4,7 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { clearTokenCache } from "../../src/providers/gsc-auth.js";
 import { addSitemapFindings, registerAuditTool } from "../../src/tools/audit.js";
-import { formatComparison } from "../../src/tools/search.js";
+import { formatComparison } from "../../src/tools/search/analytics.js";
 
 test("deprecated indexed zero does not create a false indexing alarm", () => {
   const findings: Parameters<typeof addSitemapFindings>[1] = [];
