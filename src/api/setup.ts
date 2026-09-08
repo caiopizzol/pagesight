@@ -9,7 +9,7 @@ export async function discover(url: string, providers: Array<"gsc" | "ga">, run:
   const result = aggregate("discover", url, { url, providers: selected }, observations);
   const gsc = observations.find((o) => o.provider === "gsc");
   const ga = observations.find((o) => o.provider === "ga");
-  const sites = gsc?.pages[0]?.response;
+  const sites = (gsc?.pages[0]?.response as { siteEntry?: unknown[] } | undefined)?.siteEntry;
   const accounts = ga?.pages[0]?.response as
     | { accountSummaries?: Array<{ propertySummaries?: unknown[] }> }
     | undefined;

@@ -349,3 +349,11 @@ test("HTTP calls the same API and rejects requests without the local API token",
   expect(result.provider).toBe("web");
   expect(result.pages[0].response.title).toBe("Example");
 });
+
+test("discovery extracts GSC candidates from the raw provider envelope", async () => {
+  const sites = [{ siteUrl: "sc-domain:example.com", permissionLevel: "siteOwner" }];
+  const result = await discover("https://example.com/", ["gsc"], () =>
+    capture("gsc", "sites", "accessible-properties", {}, async () => ({ siteEntry: sites, extra: true })),
+  );
+  expect(result.pages[0].response).toMatchObject({ candidates: { gsc: sites } });
+});
