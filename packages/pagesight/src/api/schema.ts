@@ -155,6 +155,20 @@ const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx
 const operationVariants = z.discriminatedUnion("operation", [
   z
     .object({
+      operation: z.literal("cloudflare.audit"),
+      zone: z.string().regex(/^[a-f0-9]{32}$/),
+      hostname: z
+        .string()
+        .min(1)
+        .max(253)
+        .regex(/^[a-zA-Z0-9.-]+$/),
+      startTime: z.string().datetime(),
+      endTime: z.string().datetime(),
+      limit: z.number().int().min(1).max(100).default(50),
+    })
+    .strict(),
+  z
+    .object({
       operation: z.literal("change.evaluate"),
       record: changeRecordSchema,
       baseline: assessedSnapshotSchema,
@@ -294,10 +308,19 @@ const operationVariants = z.discriminatedUnion("operation", [
     })
     .strict(),
 ]);
-export const operationSchema = operationVariants.refine(
-  (op) =>
-    (op.operation !== "snapshot" && op.operation !== "investigate") ||
-    (op.startDate <= op.endDate && op.endDate <= pacificDate()),
-  "Invalid or future reporting interval",
-);
+export const operationSchema = operationVariants
+  .refine(
+    (op) =>
+      op.operation !== "cloudflare.audit" ||
+      (Date.parse(op.startTime) < Date.parse(op.endTime) &&
+        Date.parse(op.endTime) - Date.parse(op.startTime) <= 86400000 &&
+        Date.parse(op.endTime) <= Date.now()),
+    "Cloudflare requires a past UTC interval of at most 24 hours",
+  )
+  .refine(
+    (op) =>
+      (op.operation !== "snapshot" && op.operation !== "investigate") ||
+      (op.startDate <= op.endDate && op.endDate <= pacificDate()),
+    "Invalid or future reporting interval",
+  );
 export type Operation = z.input<typeof operationSchema>;

@@ -1,3 +1,5 @@
+import { cloudflareAudit } from "./cloudflare.js";
+
 import { evaluateChange } from "./evaluate-change.js";
 import { crawl } from "./crawl.js";
 import { technicalChanges } from "./technical-changes.js";
@@ -52,6 +54,9 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
+    case "cloudflare.audit":
+      return cloudflareAudit(op);
+
     case "change.evaluate":
       return evaluateChange(op.record, op.baseline, op.current, op.maxRows);
     case "crawl":
