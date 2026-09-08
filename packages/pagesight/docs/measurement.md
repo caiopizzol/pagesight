@@ -146,3 +146,33 @@ facts or turn an unverified assertion into a provider result.
 References: [Realtime REST API](https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runRealtimeReport),
 [Realtime dimensions and metrics](https://developers.google.com/analytics/devguides/reporting/data/v1/realtime-api-schema),
 [GA data freshness](https://support.google.com/analytics/answer/11198161).
+
+## Connect organic landings to observed actions
+
+Snapshots now include `ga.report.landingPagePlusQueryString+sessionSource+eventName.organic`:
+raw landing path/query string, session source and event name with `eventCount`,
+filtered to the configured production hostname and `Organic Search` sessions.
+It uses the same date window and bounded pagination as other snapshot reports.
+`assess --format text` exposes the rows and scope; `compare` compares common rows
+in compatible saved snapshots. Older snapshots lack this report: assessment marks
+it unavailable and comparison retains absence as unknown, never zero.
+
+An agent can inspect a meaningful event such as `price_detail_view` alongside
+`ga.report.landingPagePlusQueryString+sessionSource.organic`, which retains landing
+traffic. The event table associates occurrences with the session's first pageview,
+not necessarily the page where the event happened. Repeat occurrences are possible;
+these counts are not unique sessions, a funnel, or a conversion rate. An event
+name does not establish its business meaning. Keep instrumentation/deployment dates
+in the investigation record before interpreting before/after changes.
+
+Use raw GA landing paths as evidence. Query strings, `(not set)` and `(other)` remain
+visible. Do not automatically join them to Search Console's canonical page URLs,
+reconcile GSC clicks with GA sessions, or infer SEO causality. High-cardinality
+landing/event combinations may be partial, sampled, thresholded or aggregated;
+check pagination and metadata. Default assessment row caps may hide the event of
+interest: increase `--max-rows`, inspect the saved report, or use `ga report` with
+an explicit event filter. Empty or missing event rows, especially shortly after
+instrumentation, do not prove zero activity or broken collection.
+
+Source: [Google's Data API schema](https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema)
+defines landing page as the first pageview in a session and event count as occurrences.

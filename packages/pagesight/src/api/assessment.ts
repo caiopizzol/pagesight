@@ -184,6 +184,14 @@ export async function assessSnapshot(snapshot: ImportedSnapshot, maxRows: number
           complete,
           limitations,
         });
+        if (name === "ga.report.landingPagePlusQueryString+sessionSource+eventName.organic")
+          add(
+            "organic-landing-events",
+            "info",
+            "These event occurrences are associated with organic sessions' landing pages, not necessarily the pages where the events occurred. Counts are not unique sessions, conversion rates or validated outcomes.",
+            [name, "ga.report.landingPagePlusQueryString+sessionSource.organic"],
+            "Inspect relevant event names alongside landing-page traffic. Preserve raw query strings and provider coverage; verify event meaning and instrumentation changes before prioritizing SEO work.",
+          );
         if (normalized.dimensions[0] === "hostName") {
           const other = allRows.filter(
             (row) =>
