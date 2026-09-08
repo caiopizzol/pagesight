@@ -113,3 +113,9 @@ retained rows while reporting a comparison. Both now return incompatible with
 focused regressions. All 91 Bun tests, TypeScript 7 and Vite+ pass (four unchanged
 legacy warnings). CI passed on the assigned remote head; Cubic review was queued.
 These owner fixes still require publication and review at their new head.
+
+Final local integration rebased comparison and both import guards onto the Bing
+layer `7d9a26a` above current main `f9398ea`, without conflicts. PRODUCT.md now maps
+implemented comparison behavior and limits. All 91 Bun tests, TypeScript 7 and
+Vite+ pass after rebase (four unchanged legacy warnings). The new stacked heads
+still require guarded publication and review.
