@@ -1,8 +1,0 @@
-pre-commit:
-  parallel: true
-  jobs:
-    - name: biome
-      glob: "*.{ts,tsx}"
-      run: bunx biome check --write {staged_files} && git add {staged_files}
-    - name: typecheck
-      run: bunx tsc --noEmit

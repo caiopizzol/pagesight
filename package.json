@@ -3,16 +3,26 @@
   "version": "0.17.0",
   "description": "See your site the way search engines and AI see it.",
   "keywords": [
-    "seo",
+    "ai-crawlers",
+    "core-web-vitals",
     "geo",
     "google-search-console",
+    "mcp",
     "pagespeed-insights",
-    "core-web-vitals",
-    "web-performance",
     "robots-txt",
-    "ai-crawlers",
-    "mcp"
+    "seo",
+    "web-performance"
   ],
+  "homepage": "https://github.com/caiopizzol/pagesight",
+  "license": "MIT",
+  "author": "Caio Pizzol",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caiopizzol/pagesight.git"
+  },
+  "bin": {
+    "pagesight": "src/index.ts"
+  },
   "files": [
     "src",
     "README.md",
@@ -20,35 +30,31 @@
   ],
   "type": "module",
   "main": "src/index.ts",
-  "bin": {
-    "pagesight": "src/index.ts"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/caiopizzol/pagesight.git"
-  },
-  "homepage": "https://github.com/caiopizzol/pagesight",
-  "author": "Caio Pizzol",
   "scripts": {
     "start": "bun run src/index.ts",
     "test": "bun test",
-    "lint": "biome check src/",
-    "format": "biome format --write src/"
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "check": "vp check",
+    "prepare": "bun -e \"if (await Bun.file('node_modules/vite-plus/bin/vp').exists()) process.exit(Bun.spawnSync(['node', 'node_modules/vite-plus/bin/vp', 'config', '--no-agent'], { stdout: 'inherit', stderr: 'inherit' }).exitCode)\""
   },
-  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "zod": "^3.24.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.10",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^12.0.6",
     "@semantic-release/npm": "^13.1.5",
     "@types/bun": "^1.3.11",
-    "lefthook": "^2.1.4",
     "semantic-release": "^25.0.3",
-    "semantic-release-ai-notes": "^0.2.3"
-  }
+    "semantic-release-ai-notes": "^0.2.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
+    "vite-plus": "0.3.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0"
+  },
+  "packageManager": "bun@1.3.12"
 }

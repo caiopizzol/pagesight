@@ -2,3 +2,4 @@
 .mcp.json
 node_modules/
 research/
+.vite-hooks/_/

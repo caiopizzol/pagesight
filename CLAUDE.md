@@ -7,8 +7,8 @@ MCP server for SEO, GEO, and web performance analysis. npm package: `pagesight`.
 - **Runtime**: Bun (not Node.js)
 - **Language**: TypeScript
 - **MCP SDK**: `@modelcontextprotocol/sdk`
-- **Linter**: Biome
-- **Git hooks**: Lefthook (pre-commit: biome + tsc)
+- **Development tools**: Vite+ (Oxfmt, Oxlint, type checks)
+- **Git hooks**: Vite+ (pre-commit: staged checks + full type check)
 
 ## Architecture
 
@@ -35,17 +35,18 @@ src/
 
 ## APIs Used
 
-| API | Auth | Env Var |
-|-----|------|---------|
+| API                   | Auth                        | Env Var                                                   |
+| --------------------- | --------------------------- | --------------------------------------------------------- |
 | Google Search Console | OAuth 2.0 / Service Account | `GSC_CLIENT_ID`, `GSC_CLIENT_SECRET`, `GSC_REFRESH_TOKEN` |
-| PageSpeed Insights v5 | API key (optional) | `GOOGLE_API_KEY` |
-| Chrome UX Report | API key (required) | `GOOGLE_API_KEY` |
+| PageSpeed Insights v5 | API key (optional)          | `GOOGLE_API_KEY`                                          |
+| Chrome UX Report      | API key (required)          | `GOOGLE_API_KEY`                                          |
 
 ## Commands
 
 - `bun run src/index.ts` — start MCP server
-- `bun run lint` — biome check
-- `bun run format` — biome format
+- `bun run check` — Vite+ format, lint, and type checks
+- `bun run lint` — Vite+ lint
+- `bun run format` — Vite+ format
 - `bun test` — run tests
 
 ## Conventions

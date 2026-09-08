@@ -7,5 +7,5 @@
     "skipLibCheck": true,
     "types": ["bun-types"]
   },
-  "include": ["src"]
+  "include": ["src", "__tests__", "vite.config.ts"]
 }
