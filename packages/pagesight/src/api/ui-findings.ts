@@ -12,7 +12,7 @@ const url = z
 const timestamp = z.string().datetime({ offset: true });
 export const uiFindingsSchema = z
   .object({
-    provider: z.enum(["bing", "gsc", "other"]),
+    provider: z.enum(["bing", "gsc", "ga", "other"]),
     site: url,
     source: z
       .object({

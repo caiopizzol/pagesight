@@ -63,6 +63,43 @@ export const gaRequestSchema = z
   .strict();
 export type GaRequest = z.infer<typeof gaRequestSchema>;
 
+export const gaRealtimeRequestSchema = z
+  .object({
+    dimensions: z
+      .array(z.object({ name: z.string().min(1) }).strict())
+      .max(9)
+      .default([]),
+    metrics: z
+      .array(z.object({ name: z.string().min(1) }).strict())
+      .min(1)
+      .max(10),
+    dimensionFilter: z.record(z.unknown()).optional(),
+    metricFilter: z.record(z.unknown()).optional(),
+    orderBys: z.array(z.record(z.unknown())).optional(),
+    limit: z.coerce.number().int().min(1).max(250000).default(10000),
+    returnPropertyQuota: z.boolean().default(true),
+    minuteRanges: z
+      .array(
+        z
+          .object({
+            name: z
+              .string()
+              .min(1)
+              .refine((n) => !n.startsWith("date_range_") && !n.startsWith("RESERVED_"))
+              .optional(),
+            startMinutesAgo: z.number().int().min(0).max(59).default(29),
+            endMinutesAgo: z.number().int().min(0).max(59).default(0),
+          })
+          .strict()
+          .refine((r) => r.startMinutesAgo >= r.endMinutesAgo, "Start must be at least as many minutes ago as end"),
+      )
+      .min(1)
+      .max(2)
+      .default([{ startMinutesAgo: 29, endMinutesAgo: 0 }]),
+  })
+  .strict();
+export type GaRealtimeRequest = z.infer<typeof gaRealtimeRequestSchema>;
+
 const httpUrl = z
   .string()
   .url()
@@ -114,6 +151,13 @@ export const configSchema = z
   );
 export type SiteConfig = z.infer<typeof configSchema>;
 const operationVariants = z.discriminatedUnion("operation", [
+  z
+    .object({
+      operation: z.literal("assess"),
+      snapshot: snapshotEvidenceSchema,
+      maxRows: z.number().int().min(1).max(100).default(10),
+    })
+    .strict(),
   z.object({ operation: z.literal("evidence.import"), document: uiFindingsSchema }).strict(),
   z
     .object({
@@ -154,6 +198,7 @@ const operationVariants = z.discriminatedUnion("operation", [
       maxPages: maxPagesSchema,
     })
     .strict(),
+  z.object({ operation: z.literal("ga.realtime"), property: z.string(), request: gaRealtimeRequestSchema }).strict(),
   z.object({ operation: z.literal("ga.accounts") }).strict(),
   z.object({ operation: z.literal("ga.property"), property: z.string() }).strict(),
   z.object({ operation: z.literal("ga.key-events"), property: z.string() }).strict(),

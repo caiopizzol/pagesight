@@ -37,11 +37,13 @@ results include a concise per-observation `summary` alongside full observations.
 | `gsc.report`                                 | `site`, `request`; optional `maxPages`                   |
 | `ga.accounts`                                | None                                                     |
 | `ga.property`, `ga.key-events`               | `property`                                               |
+| `ga.realtime`                                | `property`, `request`; moving window, no offset          |
 | `ga.report`                                  | `property`, `request`; optional `maxPages`               |
 | `page`                                       | `url`                                                    |
 | `speed.psi`                                  | `url`; optional `strategy` (`mobile` or `desktop`)       |
 | `speed.crux`, `speed.history`                | `url`; optional `origin: true`, `formFactor`             |
 | `doctor`                                     | `config`                                                 |
+| `assess`                                     | `snapshot`; optional `maxRows` (default 10, max 100)     |
 | `snapshot`                                   | `config`, `startDate`, `endDate`; optional `maxPages`    |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
@@ -49,6 +51,9 @@ results include a concise per-observation `summary` alongside full observations.
 redirects, canonical, robots directives, JSON-LD and a content hash. It does not
 execute browser JavaScript. The original MCP page tool retains its additional
 link, social-meta and contrast checks.
+
+See [measurement and verification](measurement.md) for saved-snapshot assessments,
+Realtime requests, freshness limits and repeatable browser checks.
 
 ## CLI
 

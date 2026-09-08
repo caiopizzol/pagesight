@@ -26,3 +26,6 @@ raw observations, failures, and limits; missing data is not zero.
 - [Bing diagnostics, HTML images, and UI findings](docs/diagnostics.md)
 
 MIT — see [LICENSE](LICENSE).
+
+[Assess measurement quality and verify analytics](docs/measurement.md) with saved
+snapshot summaries, GA Realtime and a repeatable browser-check workflow.
