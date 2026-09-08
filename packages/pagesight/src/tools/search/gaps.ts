@@ -2,7 +2,7 @@ import { querySearchAnalytics, type SearchAnalyticsFilter } from "../../provider
 import { pacificDaysAgo } from "../../shared/dates.js";
 import { type SearchOptions } from "./schema.js";
 import { textResult } from "./result.js";
-export function extractPageText(html: string): string {
+function extractPageText(html: string): string {
   // Extract text from HTML; this does not check rendered visibility.
   let text = html;
   text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ");
@@ -21,7 +21,7 @@ export function extractPageText(html: string): string {
   return text;
 }
 
-export function formatGapAnalysis(
+function formatGapAnalysis(
   pageUrl: string,
   siteUrl: string,
   queries: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>,
@@ -87,8 +87,6 @@ export function formatGapAnalysis(
 
   return lines.join("\n");
 }
-
-// ── Tool registration ──
 
 export async function runGaps(options: SearchOptions) {
   const { site_url, url, start_date, end_date, row_limit } = options;

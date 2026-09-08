@@ -1,3 +1,4 @@
+import { formatJsonLd } from "../../src/tools/page/structured-data.js";
 import { callTool } from "../support/mcp.js";
 import { expect, test } from "bun:test";
 import { registerPageTool } from "../../src/tools/page/tool.js";
@@ -109,6 +110,35 @@ test("page reports broken internal links in single and batch modes", async () =>
     });
     expect(batch).toContain("Batch Page Analysis (2 URLs)");
     expect(batch).toContain("1 broken");
+  } finally {
+    await fixture.stop(true);
+  }
+});
+
+test("JSON-LD type display preserves malformed values instead of object coercion", () => {
+  expect(formatJsonLd({ "@type": ["Article", "Thing"] })).toEqual(["@type: Article, Thing"]);
+  expect(formatJsonLd({ "@type": { unexpected: true } })).toEqual(['@type: {"unexpected":true}']);
+});
+
+test("batch JSON-LD labels preserve malformed objects and valid array formatting", async () => {
+  const fixture = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch(request) {
+      const value = new URL(request.url).pathname === "/object" ? { unexpected: true } : ["Article", "Thing"];
+      return new Response(
+        `<title>Fixture</title><script type="application/ld+json">${JSON.stringify({ "@type": value })}</script>`,
+      );
+    },
+  });
+  try {
+    const output = await callTool(registerPageTool, "page", {
+      urls: [new URL("/object", fixture.url).href, new URL("/array", fixture.url).href],
+      check_links: false,
+    });
+    expect(output).toContain("unexpected");
+    expect(output).not.toContain("[object Object]");
+    expect(output).toContain("Article,Thing");
   } finally {
     await fixture.stop(true);
   }

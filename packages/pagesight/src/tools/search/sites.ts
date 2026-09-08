@@ -1,7 +1,7 @@
 import { type GscSite, type GscSitemap, getSite, getSitemap, listSitemaps, listSites } from "../../providers/gsc.js";
 import { type SearchOptions } from "./schema.js";
 import { textResult } from "./result.js";
-export function formatSites(sites: GscSite[]): string {
+function formatSites(sites: GscSite[]): string {
   if (sites.length === 0) return "No Search Console properties found.";
 
   const lines: string[] = [`=== GSC Properties (${sites.length}) ===`, ""];
@@ -11,11 +11,11 @@ export function formatSites(sites: GscSite[]): string {
   return lines.join("\n");
 }
 
-export function formatSite(site: GscSite): string {
+function formatSite(site: GscSite): string {
   return [`=== Site: ${site.siteUrl} ===`, "", `Permission: ${site.permissionLevel}`].join("\n");
 }
 
-export function formatSitemapDetail(sm: GscSitemap): string {
+function formatSitemapDetail(sm: GscSitemap): string {
   const lines: string[] = [`=== Sitemap: ${sm.path} ===`, ""];
   if (sm.type) lines.push(`Type: ${sm.type}`);
   if (sm.lastSubmitted) lines.push(`Submitted: ${sm.lastSubmitted}`);
@@ -33,7 +33,7 @@ export function formatSitemapDetail(sm: GscSitemap): string {
   return lines.join("\n");
 }
 
-export function formatSitemaps(siteUrl: string, sitemaps: GscSitemap[]): string {
+function formatSitemaps(siteUrl: string, sitemaps: GscSitemap[]): string {
   if (sitemaps.length === 0) return `No sitemaps found for ${siteUrl}.`;
 
   const lines: string[] = [`=== Sitemaps: ${siteUrl} (${sitemaps.length}) ===`, ""];
@@ -57,8 +57,6 @@ export function formatSitemaps(siteUrl: string, sitemaps: GscSitemap[]): string 
 
   return lines.join("\n").trimEnd();
 }
-
-// ── Performance formatters ──
 
 export async function runListSites() {
   const sites = await listSites();

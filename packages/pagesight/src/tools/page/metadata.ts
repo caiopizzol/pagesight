@@ -1,11 +1,11 @@
 import { formatJsonLd } from "./structured-data.js";
-export interface MetaTag {
+interface MetaTag {
   name?: string;
   property?: string;
   content: string;
 }
 
-export interface ParsedHead {
+interface ParsedHead {
   title: string | null;
   charset: string | null;
   canonical: string | null;
@@ -93,7 +93,7 @@ export function getMeta(meta: MetaTag[], key: string): string | null {
   return tag?.content ?? null;
 }
 
-export function getAllMeta(meta: MetaTag[], prefix: string): Array<{ key: string; value: string }> {
+function getAllMeta(meta: MetaTag[], prefix: string): Array<{ key: string; value: string }> {
   const results: Array<{ key: string; value: string }> = [];
   for (const tag of meta) {
     const key = tag.property ?? tag.name ?? "";
@@ -223,5 +223,3 @@ export function formatMetatags(url: string, parsed: ParsedHead): string {
 
   return lines.join("\n");
 }
-
-// --- Links helpers ---

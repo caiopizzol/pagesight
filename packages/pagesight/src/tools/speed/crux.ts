@@ -1,5 +1,5 @@
 import { type CruxHistoryResponse, type CruxResponse } from "../../providers/crux.js";
-export const METRIC_LABELS: Record<string, string> = {
+const METRIC_LABELS: Record<string, string> = {
   cumulative_layout_shift: "CLS",
   first_contentful_paint: "FCP",
   interaction_to_next_paint: "INP",
@@ -15,7 +15,7 @@ export const METRIC_LABELS: Record<string, string> = {
   largest_contentful_paint_resource_type: "LCP Resource Type",
 };
 
-export function formatDate(d: { year: number; month: number; day: number }): string {
+function formatDate(d: { year: number; month: number; day: number }): string {
   return `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
 }
 
@@ -174,5 +174,3 @@ export function formatCruxHistory(target: string, result: CruxHistoryResponse): 
 
   return lines.join("\n");
 }
-
-// --- Unified speed tool ---

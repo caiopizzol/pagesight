@@ -2,7 +2,7 @@ import { type PsiAudit, type PsiAuditDetailItem, type PsiResult } from "../../pr
 export const QUOTA_NOTE =
   "\n\nNote: No GOOGLE_API_KEY configured — using shared quota (400 req/day). Set your own key to avoid rate limits.";
 
-export function scoreLabel(score: number | null): string {
+function scoreLabel(score: number | null): string {
   if (score === null) return "N/A";
   const pct = Math.round(score * 100);
   if (pct >= 90) return `${pct} (good)`;
@@ -14,14 +14,14 @@ export function scorePct(score: number | null): number | null {
   return score === null ? null : Math.round(score * 100);
 }
 
-export function cwvRating(category: string): string {
+function cwvRating(category: string): string {
   if (category === "FAST") return "good";
   if (category === "AVERAGE") return "needs improvement";
   if (category === "SLOW") return "poor";
   return category;
 }
 
-export function formatLoadingExperience(label: string, exp: PsiResult["loadingExperience"]): string[] {
+function formatLoadingExperience(label: string, exp: PsiResult["loadingExperience"]): string[] {
   if (!exp?.metrics || Object.keys(exp.metrics).length === 0) return [];
 
   const lines: string[] = [`--- ${label} (CrUX Field Data) ---`, ""];
@@ -46,7 +46,7 @@ export function formatLoadingExperience(label: string, exp: PsiResult["loadingEx
   return lines;
 }
 
-export function formatOpportunities(audits: Record<string, PsiAudit>): string[] {
+function formatOpportunities(audits: Record<string, PsiAudit>): string[] {
   const opportunities: PsiAudit[] = [];
 
   for (const audit of Object.values(audits)) {
@@ -88,7 +88,7 @@ export function formatOpportunities(audits: Record<string, PsiAudit>): string[] 
   return lines;
 }
 
-export function formatDiagnostics(audits: Record<string, PsiAudit>): string[] {
+function formatDiagnostics(audits: Record<string, PsiAudit>): string[] {
   const failing: PsiAudit[] = [];
 
   for (const audit of Object.values(audits)) {
@@ -128,7 +128,7 @@ export function formatDiagnostics(audits: Record<string, PsiAudit>): string[] {
   return lines;
 }
 
-export function formatDetailItem(item: PsiAuditDetailItem): string[] {
+function formatDetailItem(item: PsiAuditDetailItem): string[] {
   const lines: string[] = [];
 
   if (item.node) {
@@ -148,7 +148,7 @@ export function formatDetailItem(item: PsiAuditDetailItem): string[] {
   return lines;
 }
 
-export function formatFailingAudits(audits: Record<string, PsiAudit>, categoryRefs: string[]): string[] {
+function formatFailingAudits(audits: Record<string, PsiAudit>, categoryRefs: string[]): string[] {
   const failing: PsiAudit[] = [];
 
   for (const ref of categoryRefs) {

@@ -1,4 +1,4 @@
-export interface SitemapParseResult {
+interface SitemapParseResult {
   urls: string[];
   isSitemapIndex: boolean;
   childSitemaps: string[];

@@ -13,8 +13,6 @@ interface Finding {
   source: string;
 }
 
-// --- Metatags (inline, no external dep needed) ---
-
 interface MetaCheckResult {
   title: string | null;
   description: string | null;
@@ -79,8 +77,6 @@ async function checkMeta(url: string): Promise<MetaCheckResult> {
     finalUrl: current,
   };
 }
-
-// --- Audit logic ---
 
 function addMetaFindings(meta: MetaCheckResult, findings: Finding[]) {
   if (!meta.title) findings.push({ severity: "HIGH", message: "Missing <title> tag", source: "metatags" });

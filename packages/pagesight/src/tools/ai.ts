@@ -3,8 +3,6 @@ import { z } from "zod";
 import { readBounded, RequestError } from "../shared/http.js";
 import { auditAiCrawlers, type CrawlerStatus, fetchRobotsTxt, isAllowed, type RobotsTxt } from "../web/robots.js";
 
-// --- llms.txt detection ---
-
 interface LlmsTxtResult {
   exists: boolean;
   size: number | null;
@@ -79,8 +77,6 @@ function formatLlmsTxt(llmsTxt: LlmsTxtResult, llmsFullTxt: LlmsTxtResult): stri
 
   return lines;
 }
-
-// --- Category summary ---
 
 export function formatCategorySummary(crawlers: CrawlerStatus[]): string[] {
   const categoryOrder = ["Training", "Search", "Assistant", "Agent", "Other"];

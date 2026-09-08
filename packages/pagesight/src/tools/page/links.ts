@@ -1,9 +1,9 @@
-export interface RedirectHop {
+interface RedirectHop {
   url: string;
   status: number;
 }
 
-export interface ImageCheck {
+interface ImageCheck {
   url: string;
   tag: string;
   status: number | null;
@@ -198,5 +198,3 @@ export function formatLinkResults(url: string, results: LinkResult[]): string {
 
   return lines.join("\n");
 }
-
-// --- Contrast helpers ---

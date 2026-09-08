@@ -2,14 +2,14 @@ import { querySearchAnalytics, type SearchAnalyticsFilter, type SearchAnalyticsR
 import { pacificDaysAgo } from "../../shared/dates.js";
 import { type SearchOptions } from "./schema.js";
 import { textResult } from "./result.js";
-export interface Totals {
+interface Totals {
   clicks: number;
   impressions: number;
   ctr: number;
   position: number;
 }
 
-export function computeTotals(rows: SearchAnalyticsResponse["rows"]): Totals {
+function computeTotals(rows: SearchAnalyticsResponse["rows"]): Totals {
   const r = rows ?? [];
   const clicks = r.reduce((sum, row) => sum + row.clicks, 0);
   const impressions = r.reduce((sum, row) => sum + row.impressions, 0);
@@ -18,13 +18,13 @@ export function computeTotals(rows: SearchAnalyticsResponse["rows"]): Totals {
   return { clicks, impressions, ctr, position };
 }
 
-export function pctChange(current: number, previous: number): string {
+function pctChange(current: number, previous: number): string {
   if (previous === 0) return current > 0 ? `+${current} (new)` : "0%";
   const change = ((current - previous) / previous) * 100;
   return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
 }
 
-export function formatPerformance(
+function formatPerformance(
   siteUrl: string,
   result: SearchAnalyticsResponse,
   dimensions: string[],
@@ -196,8 +196,6 @@ export function formatComparison(
 
   return lines.join("\n");
 }
-
-// ── Keyword gap analysis ──
 
 export async function runAnalytics(options: SearchOptions) {
   const {

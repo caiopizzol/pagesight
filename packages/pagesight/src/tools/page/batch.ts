@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { parseHead, getMeta } from "./metadata.js";
-import { validateJsonLd } from "./structured-data.js";
+import { formatJsonLdType, validateJsonLd } from "./structured-data.js";
 import { followRedirects, checkLink, extractInternalLinks } from "./links.js";
 
 export async function analyzeBatch(
@@ -73,7 +73,7 @@ export async function analyzeBatch(
       const jsonLdTypes = parsed.jsonLd
         .map((block) => {
           if (block && typeof block === "object" && "@type" in block)
-            return String((block as Record<string, unknown>)["@type"]);
+            return formatJsonLdType((block as Record<string, unknown>)["@type"], ",");
           return null;
         })
         .filter(Boolean);

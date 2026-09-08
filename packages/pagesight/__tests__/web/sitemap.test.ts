@@ -1,6 +1,7 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 import { parseInventorySitemap } from "../../src/web/sitemap-parser.js";
 import { observeSitemap } from "../../src/web/sitemap-inventory.js";
+import { createSiteFixture } from "../support/site.js";
 
 test("sitemap XML decodes numeric entities once and preserves CDATA", () => {
   const result = parseInventorySitemap(
@@ -49,4 +50,15 @@ test("large sitemap indexes schedule at most five documents and retain incomplet
   } finally {
     await fixture.stop(true);
   }
+});
+
+const fixture = createSiteFixture();
+afterAll(() => fixture.stop(true));
+test("sitemap entities are decoded once and unsupported XML cannot imply empty complete coverage", async () => {
+  const entities = await observeSitemap(`${fixture.url}entities.xml`);
+  expect(entities.complete).toBe(true);
+  expect(entities.urls).toEqual([`${fixture.url}?literal=&lt;`]);
+  const prefixed = await observeSitemap(`${fixture.url}prefixed.xml`);
+  expect(prefixed.complete).toBe(false);
+  expect(prefixed.errors).toEqual([{ url: `${fixture.url}prefixed.xml`, code: "unsupported_sitemap" }]);
 });

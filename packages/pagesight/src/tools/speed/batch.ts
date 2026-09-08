@@ -1,6 +1,6 @@
 import { type PsiAudit, type PsiCategoryType, type PsiResult, runPagespeed } from "../../providers/pagespeed.js";
 import { scorePct } from "./pagespeed.js";
-export function shortUrl(url: string, allUrls: string[]): string {
+function shortUrl(url: string, allUrls: string[]): string {
   try {
     const u = new URL(url);
     const path = u.pathname + u.search;
@@ -13,7 +13,7 @@ export function shortUrl(url: string, allUrls: string[]): string {
   }
 }
 
-export function formatDelta(a: number | null, b: number | null): string {
+function formatDelta(a: number | null, b: number | null): string {
   if (a === null || b === null) return "";
   const diff = b - a;
   if (diff === 0) return "  (=)";
@@ -222,7 +222,7 @@ export function formatBatchTable(results: Array<{ url: string; result: PsiResult
   return lines.join("\n");
 }
 
-export function collectOpportunityIds(audits: Record<string, PsiAudit>): Set<string> {
+function collectOpportunityIds(audits: Record<string, PsiAudit>): Set<string> {
   const ids = new Set<string>();
   for (const [id, audit] of Object.entries(audits)) {
     if (audit.score === null || audit.score >= 1) continue;
@@ -263,5 +263,3 @@ export async function runBatch(
 
   return results;
 }
-
-// --- CrUX helpers ---

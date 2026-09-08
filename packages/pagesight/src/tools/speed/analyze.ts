@@ -186,5 +186,6 @@ export async function analyzeSpeed({
     }
   }
 
-  return { content: [{ type: "text" as const, text: `Unknown action: ${resolvedAction}` }] };
+  const unhandled: never = resolvedAction;
+  return { content: [{ type: "text" as const, text: `Unknown action: ${String(unhandled)}` }] };
 }

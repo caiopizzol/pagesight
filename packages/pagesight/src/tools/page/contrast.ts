@@ -84,8 +84,6 @@ export function findNearestPassing(
   return toHex(...(bestDarken ?? bestLighten ?? fg));
 }
 
-// --- Tool registration ---
-
 export function analyzeContrast(foreground: string, background: string, large_text?: boolean): CallToolResult {
   const fg = parseHex(foreground);
   const bg = parseHex(background);

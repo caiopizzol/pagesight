@@ -47,6 +47,8 @@ export async function runSearch(params: SearchOptions) {
       case "gaps":
         return await runGaps(params);
     }
+    const unhandled: never = resolvedAction;
+    return textResult(`Error: Unknown action "${String(unhandled)}".`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return textResult(`Error: ${msg}`);

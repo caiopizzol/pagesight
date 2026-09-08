@@ -3,7 +3,7 @@ import { type SearchOptions } from "./schema.js";
 import { humanizeState, type InspectionSummary, inspectSingle } from "./inspection.js";
 import { fetchSitemap, sampleUrls } from "./sitemap-sampling.js";
 import { textResult } from "./result.js";
-export const COVERAGE_FILTERS = [
+const COVERAGE_FILTERS = [
   "not_indexed",
   "server_error",
   "redirect",
@@ -14,7 +14,7 @@ export const COVERAGE_FILTERS = [
   "crawled_not_indexed",
 ] as const;
 
-export type CoverageFilter = (typeof COVERAGE_FILTERS)[number];
+type CoverageFilter = (typeof COVERAGE_FILTERS)[number];
 
 export function matchesCoverageFilter(result: InspectionSummary, filter: CoverageFilter): boolean {
   if (result.error) return false;
@@ -42,7 +42,7 @@ export function matchesCoverageFilter(result: InspectionSummary, filter: Coverag
   }
 }
 
-export function filterNameForState(state: string): string | null {
+function filterNameForState(state: string): string | null {
   const s = state.toLowerCase();
   if (s.includes("server error")) return "server_error";
   if (s.includes("blocked")) return "blocked";
@@ -136,14 +136,7 @@ export function formatSampleResults(
   return lines.join("\n");
 }
 
-// ── Coverage formatter ──
-
-export function formatCoverage(
-  siteUrl: string,
-  sitemapUrl: string,
-  totalUrls: number,
-  results: InspectionSummary[],
-): string {
+function formatCoverage(siteUrl: string, sitemapUrl: string, totalUrls: number, results: InspectionSummary[]): string {
   const inspected = results.filter((r) => !r.error);
   const errors = results.filter((r) => r.error);
   const indexed = inspected.filter((r) => r.verdict === "PASS");
@@ -212,8 +205,6 @@ export function formatCoverage(
 
   return lines.join("\n");
 }
-
-// ── Sitemaps formatters ──
 
 export async function runCoverage(options: SearchOptions) {
   const { site_url, sitemap_url, sample_size, sample_strategy } = options;

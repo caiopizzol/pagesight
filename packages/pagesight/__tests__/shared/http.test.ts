@@ -1,5 +1,7 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 import { readBounded, requestJson } from "../../src/shared/http.js";
+import { createSiteFixture } from "../support/site.js";
+import { capture } from "../../src/api/evidence.js";
 
 test("stream limits stop reading and cancel bodies with missing or false Content-Length", async () => {
   for (const headers of [new Headers(), new Headers({ "content-length": "1" })]) {
@@ -51,4 +53,13 @@ test("JSON syntax failures and interrupted response bodies have different safe e
   } finally {
     await fixture.stop(true);
   }
+});
+
+const fixture = createSiteFixture();
+afterAll(() => fixture.stop(true));
+test("provider errors do not expose response bodies or credentials", async () => {
+  const result = await capture("test", "read", "site", {}, () => requestJson(`${fixture.url}bad?key=secret-key`));
+  expect(result.error?.httpStatus).toBe(403);
+  expect(JSON.stringify(result)).not.toContain("secret-key");
+  expect(JSON.stringify(result)).not.toContain("not-for-output");
 });

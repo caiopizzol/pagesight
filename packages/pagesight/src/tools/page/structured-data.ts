@@ -1,4 +1,4 @@
-export interface SchemaRule {
+interface SchemaRule {
   source: string;
   required: string[];
   requiredAny?: string[];
@@ -7,10 +7,17 @@ export interface SchemaRule {
   nestedRequired?: Record<string, string[]>;
 }
 
-export interface ValidationIssue {
+interface ValidationIssue {
   type: string;
   level: "required" | "recommended";
   field: string;
+}
+
+export function formatJsonLdType(value: unknown, separator = ", "): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.every((item): item is string => typeof item === "string"))
+    return value.join(separator);
+  return JSON.stringify(value) ?? "undefined";
 }
 
 export function formatJsonLd(data: unknown, indent = 0): string[] {
@@ -27,7 +34,10 @@ export function formatJsonLd(data: unknown, indent = 0): string[] {
   if (data && typeof data === "object") {
     const obj = data as Record<string, unknown>;
     const type = obj["@type"];
-    if (type) lines.push(`${pad}@type: ${Array.isArray(type) ? type.join(", ") : type}`);
+    if (type) {
+      const label = formatJsonLdType(type);
+      lines.push(`${pad}@type: ${label}`);
+    }
 
     for (const [key, val] of Object.entries(obj)) {
       if (key.startsWith("@") && key !== "@type") continue;
@@ -52,7 +62,7 @@ export function formatJsonLd(data: unknown, indent = 0): string[] {
 
 // Presence checks for selected Google-documented fields, reviewed 2026-09-08.
 // These do not cover every conditional requirement, value rule, or eligibility policy.
-export const SCHEMA_RULES: Record<string, SchemaRule> = {
+const SCHEMA_RULES: Record<string, SchemaRule> = {
   WebSite: {
     source: "https://developers.google.com/search/docs/appearance/site-names",
     required: ["name", "url"],
@@ -149,7 +159,7 @@ export const SCHEMA_RULES: Record<string, SchemaRule> = {
   },
 };
 
-export function getNestedValue(obj: Record<string, unknown>, field: string): unknown {
+function getNestedValue(obj: Record<string, unknown>, field: string): unknown {
   const val = obj[field];
   if (val !== undefined && val !== null && val !== "" && !(Array.isArray(val) && val.length === 0)) return val;
   return undefined;

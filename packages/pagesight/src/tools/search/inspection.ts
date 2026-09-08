@@ -1,7 +1,7 @@
 import { type InspectionResult, inspectUrl } from "../../providers/gsc.js";
 import { type SearchOptions } from "./schema.js";
 import { textResult } from "./result.js";
-export function formatInspection(url: string, siteUrl: string, r: InspectionResult): string {
+function formatInspection(url: string, siteUrl: string, r: InspectionResult): string {
   const idx = r.indexStatusResult;
   const lines: string[] = [
     `=== URL Inspection: ${url} ===`,
@@ -78,8 +78,6 @@ export function formatInspection(url: string, siteUrl: string, r: InspectionResu
   return lines.join("\n");
 }
 
-// ── Sample-inspect formatters ──
-
 export function humanizeState(state: string): string {
   const map: Record<string, string> = {
     PAGE_FETCH_STATE_UNSPECIFIED: "not yet crawled",
@@ -88,8 +86,6 @@ export function humanizeState(state: string): string {
   };
   return map[state] ?? state;
 }
-
-// ── Coverage helpers ──
 
 export interface InspectionSummary {
   url: string;
