@@ -35,6 +35,7 @@ pagesight speed psi --url https://example.com/ [--strategy mobile]
 pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
+pagesight crawl --config seo.config.json [--max-pages 20] [--max-depth 3] [--inspect-limit 3]
 pagesight investigate --config seo.config.json --url https://example.com/page [--start YYYY-MM-DD --end YYYY-MM-DD] [--format text]
 pagesight assess --snapshot saved.json [--format text] [--max-rows 10]
 pagesight opportunities --snapshot saved.json [--min-impressions 20] [--max-clicks 2] [--max-rows 10] [--format text]
@@ -90,6 +91,10 @@ export async function runCli(args: string[]): Promise<number> {
         "max-rows": { type: "string" },
         "min-impressions": { type: "string" },
         "max-clicks": { type: "string" },
+        "max-depth": { type: "string" },
+        "max-links": { type: "string" },
+        "inspect-limit": { type: "string" },
+        "include-query": { type: "boolean" },
       },
     });
     if (args.length === 0 || values.help || positionals[0] === "help") {
@@ -104,6 +109,7 @@ export async function runCli(args: string[]): Promise<number> {
       : family;
     const flags: Record<string, string[]> = {
       "evidence.import": ["request"],
+      crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
       investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
       assess: ["snapshot", "max-rows", "format"],
       opportunities: ["snapshot", "max-rows", "format", "min-impressions", "max-clicks"],
@@ -157,6 +163,16 @@ export async function runCli(args: string[]): Promise<number> {
     if (operation === "api") input = await jsonFile(values.request, "request");
     else if (operation === "evidence.import")
       input = { operation, document: await jsonFile(values.request, "request") };
+    else if (operation === "crawl")
+      input = {
+        operation,
+        config: await jsonFile(values.config, "config"),
+        maxPages: Number(values["max-pages"] ?? 20),
+        maxDepth: Number(values["max-depth"] ?? 3),
+        maxLinks: Number(values["max-links"] ?? 500),
+        inspectLimit: Number(values["inspect-limit"] ?? 3),
+        includeQuery: values["include-query"] ?? false,
+      };
     else if (operation === "opportunities")
       input = {
         operation,

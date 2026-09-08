@@ -26,26 +26,27 @@ GA evidence identifies the credential source variable, credential type, and serv
 account email when present. It never includes the token or private key. Aggregate
 results include a concise per-observation `summary` alongside full observations.
 
-| Operation                                    | Required inputs                                                         |
-| -------------------------------------------- | ----------------------------------------------------------------------- |
-| `discover`                                   | `url`; optional `providers` (`["gsc", "ga"]` by default)                |
-| `bing.sites`                                 | None                                                                    |
-| `bing.queries`, `bing.pages`, `bing.traffic` | `site`                                                                  |
-| `gsc.sites`                                  | None                                                                    |
-| `gsc.sitemaps`                               | `site`                                                                  |
-| `gsc.inspect`                                | `site`, `url`                                                           |
-| `gsc.report`                                 | `site`, `request`; optional `maxPages`                                  |
-| `ga.accounts`                                | None                                                                    |
-| `ga.property`, `ga.key-events`               | `property`                                                              |
-| `ga.realtime`                                | `property`, `request`; moving window, no offset                         |
-| `ga.report`                                  | `property`, `request`; optional `maxPages`                              |
-| `page`                                       | `url`                                                                   |
-| `speed.psi`                                  | `url`; optional `strategy` (`mobile` or `desktop`)                      |
-| `speed.crux`, `speed.history`                | `url`; optional `origin: true`, `formFactor`                            |
-| `doctor`                                     | `config`                                                                |
-| `investigate`                                | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows` |
-| `assess`                                     | `snapshot`; optional `maxRows` (default 10, max 100)                    |
-| `snapshot`                                   | `config`, `startDate`, `endDate`; optional `maxPages`                   |
+| Operation                                    | Required inputs                                                            |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| `discover`                                   | `url`; optional `providers` (`["gsc", "ga"]` by default)                   |
+| `bing.sites`                                 | None                                                                       |
+| `bing.queries`, `bing.pages`, `bing.traffic` | `site`                                                                     |
+| `gsc.sites`                                  | None                                                                       |
+| `gsc.sitemaps`                               | `site`                                                                     |
+| `gsc.inspect`                                | `site`, `url`                                                              |
+| `gsc.report`                                 | `site`, `request`; optional `maxPages`                                     |
+| `ga.accounts`                                | None                                                                       |
+| `ga.property`, `ga.key-events`               | `property`                                                                 |
+| `ga.realtime`                                | `property`, `request`; moving window, no offset                            |
+| `ga.report`                                  | `property`, `request`; optional `maxPages`                                 |
+| `page`                                       | `url`                                                                      |
+| `speed.psi`                                  | `url`; optional `strategy` (`mobile` or `desktop`)                         |
+| `speed.crux`, `speed.history`                | `url`; optional `origin: true`, `formFactor`                               |
+| `doctor`                                     | `config`                                                                   |
+| `crawl`                                      | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md)) |
+| `investigate`                                | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows`    |
+| `assess`                                     | `snapshot`; optional `maxRows` (default 10, max 100)                       |
+| `snapshot`                                   | `config`, `startDate`, `endDate`; optional `maxPages`                      |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
