@@ -67,3 +67,10 @@ selection. 76 Bun tests pass; Vite+ has zero errors. Official Microsoft Learn JS
 examples back fixture tests. No live Bing credentials; this limits live verification.
 Setup published at PR #4 in managed GitHub stack #5. The stack tool disabled PR #2
 user-enabled auto-merge because stacks do not support it; no PR merged.
+
+Bing consultation accepted after independent verification: retain documented numeric
+ApiFault.ErrorCode safely, preserve credential-source metadata and document verbatim
+registered URLs. Unknown timezone/raw Date strings need no invented metadata type.
+Doctor traffic access is sufficient for the selected site; speculative null-response
+handling and extra credential probes are deferred without live evidence.
+Foundation and setup rebased onto TypeScript 7 main; 76 tests remain passing.

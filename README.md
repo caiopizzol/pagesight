@@ -254,7 +254,8 @@ MIT
 ## Bing Webmaster reports
 
 Set `BING_WEBMASTER_API_KEY` from Bing Webmaster Tools API Access, then discover
-sites before copying a verified URL into `bingSite` in your config:
+sites before copying a verified `Url` verbatim into `bingSite` in your config
+(including its scheme and trailing-slash form):
 
 ```sh
 pagesight discover --url https://example.com/ --providers bing

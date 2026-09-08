@@ -71,7 +71,7 @@ test("Bing missing credentials, HTTP errors and fault envelopes stay safe and un
     expect((await execute({ operation: "bing.sites" })).error?.code).toBe("not_configured");
     expect(calls).toBe(0);
     process.env.BING_WEBMASTER_API_KEY = "private-key";
-    for (const code of ["forbidden", "invalid_response"]) {
+    for (const code of ["forbidden", "bing_fault_1"]) {
       const result = await execute({ operation: "bing.sites" });
       expect(result.error?.code).toBe(code);
       expect(result.status).toBe("error");

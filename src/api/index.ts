@@ -32,6 +32,8 @@ export async function execute(input: unknown): Promise<Evidence> {
   }
   const result = await dispatch(op);
   if (op.operation.startsWith("ga.")) result.credential = await gaCredentialInfo();
+  if (op.operation.startsWith("bing."))
+    result.credential = { source: "BING_WEBMASTER_API_KEY", type: "api_key", clientEmail: null };
   const response = result.pages[0]?.response as { nextPageToken?: string } | undefined;
   if (response?.nextPageToken) {
     result.status = "partial";
