@@ -5,7 +5,7 @@ import { RequestError } from "./lib/http.js";
 
 export const help = `Pagesight — read-only site evidence
 
-pagesight                      Start the existing MCP stdio server
+pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight doctor --config seo.config.json
@@ -75,7 +75,7 @@ export async function runCli(args: string[]): Promise<number> {
         "max-rows": { type: "string" },
       },
     });
-    if (values.help || positionals[0] === "help") {
+    if (args.length === 0 || values.help || positionals[0] === "help") {
       process.stdout.write(help);
       return 0;
     }

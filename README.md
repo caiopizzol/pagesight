@@ -213,8 +213,9 @@ This interface is for local agents, not an Internet deployment.
 
 ## MCP compatibility
 
-No arguments, or `pagesight mcp`, still start the stdio MCP server. Configure your
-host to run `bun /path/to/pagesight/src/index.ts` with the environment above.
+Run `pagesight mcp` to start the stdio MCP server. Configure your host to run
+`bun /path/to/pagesight/src/index.ts mcp` with the environment above. Existing MCP
+launch configurations must include the `mcp` argument; no arguments show CLI help.
 
 The new `observe` tool accepts `{ "request": <operation object> }` and returns
 structured API evidence. The original six tools remain available:
@@ -241,7 +242,7 @@ bun run check       # Format, lint, and type checks
 bun run typecheck   # Check all TypeScript files without emitting output
 bun run test        # Existing Bun test suite
 bun run format      # Apply formatting
-bun run start       # Start the MCP server with Bun
+bun run start       # Show CLI help with Bun
 ```
 
 Tests cover pagination and partial failures, metadata preservation, live fixture

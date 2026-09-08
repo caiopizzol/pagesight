@@ -21,7 +21,7 @@ compatible; `observe` exposes the shared API.
 
 ```
 src/
-  index.ts              # Bin dispatcher; no arguments preserve MCP startup
+  index.ts              # Bin dispatcher; no arguments show CLI help; mcp starts MCP
   cli.ts                # CLI adapter
   http.ts               # Bearer-authenticated loopback HTTP adapter
   mcp.ts                # MCP server entry, registers 7 tools
@@ -65,7 +65,8 @@ src/
 
 ## Commands
 
-- `bun run src/index.ts` — start MCP server
+- `bun run src/index.ts` — show CLI help
+- `bun run src/index.ts mcp` — start MCP server
 - `bun run typecheck` — TypeScript checks without emitting files
 - `bun src/index.ts --help` — CLI operations
 - `bun src/index.ts serve` — local HTTP API; requires `PAGESIGHT_API_TOKEN`
