@@ -121,3 +121,10 @@ object keys sorted lexically and array order retained. These identify comparison
 inputs, not raw file bytes; whitespace changes in saved JSON do not change them. Keep source snapshots for their full requests,
 responses and metadata. Changes are descriptive and do not establish that an SEO
 edit caused traffic changes; Pagesight does not apply SEO edits automatically.
+
+## Read the evidence
+
+Run `pagesight assess --snapshot saved.json --format text` for a deterministic
+summary of report rows, measurement findings and unknowns. It retains references
+to the saved observations and makes no new provider calls. See
+[measurement and verification](measurement.md) for scope and examples.

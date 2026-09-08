@@ -1,3 +1,4 @@
+import { gaFreshnessWarnings } from "./ga-freshness.js";
 import { type GaReport, gaFetch, normalizeGaProperty } from "../providers/ga.js";
 import { querySearchAnalytics, type SearchAnalyticsResponse } from "../providers/gsc.js";
 import { RequestError } from "../shared/http.js";
@@ -66,8 +67,17 @@ async function pages<T extends GscRequest | GaRequest>(
   if (!result.pagination.exhausted && !result.error) result.status = "partial";
   if (!result.pagination.exhausted)
     result.warnings.push("Pagination not exhausted. Missing rows are unknown, not zero.");
-  result.warnings = [...new Set(result.warnings)];
   result.finishedAt = new Date().toISOString();
+  if (!isGsc)
+    for (const page of result.pages)
+      result.warnings.push(
+        ...gaFreshnessWarnings(
+          (request as GaRequest).dateRanges.map((range) => range.endDate),
+          (page.response as GaReport).metadata?.timeZone,
+          result.finishedAt,
+        ),
+      );
+  result.warnings = [...new Set(result.warnings)];
   return result;
 }
 

@@ -1,3 +1,5 @@
+import { assessSnapshot } from "./assessment.js";
+import { gaRealtime } from "./ga-realtime.js";
 import { importUiFindings } from "./ui-findings.js";
 import { doctor } from "./doctor.js";
 import { ZodError } from "zod";
@@ -45,6 +47,8 @@ export async function execute(input: unknown): Promise<Evidence> {
 
 async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
+    case "assess":
+      return assessSnapshot(op.snapshot, op.maxRows);
     case "evidence.import":
       return importUiFindings(op.document);
     case "compare":
@@ -109,6 +113,8 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
           "Configured key events are not necessarily validated product outcomes; inspect event names. Check nextPageToken.",
         ],
       );
+    case "ga.realtime":
+      return gaRealtime(op.property, op.request);
     case "ga.report":
       return gaReport(op.property, op.request, op.maxPages);
     case "page":

@@ -1,3 +1,4 @@
+import { renderAssessment } from "./assessment-text.js";
 import { parseArgs } from "node:util";
 import { defaultDates } from "./shared/dates.js";
 import { execute } from "./api/index.js";
@@ -22,6 +23,7 @@ pagesight bing sites
 pagesight bing queries --site https://example.com/
 pagesight bing pages --site https://example.com/
 pagesight bing traffic --site https://example.com/
+pagesight ga realtime --property 123456 --request realtime.json
 pagesight ga accounts
 pagesight ga property --property 123456
 pagesight ga key-events --property 123456
@@ -31,12 +33,13 @@ pagesight speed psi --url https://example.com/ [--strategy mobile]
 pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
+pagesight assess --snapshot saved.json [--format text] [--max-rows 10]
 pagesight compare --baseline before.json --current after.json [--max-rows 100]
 pagesight evidence import --request findings.json
 pagesight api --request operation.json
 pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
-All data commands emit JSON. --json is accepted for clarity.
+Data commands emit JSON by default; assess --format text prints a readable summary. --json is accepted for clarity.
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
 2 invalid input, 3 partial evidence. Snapshot defaults to 28 days ending Pacific
 today minus 3 days; max-pages defaults to 4 (ad hoc reports: 1; maximum: 20).
@@ -76,6 +79,8 @@ export async function runCli(args: string[]): Promise<number> {
         "form-factor": { type: "string" },
         origin: { type: "boolean" },
         providers: { type: "string" },
+        snapshot: { type: "string" },
+        format: { type: "string" },
         baseline: { type: "string" },
         current: { type: "string" },
         "max-rows": { type: "string" },
@@ -93,6 +98,7 @@ export async function runCli(args: string[]): Promise<number> {
       : family;
     const flags: Record<string, string[]> = {
       "evidence.import": ["request"],
+      assess: ["snapshot", "max-rows", "format"],
       discover: ["url", "providers"],
       compare: ["baseline", "current", "max-rows"],
       "bing.crawl-stats": ["site"],
@@ -108,6 +114,7 @@ export async function runCli(args: string[]): Promise<number> {
       "gsc.sitemaps": ["site"],
       "gsc.inspect": ["site", "url"],
       "gsc.report": ["site", "request", "max-pages"],
+      "ga.realtime": ["property", "request"],
       "ga.accounts": [],
       "ga.property": ["property"],
       "ga.key-events": ["property"],
@@ -134,10 +141,20 @@ export async function runCli(args: string[]): Promise<number> {
       process.stderr.write(`Pagesight API listening on ${server.url}v1/query\n`);
       return 0;
     }
+    if (values.format && !["json", "text"].includes(values.format))
+      throw new RequestError("Use --format json or text", null, "invalid_input");
+    if (values.json && values.format === "text")
+      throw new RequestError("--json and --format text conflict", null, "invalid_input");
     let input: unknown;
     if (operation === "api") input = await jsonFile(values.request, "request");
     else if (operation === "evidence.import")
       input = { operation, document: await jsonFile(values.request, "request") };
+    else if (operation === "assess")
+      input = {
+        operation,
+        snapshot: await jsonFile(values.snapshot, "snapshot"),
+        maxRows: Number(values["max-rows"] ?? 10),
+      };
     else if (operation === "compare")
       input = {
         operation,
@@ -169,7 +186,7 @@ export async function runCli(args: string[]): Promise<number> {
       };
     }
     const result = await execute(input);
-    const output = `${JSON.stringify(result, null, 2)}\n`;
+    const output = values.format === "text" ? renderAssessment(result) : `${JSON.stringify(result, null, 2)}\n`;
     if (values.out) await Bun.write(values.out, output);
     process.stdout.write(output);
     return result.status === "ok" ? 0 : result.status === "partial" ? 3 : 1;

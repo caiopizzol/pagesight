@@ -158,10 +158,14 @@ export async function snapshot(
   );
   if (!config.context.successEvents.length)
     result.warnings.push("No validated success events configured. Do not optimize total keyEvents as conversions.");
+  if (config.context.successEvents.length)
+    result.warnings.push(
+      "Configured success events are caller-designated; Pagesight has not independently validated their tracking or business meaning.",
+    );
   return result;
 }
 
-function observationName(op: Operation): string {
+export function observationName(op: Operation): string {
   if (op.operation === "gsc.report") return `gsc.report.${op.request.dimensions?.join("+") || "property"}`;
   if (op.operation === "ga.report") {
     const dimensions = op.request.dimensions?.map((d) => d.name).join("+") || "property";
