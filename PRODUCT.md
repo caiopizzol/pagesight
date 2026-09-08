@@ -77,7 +77,5 @@ but `audit` doesn't report that failure. A clean report isn't proof that every c
 
 ## What's next
 
-[The current plan](seo-goal.md) tracks verification and review of provider setup,
-Bing reports, and snapshot comparison. Keep raw evidence
-and unknowns visible as the product grows; don't turn missing data into confident
-conclusions. See [README.md](README.md) for usage.
+Keep raw evidence and unknowns visible as the product grows; don't turn missing
+data into confident conclusions. See [README.md](README.md) for usage.
