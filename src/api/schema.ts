@@ -78,6 +78,7 @@ export const configSchema = z
   .object({
     site: httpUrl,
     gscSite: z.string().min(1).optional(),
+    bingSite: httpUrl.optional(),
     gaProperty: z
       .string()
       .regex(/^(properties\/)?\d+$/)
@@ -112,7 +113,7 @@ export const configSchema = z
   }))
   .refine((c) => new URL(c.site).hostname === c.productionHostname, "productionHostname must match site")
   .refine(
-    (c) => Boolean(c.pages.length || c.sitemap || c.gscSite || c.gaProperty),
+    (c) => Boolean(c.pages.length || c.sitemap || c.gscSite || c.gaProperty || c.bingSite),
     "Select at least one page or provider",
   );
 export type SiteConfig = z.infer<typeof configSchema>;
@@ -122,12 +123,16 @@ const operationVariants = z.discriminatedUnion("operation", [
       operation: z.literal("discover"),
       url: httpUrl,
       providers: z
-        .array(z.enum(["gsc", "ga"]))
+        .array(z.enum(["gsc", "ga", "bing"]))
         .min(1)
-        .max(2)
+        .max(3)
         .default(["gsc", "ga"]),
     })
     .strict(),
+  z.object({ operation: z.literal("bing.sites") }).strict(),
+  z.object({ operation: z.literal("bing.queries"), site: httpUrl }).strict(),
+  z.object({ operation: z.literal("bing.pages"), site: httpUrl }).strict(),
+  z.object({ operation: z.literal("bing.traffic"), site: httpUrl }).strict(),
   z.object({ operation: z.literal("gsc.sites") }).strict(),
   z.object({ operation: z.literal("gsc.sitemaps"), site: z.string().min(1) }).strict(),
   z.object({ operation: z.literal("gsc.inspect"), site: z.string().min(1), url: httpUrl }).strict(),

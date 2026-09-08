@@ -13,6 +13,10 @@ pagesight gsc sites
 pagesight gsc sitemaps --site sc-domain:example.com
 pagesight gsc inspect --site sc-domain:example.com --url https://example.com/
 pagesight gsc report --site sc-domain:example.com --request report.json [--max-pages 4]
+pagesight bing sites
+pagesight bing queries --site https://example.com/
+pagesight bing pages --site https://example.com/
+pagesight bing traffic --site https://example.com/
 pagesight ga accounts
 pagesight ga property --property 123456
 pagesight ga key-events --property 123456
@@ -29,7 +33,7 @@ All data commands emit JSON. --json is accepted for clarity.
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
 2 invalid input, 3 partial evidence. Snapshot defaults to 28 days ending Pacific
 today minus 3 days; max-pages defaults to 4 (ad hoc reports: 1; maximum: 20).
-Credentials: GSC_* env, PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed).
+Credentials: GSC_* env, PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed), BING_WEBMASTER_API_KEY (Bing).
 Requests, property metadata, provider limits and errors are preserved in evidence.
 `;
 
@@ -72,11 +76,15 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (positionals.length > (["gsc", "ga", "speed"].includes(family) ? 2 : 1))
+    if (positionals.length > (["gsc", "ga", "bing", "speed"].includes(family) ? 2 : 1))
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
+    const operation = ["gsc", "ga", "bing", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
     const flags: Record<string, string[]> = {
       discover: ["url", "providers"],
+      "bing.sites": [],
+      "bing.queries": ["site"],
+      "bing.pages": ["site"],
+      "bing.traffic": ["site"],
       "gsc.sites": [],
       "gsc.sitemaps": ["site"],
       "gsc.inspect": ["site", "url"],

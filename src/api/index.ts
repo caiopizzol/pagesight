@@ -5,6 +5,7 @@ import { gaCredentialInfo, gaFetch, gaProperty } from "../lib/ga.js";
 import { getSite, inspectUrlResponse, listSitemapsResponse, listSitesResponse } from "../lib/gsc.js";
 import { RequestError } from "../lib/http.js";
 import { runPagespeed } from "../lib/psi.js";
+import { bingObservation } from "./bing.js";
 import { defaultDates } from "./dates.js";
 import { capture, type Evidence } from "./evidence.js";
 import { gaReport, gscReport } from "./reports.js";
@@ -31,6 +32,8 @@ export async function execute(input: unknown): Promise<Evidence> {
   }
   const result = await dispatch(op);
   if (op.operation.startsWith("ga.")) result.credential = await gaCredentialInfo();
+  if (op.operation.startsWith("bing."))
+    result.credential = { source: "BING_WEBMASTER_API_KEY", type: "api_key", clientEmail: null };
   const response = result.pages[0]?.response as { nextPageToken?: string } | undefined;
   if (response?.nextPageToken) {
     result.status = "partial";
@@ -43,6 +46,14 @@ async function dispatch(op: ReturnType<typeof operationSchema.parse>): Promise<E
   switch (op.operation) {
     case "discover":
       return discover(op.url, op.providers, execute);
+    case "bing.sites":
+      return bingObservation("sites");
+    case "bing.queries":
+      return bingObservation("queries", op.site);
+    case "bing.pages":
+      return bingObservation("pages", op.site);
+    case "bing.traffic":
+      return bingObservation("traffic", op.site);
     case "gsc.sites":
       return capture("gsc", "sites", "accessible-properties", {}, listSitesResponse);
     case "gsc.sitemaps":
@@ -118,6 +129,7 @@ async function dispatch(op: ReturnType<typeof operationSchema.parse>): Promise<E
       const pending: Promise<Evidence>[] = [execute({ operation: "page", url: op.config.site })];
       const site = op.config.gscSite;
       const property = op.config.gaProperty;
+      if (op.config.bingSite) pending.push(execute({ operation: "bing.traffic", site: op.config.bingSite }));
       if (site) pending.push(capture("gsc", "access", site, { site, method: getAuthMethod() }, () => getSite(site)));
       if (property)
         pending.push(
