@@ -163,7 +163,10 @@ export async function evaluateChange(
             : "unavailable",
         observations,
         confounded: record.overlappingChanges.length > 0,
-        contextChanged: Boolean(after && canonical(before.context.config) !== canonical(after.context.config)),
+        contextChanged: Boolean(
+          after &&
+          canonical(configSchema.parse(before.context.config)) !== canonical(configSchema.parse(after.context.config)),
+        ),
         limitations: [
           "Cloudflare, Bing, crawl graphs, HTML, sitemaps and inspection evidence are unsupported; no cross-provider funnel is calculated.",
           "Declared overlapping changes confound attribution. Configuration-context changes remain visible and can alter event interpretation.",

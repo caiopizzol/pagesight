@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { httpUrl } from "./http-url.js";
 
 const contextChange = z.object({ at: z.string().datetime(), description: z.string().min(1).max(2000) }).strict();
 export const changeRecordSchema = z
   .object({
     schemaVersion: z.literal(1),
     id: z.string().min(1).max(200),
-    site: z.string().url(),
-    affectedUrls: z.array(z.string().url()).min(1).max(100),
+    site: httpUrl,
+    affectedUrls: z.array(httpUrl).min(1).max(100),
     description: z.string().min(1).max(4000),
     hypothesis: z.string().min(1).max(4000),
     deployedAt: z.string().datetime(),

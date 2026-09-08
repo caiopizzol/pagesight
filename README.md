@@ -85,3 +85,8 @@ authenticity. No ranking uplift, causal attribution, statistical significance or
 success/failure judgment is produced. Cloudflare, Bing, HTML, crawl graphs and
 inspection results are not compared by this operation. Both snapshots use the
 strict configured-snapshot schema; API, CLI, HTTP and MCP share the operation.
+
+For agents planning and verifying SEO improvements, follow the
+[SEO agent workflow](docs/seo-agent-workflow.md): demand and content decisions,
+site architecture, rendered-template/mobile checks, performance evidence,
+authority research and a recurring observation cadence.

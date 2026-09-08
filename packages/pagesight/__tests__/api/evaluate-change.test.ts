@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { execute } from "../../src/api/index.js";
 import { configSchema, operationSchema } from "../../src/api/schema.js";
 import { snapshot } from "../../src/api/snapshot.js";
+import { changeRecordSchema } from "../../src/api/change-record.js";
 import { capture } from "../../src/api/evidence.js";
 
 const record = {
@@ -135,4 +136,29 @@ test("limited coverage stays limited and context annotations do not silently cha
     observation.pages[0].response.metadata.timeZone = "invalid/timezone";
   const invalid = data(await execute({ operation: "change.evaluate", record, baseline, current }));
   expect(invalid.observations.find((o: any) => o.name === "ga.report.eventName").status).toBe("incompatible");
+});
+
+test("change records reject credential URLs and non-HTTP sites", () => {
+  for (const url of ["https://user:password@example.com/item", "ftp://example.com/item"]) {
+    expect(changeRecordSchema.safeParse({ ...record, affectedUrls: [url] }).success).toBe(false);
+    expect(changeRecordSchema.safeParse({ ...record, site: url, affectedUrls: [url] }).success).toBe(false);
+  }
+});
+
+test("malformed calendar timestamps are rejected in every change record timestamp", () => {
+  for (const at of ["2026-13-01T00:00:00Z", "2026-01-32T00:00:00Z", "2026-02-29T00:00:00Z", "2026-01-01T25:00:00Z"]) {
+    expect(changeRecordSchema.safeParse({ ...record, deployedAt: at }).success).toBe(false);
+    for (const field of ["measurementChanges", "overlappingChanges"])
+      expect(changeRecordSchema.safeParse({ ...record, [field]: [{ at, description: "Context" }] }).success).toBe(
+        false,
+      );
+  }
+});
+
+test("omitting config defaults does not report a context change", async () => {
+  const baseline = await fixture("2026-07-01", "2026-07-28");
+  const current = (await fixture("2026-08-03", "2026-08-30")) as any;
+  delete current.pages[0].response.context.config.context;
+  delete current.pages[0].response.context.config.productionHostname;
+  expect(data(await execute({ operation: "change.evaluate", record, baseline, current })).contextChanged).toBe(false);
 });
