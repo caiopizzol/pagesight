@@ -7,6 +7,27 @@ import { renderOpportunities } from "../../src/opportunities-text.js";
 const body = (e: Evidence): any => e.pages[0].response;
 const gsc = (s: Evidence): any => body(s).observations.find((o: Evidence) => o.name === "gsc.report.page");
 
+test("follow-up requests remain available without a GA origin association", async () => {
+  const { operationSchema } = await import("../../src/api/schema.js");
+  for (const url of [
+    "http://example.com/a?x=1",
+    "https://other.example/a?x=1",
+    "not a URL",
+    "ftp://example.com/a",
+    "https://user:password@example.com/a",
+  ]) {
+    const snapshot = await opportunityFixture();
+    gsc(snapshot).pages[0].response.rows[0].keys = [url];
+    const candidate = body(await execute({ operation: "opportunities", snapshot, maxRows: 1 })).candidates[0];
+    expect(candidate.organic.every((o: any) => o.rows.length === 0)).toBe(true);
+    expect(candidate.suggestedRequests.map((r: any) => r.operation)).toEqual(
+      url.startsWith("http") && !url.includes("password") ? ["gsc.report", "page", "gsc.inspect"] : ["gsc.report"],
+    );
+    expect(candidate.suggestedRequests[0].request.dimensionFilterGroups[0].filters[0].expression).toBe(url);
+    for (const request of candidate.suggestedRequests) expect(operationSchema.safeParse(request).success).toBe(true);
+  }
+});
+
 test("selection uses explicit counts across all rows, retains metrics and explains limited associations", async () => {
   const snapshot = await opportunityFixture();
   const result = await execute({ operation: "opportunities", snapshot, maxRows: 1 });

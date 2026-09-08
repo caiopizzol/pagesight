@@ -2,7 +2,7 @@ import { z } from "zod";
 import { assessSnapshot, type AssessmentTable } from "./assessment.js";
 import { capture } from "./evidence.js";
 import type { ImportedSnapshot } from "./evidence-schema.js";
-import { configSchema } from "./schema.js";
+import { configSchema, httpUrl } from "./schema.js";
 import { parseNumericValue } from "./report-table.js";
 
 export interface OpportunityPolicy {
@@ -237,31 +237,30 @@ export async function opportunities(snapshot: ImportedSnapshot, policy: Opportun
           technical,
           unknowns,
           nextChecks,
-          suggestedRequests:
-            path === null
-              ? []
-              : [
+          suggestedRequests: [
+            {
+              operation: "gsc.report",
+              site: config.gscSite,
+              maxPages: 1,
+              request: {
+                ...snapshot.pages[0].response.context.requestedDates,
+                dimensions: ["query"],
+                dataState: "final",
+                dimensionFilterGroups: [
                   {
-                    operation: "gsc.report",
-                    site: config.gscSite,
-                    maxPages: 1,
-                    request: {
-                      ...snapshot.pages[0].response.context.requestedDates,
-                      dimensions: ["query"],
-                      dataState: "final",
-                      dimensionFilterGroups: [
-                        {
-                          groupType: "and",
-                          filters: [{ dimension: "page", operator: "equals", expression: candidate.url }],
-                        },
-                      ],
-                    },
+                    groupType: "and",
+                    filters: [{ dimension: "page", operator: "equals", expression: candidate.url }],
                   },
-                  ...(!technical.some((t) => t.kind === "html") ? [{ operation: "page", url: candidate.url }] : []),
-                  ...(!technical.some((t) => t.kind === "google-indexed-state")
-                    ? [{ operation: "gsc.inspect", site: config.gscSite, url: candidate.url }]
-                    : []),
                 ],
+              },
+            },
+            ...(httpUrl.safeParse(candidate.url).success && !technical.some((t) => t.kind === "html")
+              ? [{ operation: "page", url: candidate.url }]
+              : []),
+            ...(httpUrl.safeParse(candidate.url).success && !technical.some((t) => t.kind === "google-indexed-state")
+              ? [{ operation: "gsc.inspect", site: config.gscSite, url: candidate.url }]
+              : []),
+          ],
         };
       });
       const associatedPaths = new Set(

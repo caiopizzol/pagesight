@@ -100,11 +100,15 @@ export const gaRealtimeRequestSchema = z
   .strict();
 export type GaRealtimeRequest = z.infer<typeof gaRealtimeRequestSchema>;
 
-const httpUrl = z
+export const httpUrl = z
   .string()
   .url()
   .refine(
-    (v) => ["http:", "https:"].includes(new URL(v).protocol) && !new URL(v).username && !new URL(v).password,
+    (v) =>
+      URL.canParse(v) &&
+      ["http:", "https:"].includes(new URL(v).protocol) &&
+      !new URL(v).username &&
+      !new URL(v).password,
     "Use an HTTP(S) URL without credentials",
   );
 export const configSchema = z
