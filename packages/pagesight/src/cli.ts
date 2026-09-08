@@ -1,3 +1,4 @@
+import { renderInvestigation } from "./investigation-text.js";
 import { renderAssessment } from "./assessment-text.js";
 import { renderOpportunities } from "./opportunities-text.js";
 import { parseArgs } from "node:util";
@@ -34,6 +35,7 @@ pagesight speed psi --url https://example.com/ [--strategy mobile]
 pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
+pagesight investigate --config seo.config.json --url https://example.com/page [--start YYYY-MM-DD --end YYYY-MM-DD] [--format text]
 pagesight assess --snapshot saved.json [--format text] [--max-rows 10]
 pagesight opportunities --snapshot saved.json [--min-impressions 20] [--max-clicks 2] [--max-rows 10] [--format text]
 pagesight compare --baseline before.json --current after.json [--max-rows 100]
@@ -41,7 +43,7 @@ pagesight evidence import --request findings.json
 pagesight api --request operation.json
 pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
-Data commands emit JSON by default; assess --format text prints a readable summary. --json is accepted for clarity.
+Data commands emit JSON by default; assess, opportunities and investigate accept --format text for readable summaries. --json is accepted for clarity.
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
 2 invalid input, 3 partial evidence. Snapshot defaults to 28 days ending Pacific
 today minus 3 days; max-pages defaults to 4 (ad hoc reports: 1; maximum: 20).
@@ -102,6 +104,7 @@ export async function runCli(args: string[]): Promise<number> {
       : family;
     const flags: Record<string, string[]> = {
       "evidence.import": ["request"],
+      investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
       assess: ["snapshot", "max-rows", "format"],
       opportunities: ["snapshot", "max-rows", "format", "min-impressions", "max-clicks"],
       discover: ["url", "providers"],
@@ -175,14 +178,20 @@ export async function runCli(args: string[]): Promise<number> {
         current: await jsonFile(values.current, "current"),
         maxRows: Number(values["max-rows"] ?? 100),
       };
-    else if (operation === "snapshot" || operation === "doctor") {
+    else if (operation === "snapshot" || operation === "doctor" || operation === "investigate") {
       const config = await jsonFile(values.config, "config");
       if (operation === "doctor") input = { operation, config };
       else {
         if (Boolean(values.start) !== Boolean(values.end))
           throw new RequestError("Supply both --start and --end, or neither", null, "invalid_input");
         const dates = values.start ? { startDate: values.start, endDate: values.end } : defaultDates();
-        input = { operation, config, ...dates, maxPages: Number(values["max-pages"] ?? 4) };
+        input = {
+          operation,
+          config,
+          ...dates,
+          maxPages: Number(values["max-pages"] ?? (operation === "investigate" ? 1 : 4)),
+          ...(operation === "investigate" ? { url: values.url, maxRows: Number(values["max-rows"] ?? 28) } : {}),
+        };
       }
     } else {
       input = {
@@ -201,9 +210,11 @@ export async function runCli(args: string[]): Promise<number> {
     const result = await execute(input);
     const output =
       values.format === "text"
-        ? operation === "opportunities"
-          ? renderOpportunities(result)
-          : renderAssessment(result)
+        ? operation === "investigate"
+          ? renderInvestigation(result)
+          : operation === "opportunities"
+            ? renderOpportunities(result)
+            : renderAssessment(result)
         : `${JSON.stringify(result, null, 2)}\n`;
     if (values.out) await Bun.write(values.out, output);
     process.stdout.write(output);

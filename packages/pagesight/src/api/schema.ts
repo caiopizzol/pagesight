@@ -163,6 +163,17 @@ const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx
 const operationVariants = z.discriminatedUnion("operation", [
   z
     .object({
+      operation: z.literal("investigate"),
+      config: configSchema,
+      url: httpUrl,
+      startDate: dateSchema,
+      endDate: dateSchema,
+      maxPages: maxPagesSchema.default(1),
+      maxRows: z.number().int().min(1).max(100).default(28),
+    })
+    .strict(),
+  z
+    .object({
       operation: z.literal("opportunities"),
       snapshot: assessedSnapshotSchema,
       minImpressions: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).default(20),
@@ -265,7 +276,9 @@ const operationVariants = z.discriminatedUnion("operation", [
     .strict(),
 ]);
 export const operationSchema = operationVariants.refine(
-  (op) => op.operation !== "snapshot" || (op.startDate <= op.endDate && op.endDate <= pacificDate()),
-  "Invalid or future snapshot interval",
+  (op) =>
+    (op.operation !== "snapshot" && op.operation !== "investigate") ||
+    (op.startDate <= op.endDate && op.endDate <= pacificDate()),
+  "Invalid or future reporting interval",
 );
 export type Operation = z.input<typeof operationSchema>;
