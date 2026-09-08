@@ -1,3 +1,4 @@
+import { createSiteFixture } from "../support/site.js";
 import { afterAll, expect, spyOn, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -11,37 +12,11 @@ import { discover } from "../../src/api/discover.js";
 import { snapshot, snapshotOperations } from "../../src/api/snapshot.js";
 import { observePage } from "../../src/web/page-observation.js";
 import { observeSitemap } from "../../src/web/sitemap-inventory.js";
-import { startHttpApi } from "../../src/http.js";
 import { RequestError, requestJson } from "../../src/shared/http.js";
 
-const fixture = Bun.serve({
-  hostname: "127.0.0.1",
-  port: 0,
-  fetch(req): Response {
-    const url = new URL(req.url);
-    if (url.pathname === "/sitemap.xml")
-      return new Response(
-        `<urlset><url><loc>${fixture.url}?a=1&amp;b=2</loc><lastmod>2099-01-01</lastmod></url></urlset>`,
-      );
-    if (url.pathname === "/bad") return new Response("private token=not-for-output", { status: 403 });
-    if (url.pathname === "/bad-canonical")
-      return new Response('<title>Still observable</title><link rel="canonical" href="http://[broken">');
-    if (url.pathname === "/entities.xml")
-      return new Response(`<urlset><url><loc>${fixture.url}?literal=&amp;lt;</loc></url></urlset>`);
-    if (url.pathname === "/prefixed.xml")
-      return new Response(
-        `<sm:urlset xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9"><sm:url><sm:loc>${fixture.url}</sm:loc></sm:url></sm:urlset>`,
-      );
-    return new Response(
-      '<html><head><title>Example</title><link href="/canonical" rel="canonical"><meta content="noindex,follow" name="robots"><script type="application/ld+json">{"@type":"Vehicle"}</script></head></html>',
-      { headers: { "Content-Type": "text/html" } },
-    );
-  },
-});
-const api = startHttpApi("test-token-with-at-least-24-characters", 0);
+const fixture = createSiteFixture();
 afterAll(async () => {
   await fixture.stop(true);
-  await api.stop(true);
 });
 const request = gscRequestSchema.parse({
   startDate: "2026-08-01",
@@ -335,20 +310,6 @@ test("GA metadata flags remaining pages and reports credential source without se
     else process.env.PAGESIGHT_GA_CREDENTIALS = previous;
     await rm(dir, { recursive: true });
   }
-});
-
-test("HTTP calls the same API and rejects requests without the local API token", async () => {
-  const url = `${api.url}v1/query`;
-  expect((await fetch(url, { method: "POST", body: "{}" })).status).toBe(401);
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { Authorization: "Bearer test-token-with-at-least-24-characters" },
-    body: JSON.stringify({ operation: "page", url: fixture.url.href }),
-  });
-  const result = await response.json();
-  expect(response.status).toBe(200);
-  expect(result.provider).toBe("web");
-  expect(result.pages[0].response.title).toBe("Example");
 });
 
 test("discovery extracts GSC candidates from the raw provider envelope", async () => {

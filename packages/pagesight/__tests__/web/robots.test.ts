@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isAllowed, parseRobotsTxt } from "../../src/web/robots.js";
+import { fetchRobotsTxt, isAllowed, parseRobotsTxt } from "../../src/web/robots.js";
 
 describe("parseRobotsTxt", () => {
   test("parses basic allow/disallow rules", () => {
@@ -178,5 +178,104 @@ describe("isAllowed", () => {
     const result = isAllowed(robots, "Bot", "/anything");
     expect(result.allowed).toBe(true);
     expect(result.matchedRule).toBeNull();
+  });
+});
+
+test("robots matching normalizes unreserved escapes without decoding reserved separators or wildcards", () => {
+  for (const [rule, path, allowed] of [
+    ["/a/b", "/a%2Fb", true],
+    ["/a%2Fb", "/a/b", true],
+    ["/a%2Fb", "/a%2fb", false],
+    ["/foo/bar/%E3%83%84", "/foo/bar/%E3%83%84", false],
+    ["/foo/bar/ツ", "/foo/bar/%E3%83%84", false],
+    ["/foo/bar/%E3%83%84", "/foo/bar/ツ", false],
+    ["/%62ar", "/bar", false],
+    ["/bar", "/%62ar", false],
+    ["/literal%2A", "/literal-anything", true],
+    ["/literal%2A", "/literal%2a", false],
+    ["/bad%", "/bad%", false],
+    ["/bad\uD800", "/bad\uFFFD", false],
+  ] as const) {
+    expect(isAllowed(parseRobotsTxt(`User-agent: *\nDisallow: ${rule}`), "Bot", path).allowed).toBe(allowed);
+  }
+  const rules = parseRobotsTxt("User-agent: *\nDisallow: /%62\nAllow: /bar");
+  expect(isAllowed(rules, "Bot", "/bar").allowed).toBe(true);
+});
+
+test("robots fetch keeps conservative 429 handling without calling it an RFC requirement", async () => {
+  const fixture = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => new Response(null, { status: 429 }) });
+  try {
+    const { robotsTxt, statusCode } = await fetchRobotsTxt(fixture.url.href);
+    expect(statusCode).toBe(429);
+    expect(isAllowed(robotsTxt, "Bot", "/page").allowed).toBe(false);
+    expect(robotsTxt.errors[0]).not.toContain("per RFC");
+  } finally {
+    await fixture.stop(true);
+  }
+});
+
+describe("robots access rules", () => {
+  test("specific bot rules override the wildcard", () => {
+    const robots = parseRobotsTxt("User-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nAllow: /");
+    expect(robots.groups).toHaveLength(2);
+
+    // GPTBot should be blocked
+    const gpt = isAllowed(robots, "GPTBot", "/");
+    expect(gpt.allowed).toBe(false);
+
+    // Unknown bot should be allowed via wildcard
+    const unknown = isAllowed(robots, "RandomBot", "/");
+    expect(unknown.allowed).toBe(true);
+  });
+});
+
+describe("robots group examples", () => {
+  test("real-world CNN-style robots.txt with many user-agents in one group", () => {
+    const robots = parseRobotsTxt(
+      [
+        "User-agent: GPTBot",
+        "User-agent: ClaudeBot",
+        "User-agent: CCBot",
+        "Disallow: /",
+        "",
+        "User-agent: *",
+        "Disallow: /search",
+        "Allow: /",
+      ].join("\n"),
+    );
+
+    expect(robots.groups).toHaveLength(2);
+    expect(robots.groups[0].userAgents).toEqual(["GPTBot", "ClaudeBot", "CCBot"]);
+    expect(robots.groups[0].rules).toEqual([{ type: "disallow", path: "/" }]);
+  });
+
+  test("real-world Reddit-style single wildcard disallow", () => {
+    const robots = parseRobotsTxt("User-agent: *\nDisallow: /");
+
+    // Every bot should be blocked
+    expect(isAllowed(robots, "GPTBot", "/").allowed).toBe(false);
+    expect(isAllowed(robots, "ClaudeBot", "/").allowed).toBe(false);
+    expect(isAllowed(robots, "Googlebot", "/").allowed).toBe(false);
+  });
+
+  test("real-world NYT-style selective blocking", () => {
+    const robots = parseRobotsTxt(
+      [
+        "User-agent: GPTBot",
+        "Disallow: /",
+        "",
+        "User-agent: ClaudeBot",
+        "Disallow: /",
+        "",
+        "User-agent: *",
+        "Disallow: /search",
+        "Allow: /",
+      ].join("\n"),
+    );
+
+    expect(isAllowed(robots, "GPTBot", "/article").allowed).toBe(false);
+    expect(isAllowed(robots, "ClaudeBot", "/article").allowed).toBe(false);
+    expect(isAllowed(robots, "Googlebot", "/article").allowed).toBe(true);
+    expect(isAllowed(robots, "Googlebot", "/search").allowed).toBe(false);
   });
 });
