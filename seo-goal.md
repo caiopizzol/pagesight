@@ -19,7 +19,7 @@ increment as a dependent PR. CLI, MCP and HTTP remain thin adapters. Never merge
       responses, scope, limits, and safe errors; tests verify documented JSON contracts.
 - [x] Snapshot comparison validates compatible evidence and produces descriptive
       changes without invented zeros, exhaustive coverage, or causal conclusions.
-- [ ] Each increment has focused tests, appropriate checks, usage documentation,
+- [x] Each increment has focused tests, appropriate checks, usage documentation,
       resolved consultation findings, and a PR in a verified dependent stack.
 
 ## Scope and constraints
@@ -96,3 +96,13 @@ than inferred. Added unsafe decimal/underflow regressions independently of the r
 Final comparison verification: 89 Bun tests pass, TypeScript 7 and Vite+ checks pass
 with four warnings in unchanged legacy tool code. Package archive built successfully.
 Comparison changes are ready for a dependent PR above Bing #6.
+
+All three increments are published in verified managed GitHub stack #5:
+
+- #2 API foundation (merged externally), #4 standalone setup (merged externally).
+- #6 Bing reports: https://github.com/caiopizzol/pagesight/pull/6
+- #8 comparison: https://github.com/caiopizzol/pagesight/pull/8 (base feat/bing-reports).
+  Implementation and publication criteria are met. Remaining work is external review
+  monitoring of #6 and #8 plus any verified findings. PR6 owner found no current issue;
+  89 final tests and package-import smoke pass at the top layer. No initiating-site
+  integration was added, and no live Bing access has been claimed.
