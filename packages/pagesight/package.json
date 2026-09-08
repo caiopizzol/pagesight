@@ -27,7 +27,8 @@
   "files": [
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs"
   ],
   "type": "module",
   "main": "src/api/index.ts",

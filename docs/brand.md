@@ -21,28 +21,13 @@ Pagesight is sight.
 
 ### What it does
 
-Five questions, five tools, unified in one package:
+Pagesight gathers search, analytics, page, and performance evidence. The shared API
+is available through CLI, local HTTP, and MCP. Seven MCP tools cover observation,
+page checks, performance, Search Console, AI crawler access, audits, and setup.
 
-**What's on this page?** Meta tags, Open Graph, structured data validation (19 schema types with nested field checks), internal link health, redirect chains, WCAG contrast checking. Batch across multiple URLs.
-
-**How fast is it?** Lab scores from Lighthouse (single, batch, side-by-side compare), real-user metrics from Chrome UX Report (snapshot + 10-month trends). Shared accessibility issues deduplicated across pages.
-
-**How's Google seeing me?** Index status, sitemap health with auto-drill-down, search analytics with period-over-period comparison. Sample-inspect from sitemaps to diagnose indexing patterns.
-
-**How's AI seeing me?** 139+ AI crawlers audited by category (training, search, assistant, agent). robots.txt validation per RFC 9309. llms.txt and llms-full.txt detection.
-
-**How's my site overall?** One call runs everything in parallel. Findings ranked by severity. Errors surfaced first. Auto-drill-down when indexing is low.
-
-```
-=== Site Audit: https://example.com ===
-
-HIGH    Missing canonical URL
-HIGH    7,772 sitemap URLs submitted, 0 indexed
-MEDIUM  Missing og:image — no social preview image
-MEDIUM  Accessibility score: 89/100
-LOW     Missing Twitter Card tags
-LOW     No structured data (JSON-LD) found
-```
+See [PRODUCT.md](../PRODUCT.md) for current capabilities and limits. Use actual
+verified output in examples; sitemap submission is not indexing evidence, and
+robots.txt permission does not prove an AI service crawled or cited a page.
 
 ### Positioning
 
@@ -158,10 +143,10 @@ That's Pagesight.
 Your AI assistant is blind to search. Pagesight gives it eyes. Index status, performance, search traffic, bot access, meta tags, structured data, link health, accessibility, AI visibility — direct from the source, delivered through your assistant.
 
 **Source**
-Every data point has a citation. Official APIs, published standards, community registries. No invented scores. No proprietary rules. What the sources report is what you see.
+Preserve provider evidence and explain its limits. Cite the API or standard behind claims. Label selected checks and heuristics honestly; do not imply full validation.
 
 **Action**
-Seeing isn't enough. Six tools, each named for what you're trying to do. Findings ranked by severity. Batch across pages. Compare across periods. Fix what matters.
+Seeing isn't enough. Seven MCP tools, each named for what you're trying to do. Findings ranked by severity. Batch across pages. Compare across periods. Fix what matters.
 
 **Developer-Native**
 `npm install pagesight`. Let your AI assistant use it. No dashboard. No browser. No login. No subscription. Works where you already work.
@@ -170,7 +155,7 @@ Seeing isn't enough. Six tools, each named for what you're trying to do. Finding
 
 - "Your AI assistant can write your code. Now it can see your site."
 - "See your site the way search engines and AI see it."
-- "Six tools. Five questions. Prioritized."
+- "Search evidence. Clear limits."
 - "What Google sees. What AI knows. One tool."
 - "139 AI crawlers. Do you know which ones you've let in?"
 - "No scores we invented. No rules we can't cite."

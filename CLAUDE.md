@@ -10,6 +10,7 @@ The active agent SEO observability goal and verification live in `seo-goal.md`.
 ## Stack
 
 - **Runtime**: Bun (not Node.js)
+- **Contributor runtime**: Node 22.18 or later in the 22.x line for Vite+ and release tooling
 - **Language**: TypeScript
 - **MCP SDK**: `@modelcontextprotocol/sdk`
 - **Development tools**: Vite+ (Oxfmt, Oxlint, type checks)
@@ -21,40 +22,48 @@ The active agent SEO observability goal and verification live in `seo-goal.md`.
 Adapters translate transport input/output only. The six original MCP tools remain
 compatible; `observe` exposes the shared API.
 
-```
+```text
 packages/pagesight/src/
-  index.ts              # Bin dispatcher; no arguments show CLI help; mcp starts MCP
-  cli.ts                # CLI adapter
-  http.ts               # Bearer-authenticated loopback HTTP adapter
-  mcp.ts                # MCP server entry, registers 7 tools
+  index.ts              # Existing bin dispatcher
+  cli.ts, http.ts       # CLI and authenticated loopback HTTP
+  mcp.ts                # Stdio startup
+  mcp-server.ts         # Import-safe registration of seven tools
   api/
-    index.ts            # Public execute API and operation dispatch
-    schema.ts           # Shared request and site-context validation
-    evidence.ts         # Raw observations, failures and provenance
+    index.ts            # Public exports
+    execute.ts          # Validate and dispatch operations
+    schema.ts           # Requests and site configuration
+    evidence.ts         # Evidence creation, failures, and aggregation
+    evidence-schema.ts  # Saved evidence validation
+    doctor.ts           # Provider access checks
+    discover.ts         # Accessible property discovery
     reports.ts          # Bounded GA/GSC pagination
-    compare.ts          # Validated descriptive snapshot comparisons
-    imported.ts         # Stored evidence and snapshot validation
-    snapshot.ts         # Independent observations and aggregation
-    web.ts              # Bounded deployed HTML and sitemap inventory
-    dates.ts            # Pacific reporting-window defaults
-  lib/
-    auth.ts             # OAuth 2.0 + Service Account auth for GSC
-    gsc.ts              # Google Search Console API client
-    ga.ts               # GA Admin/Data APIs and separate credential cache
-    http.ts             # Bounded requests and safe provider errors
-    psi.ts              # PageSpeed Insights API client
-    crux.ts             # Chrome UX Report API client
-    robots.ts           # robots.txt parser + AI crawler registry
-    sitemap.ts          # Sitemap XML parser + URL inspection utilities
+    snapshot.ts         # Observation selection and collection
+    compare-snapshots.ts
+    bing.ts
+  providers/            # gsc, ga, bing, pagespeed, crux clients
+    google-tokens.ts    # OAuth/JWT exchanges; explicit scopes
+    gsc-auth.ts         # GSC credentials, cache, and setup
+  web/                  # Bounded observation; separate from legacy MCP parsing
+    fetch.ts
+    page-observation.ts
+    sitemap-inventory.ts
+    sitemap-parser.ts
+    robots.ts
+  shared/               # HTTP/error primitives and reporting dates only
   tools/
-    observe.ts          # Shared API operation as an MCP tool
-    audit.ts            # "How's my site?" — orchestrates all tools
-    page.ts             # "What's on this URL?" — meta tags, links, structured data, contrast
-    speed.ts            # "How fast is it?" — PageSpeed (single/batch/compare) + CrUX (snapshot/history)
-    search.ts           # "How's Google seeing me?" — inspect, sample inspect, sitemaps, analytics
-    ai.ts               # "How's AI seeing me?" — AI crawler audit, robots.txt validation
-    setup.ts            # Auth setup helper
+    page/               # Metadata, structured data, links, contrast, single/batch analysis
+    search/             # Actions, inspection, coverage, analytics, sitemap sampling
+    speed/              # PageSpeed, CrUX, and batch analysis
+    ai.ts, audit.ts, observe.ts, setup.ts
 ```
+
+Each large tool's `tool.ts` registers it. Tests live under matching subjects in
+`packages/pagesight/__tests__`; shared fixtures are in `support/`.
+Lower layers must not import API orchestration. Keep the strict sitemap inventory
+and legacy search sampler separate, along with their existing fetch policies.
+
+The private root owns shared tooling and one Bun lockfile. Runtime dependencies
+belong to their workspace. A future website belongs in `apps/website`.
 
 ## APIs Used
 
@@ -75,7 +84,9 @@ packages/pagesight/src/
 - `bun run lint` — Vite+ lint
 - `bun run format` — Vite+ format
 - `bun run check` — Vite+ format, lint and type checks
-- `bun test` — run tests
+- `bun run test` — run workspace tests
+- `bun run verify` — all checks, import boundaries, and tests
+- `bun run test:package` — packed API/CLI/MCP consumer checks
 
 ## Conventions
 
