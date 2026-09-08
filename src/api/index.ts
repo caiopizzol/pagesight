@@ -2,20 +2,20 @@ import { ZodError } from "zod";
 import { getAuthMethod } from "../lib/auth.js";
 import { queryCrux, queryCruxHistory } from "../lib/crux.js";
 import { gaCredentialInfo, gaFetch, gaProperty } from "../lib/ga.js";
-import { getSite, inspectUrl, listSitemaps, listSites } from "../lib/gsc.js";
+import { getSite, inspectUrlResponse, listSitemapsResponse, listSitesResponse } from "../lib/gsc.js";
 import { RequestError } from "../lib/http.js";
 import { runPagespeed } from "../lib/psi.js";
 import { defaultDates } from "./dates.js";
 import { capture, type Evidence } from "./evidence.js";
 import { gaReport, gscReport } from "./reports.js";
-import { type Operation, operationSchema } from "./schema.js";
+import { operationSchema } from "./schema.js";
 import { aggregate, snapshot } from "./snapshot.js";
 import { observePage } from "./web.js";
 
 export type { Evidence } from "./evidence.js";
 export { configSchema, type Operation, operationSchema } from "./schema.js";
 
-export async function execute(input: Operation | unknown): Promise<Evidence> {
+export async function execute(input: unknown): Promise<Evidence> {
   let op: ReturnType<typeof operationSchema.parse>;
   try {
     op = operationSchema.parse(input);
@@ -41,9 +41,9 @@ export async function execute(input: Operation | unknown): Promise<Evidence> {
 async function dispatch(op: ReturnType<typeof operationSchema.parse>): Promise<Evidence> {
   switch (op.operation) {
     case "gsc.sites":
-      return capture("gsc", "sites", "accessible-properties", {}, listSites);
+      return capture("gsc", "sites", "accessible-properties", {}, listSitesResponse);
     case "gsc.sitemaps":
-      return capture("gsc", "sitemaps", op.site, { site: op.site }, () => listSitemaps(op.site), [
+      return capture("gsc", "sitemaps", op.site, { site: op.site }, () => listSitemapsResponse(op.site), [
         "contents[].indexed is deprecated and must not be interpreted.",
       ]);
     case "gsc.inspect":
@@ -52,7 +52,7 @@ async function dispatch(op: ReturnType<typeof operationSchema.parse>): Promise<E
         "inspect",
         op.site,
         { inspectionUrl: op.url, siteUrl: op.site },
-        () => inspectUrl(op.url, op.site),
+        () => inspectUrlResponse(op.url, op.site),
         ["Inspection describes Google's indexed state, not a live fetch. This is one URL, not site coverage."],
       );
     case "gsc.report":

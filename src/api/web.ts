@@ -1,5 +1,5 @@
 import { RequestError } from "../lib/http.js";
-import { parseSitemapXml } from "../lib/sitemap.js";
+import { parseInventorySitemap } from "./sitemap.js";
 
 async function readBounded(response: Response, maxBytes: number): Promise<string> {
   if (Number(response.headers.get("content-length")) > maxBytes)
@@ -56,8 +56,7 @@ export async function observePage(url: string) {
   const { response, body, finalUrl, redirects } = await fetchText(url, 2_000_000);
   const warnings = ["Fetched HTML only; JavaScript execution and crawler access were not tested."];
   let title = "";
-  let canonical: string | null = null;
-  let description: string | null = null;
+  const metadata: { canonical: string | null; description: string | null } = { canonical: null, description: null };
   const robots: string[] = [];
   const data: string[] = [];
   const rewriter = new HTMLRewriter()
@@ -71,7 +70,7 @@ export async function observePage(url: string) {
         const href = el.getAttribute("href");
         if (href) {
           try {
-            canonical = new URL(href, finalUrl).href;
+            metadata.canonical = new URL(href, finalUrl).href;
           } catch {
             warnings.push("Malformed canonical href; canonical is unknown.");
           }
@@ -82,7 +81,7 @@ export async function observePage(url: string) {
       element(el) {
         const name = el.getAttribute("name")?.toLowerCase();
         const value = el.getAttribute("content");
-        if (name === "description") description = value;
+        if (name === "description") metadata.description = value;
         if ((name === "robots" || name === "googlebot") && value) robots.push(`${name}: ${value}`);
       },
     })
@@ -102,8 +101,8 @@ export async function observePage(url: string) {
     contentType: response.headers.get("content-type"),
     xRobotsTag: response.headers.get("x-robots-tag"),
     title: title.trim() || null,
-    description,
-    canonical,
+    description: metadata.description,
+    canonical: metadata.canonical,
     robots,
     sha256: Bun.CryptoHasher.hash("sha256", body, "hex"),
     bytes: Buffer.byteLength(body),
@@ -121,6 +120,8 @@ export async function observePage(url: string) {
 export async function observeSitemap(url: string) {
   const origin = new URL(url).origin;
   const queue = [url];
+  const scheduled = new Set(queue);
+  let omittedChildReferences = 0;
   const visited = new Set<string>();
   const urls = new Set<string>();
   const documents: Array<{ url: string; status: number; sha256: string; bytes: number }> = [];
@@ -138,49 +139,41 @@ export async function observeSitemap(url: string) {
       const page = await fetchText(next, 8_000_000 - bytes, origin);
       if (!page.response.ok) throw new RequestError("Sitemap fetch failed", page.response.status);
       bytes += Buffer.byteLength(page.body);
-      if (/<\w+:(?:urlset|sitemapindex)(?:\s|>)/i.test(page.body))
-        throw new RequestError(
-          "Prefixed sitemap XML is not supported by this inventory reader",
-          null,
-          "unsupported_sitemap",
-        );
-      const parsed = parseSitemapXml(page.body);
-      if (!/<(?:\w+:)?(?:urlset|sitemapindex)(?:\s|>)/i.test(page.body))
-        throw new RequestError("Expected sitemap XML", null, "invalid_sitemap");
+      const parsed = parseInventorySitemap(page.body);
       documents.push({
         url: page.finalUrl,
         status: page.response.status,
         bytes: Buffer.byteLength(page.body),
         sha256: Bun.CryptoHasher.hash("sha256", page.body, "hex"),
       });
-      for (const encoded of parsed.childSitemaps) {
-        const child = decodeXml(encoded);
-        if (!visited.has(child) && !queue.includes(child)) queue.push(child);
+      for (const child of parsed.children) {
+        if (scheduled.has(child)) continue;
+        if (scheduled.size >= 5) {
+          omittedChildReferences++;
+          continue;
+        }
+        scheduled.add(child);
+        queue.push(child);
       }
-      for (const item of parsed.urls) urls.add(decodeXml(item));
-      for (const match of page.body.matchAll(/<lastmod>\s*([^<]+)\s*<\/lastmod>/g))
-        if (match[1].slice(0, 10) > today) futureLastmods.add(match[1]);
+      for (const item of parsed.urls) urls.add(item);
+      for (const lastmod of parsed.lastmods) if (lastmod.slice(0, 10) > today) futureLastmods.add(lastmod);
     } catch (error) {
       errors.push({ url: next, code: error instanceof RequestError ? error.code : "fetch_failed" });
     }
   }
   return {
     sitemap: url,
-    complete: queue.length === 0 && errors.length === 0,
+    complete: queue.length === 0 && errors.length === 0 && omittedChildReferences === 0,
     documents,
     urls: [...urls],
     urlCount: urls.size,
     bytes,
     unvisited: queue,
+    omittedChildReferences,
     errors,
     futureLastmods: [...futureLastmods],
     warnings: [
       "Sitemap membership is not indexing evidence. Inventory is limited to five same-origin XML documents and 8 MB.",
     ],
   };
-}
-
-function decodeXml(value: string): string {
-  const entities: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
-  return value.replace(/&(amp|lt|gt|quot|apos);/g, (_, key: string) => entities[key]);
 }

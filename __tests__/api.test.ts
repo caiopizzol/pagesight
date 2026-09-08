@@ -15,7 +15,7 @@ import { RequestError, requestJson } from "../src/lib/http.js";
 const fixture = Bun.serve({
   hostname: "127.0.0.1",
   port: 0,
-  fetch(req) {
+  fetch(req): Response {
     const url = new URL(req.url);
     if (url.pathname === "/sitemap.xml")
       return new Response(
@@ -37,9 +37,9 @@ const fixture = Bun.serve({
   },
 });
 const api = startHttpApi("test-token-with-at-least-24-characters", 0);
-afterAll(() => {
-  fixture.stop(true);
-  api.stop(true);
+afterAll(async () => {
+  await fixture.stop(true);
+  await api.stop(true);
 });
 const request = gscRequestSchema.parse({
   startDate: "2026-08-01",
@@ -143,7 +143,9 @@ test("API rejects invalid and future dates regardless of transport", async () =>
     operationSchema.safeParse({ operation: "snapshot", config, startDate: "2099-01-01", endDate: "2099-01-28" })
       .success,
   ).toBe(false);
-  await expect(execute({ operation: "ga.report", property: "123", request: {} })).rejects.toThrow();
+  expect(
+    await execute({ operation: "ga.report", property: "123", request: {} }).catch((error: unknown) => error),
+  ).toBeInstanceOf(Error);
   expect(defaultDates(new Date("2026-09-08T01:00:00Z"))).toEqual({ startDate: "2026-08-08", endDate: "2026-09-04" });
 });
 
@@ -237,11 +239,15 @@ test("GA metadata flags remaining pages and reports credential source without se
       refresh_token: "test-refresh",
     }),
   );
-  const mocked = spyOn(globalThis, "fetch").mockImplementation(async (url) =>
-    Response.json(
-      String(url).includes("oauth2.googleapis.com")
-        ? { access_token: "test-access" }
-        : { accountSummaries: [], nextPageToken: "next-page" },
+  const mocked = spyOn(globalThis, "fetch").mockImplementation(
+    Object.assign(
+      async (url: Parameters<typeof fetch>[0]) =>
+        Response.json(
+          (url instanceof Request ? url.url : url.toString()).includes("oauth2.googleapis.com")
+            ? { access_token: "test-access" }
+            : { accountSummaries: [], nextPageToken: "next-page" },
+        ),
+      { preconnect: fetch.preconnect },
     ),
   );
   try {

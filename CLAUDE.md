@@ -54,12 +54,12 @@ src/
 
 ## APIs Used
 
-| API | Auth | Env Var |
-|-----|------|---------|
-| Google Search Console | OAuth 2.0 / Service Account | `GSC_CLIENT_ID`, `GSC_CLIENT_SECRET`, `GSC_REFRESH_TOKEN` |
+| API                         | Auth                                  | Env Var                                                                  |
+| --------------------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| Google Search Console       | OAuth 2.0 / Service Account           | `GSC_CLIENT_ID`, `GSC_CLIENT_SECRET`, `GSC_REFRESH_TOKEN`                |
 | Google Analytics Admin/Data | Service Account / authorized-user ADC | `PAGESIGHT_GA_CREDENTIALS` (preferred), `GOOGLE_APPLICATION_CREDENTIALS` |
-| PageSpeed Insights v5 | API key (optional) | `GOOGLE_API_KEY` |
-| Chrome UX Report | API key (required) | `GOOGLE_API_KEY` |
+| PageSpeed Insights v5       | API key (optional)                    | `GOOGLE_API_KEY`                                                         |
+| Chrome UX Report            | API key (required)                    | `GOOGLE_API_KEY`                                                         |
 
 ## Commands
 

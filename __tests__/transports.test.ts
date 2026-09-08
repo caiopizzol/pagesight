@@ -69,7 +69,7 @@ test("no-argument MCP remains compatible and observe calls the same API", async 
       arguments: { request: { operation: "page", url: fixture.url.href } },
     });
     const direct = await execute({ operation: "page", url: fixture.url.href });
-    expect(result.structuredContent?.pages).toEqual(direct.pages);
+    expect((result.structuredContent as { pages?: unknown } | undefined)?.pages).toEqual(direct.pages);
     expect(result.isError).toBe(false);
   } finally {
     await client.close();

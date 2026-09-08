@@ -9,8 +9,8 @@ let pending: Promise<string> | undefined;
 
 export function gaCredentialPath(): string {
   return (
-    process.env.PAGESIGHT_GA_CREDENTIALS ??
-    process.env.GOOGLE_APPLICATION_CREDENTIALS ??
+    process.env.PAGESIGHT_GA_CREDENTIALS ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS ||
     join(homedir(), ".config/gcloud/application_default_credentials.json")
   );
 }

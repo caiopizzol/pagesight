@@ -2,7 +2,7 @@ import { capture, type Evidence } from "./evidence.js";
 import { configSchema, gaRequestSchema, gscRequestSchema, type Operation, type SiteConfig } from "./schema.js";
 import { observeSitemap } from "./web.js";
 
-export type Executor = (input: Operation | unknown) => Promise<Evidence>;
+export type Executor = (input: unknown) => Promise<Evidence>;
 
 export function snapshotOperations(
   config: SiteConfig,

@@ -9,9 +9,10 @@ export class RequestError extends Error {
 }
 
 export async function requestJson<T>(url: string, init: RequestInit = {}, timeoutMs = 30_000): Promise<T> {
+  const signal = AbortSignal.timeout(timeoutMs);
   let response: Response;
   try {
-    response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    response = await fetch(url, { ...init, signal });
   } catch {
     throw new RequestError("Request failed or timed out", null, "network_error");
   }
@@ -31,7 +32,9 @@ export async function requestJson<T>(url: string, init: RequestInit = {}, timeou
   }
   try {
     return (await response.json()) as T;
-  } catch {
+  } catch (error) {
+    if (signal.aborted || !(error instanceof SyntaxError))
+      throw new RequestError("Response body failed or timed out", null, "network_error");
     throw new RequestError("Provider returned invalid JSON", response.status, "invalid_response");
   }
 }

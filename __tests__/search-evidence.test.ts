@@ -65,16 +65,21 @@ test("legacy audit exposes a failed inspection and retains classified PageSpeed 
   process.env.GSC_CLIENT_SECRET = "test-secret";
   process.env.GSC_REFRESH_TOKEN = "test-refresh";
   clearTokenCache();
-  const mocked = spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-    const url = String(input);
-    if (url.includes("oauth2.googleapis.com")) return Response.json({ access_token: "test-access" });
-    if (url.includes("urlInspection")) return new Response("private-inspection-error", { status: 403 });
-    if (url.includes("pagespeedonline")) return new Response("private-psi-error", { status: 429 });
-    if (url.includes("/sitemaps")) return Response.json({ sitemap: [] });
-    if (url.includes("raw.githubusercontent.com")) return Response.json({});
-    if (url.endsWith("robots.txt")) return new Response("User-agent: *\nAllow: /");
-    return new Response("<html><head><title>Audit check</title></head></html>");
-  });
+  const mocked = spyOn(globalThis, "fetch").mockImplementation(
+    Object.assign(
+      async (input: Parameters<typeof fetch>[0]) => {
+        const url = input instanceof Request ? input.url : input.toString();
+        if (url.includes("oauth2.googleapis.com")) return Response.json({ access_token: "test-access" });
+        if (url.includes("urlInspection")) return new Response("private-inspection-error", { status: 403 });
+        if (url.includes("pagespeedonline")) return new Response("private-psi-error", { status: 429 });
+        if (url.includes("/sitemaps")) return Response.json({ sitemap: [] });
+        if (url.includes("raw.githubusercontent.com")) return Response.json({});
+        if (url.endsWith("robots.txt")) return new Response("User-agent: *\nAllow: /");
+        return new Response("<html><head><title>Audit check</title></head></html>");
+      },
+      { preconnect: fetch.preconnect },
+    ),
+  );
   const server = new McpServer({ name: "audit-test", version: "1.0.0" });
   const client = new Client({ name: "audit-test-client", version: "1.0.0" });
   const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();

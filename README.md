@@ -13,15 +13,15 @@ Requires Bun. Install with `bun add pagesight`, or run the checkout after
 ## API
 
 ```ts
-import { execute } from 'pagesight';
+import { execute } from "pagesight";
 
 const report = await execute({
-  operation: 'gsc.report',
-  site: 'sc-domain:example.com',
+  operation: "gsc.report",
+  site: "sc-domain:example.com",
   request: {
-    startDate: '2026-08-01',
-    endDate: '2026-08-28',
-    dimensions: ['page'],
+    startDate: "2026-08-01",
+    endDate: "2026-08-28",
+    dimensions: ["page"],
   },
   maxPages: 4,
 });
@@ -36,20 +36,20 @@ GA evidence identifies the credential source variable, credential type, and serv
 account email when present. It never includes the token or private key. Aggregate
 results include a concise per-observation `summary` alongside full observations.
 
-| Operation | Required inputs |
-| --- | --- |
-| `gsc.sites` | None |
-| `gsc.sitemaps` | `site` |
-| `gsc.inspect` | `site`, `url` |
-| `gsc.report` | `site`, `request`; optional `maxPages` |
-| `ga.accounts` | None |
-| `ga.property`, `ga.key-events` | `property` |
-| `ga.report` | `property`, `request`; optional `maxPages` |
-| `page` | `url` |
-| `speed.psi` | `url`; optional `strategy` (`mobile` or `desktop`) |
-| `speed.crux`, `speed.history` | `url`; optional `origin: true`, `formFactor` |
-| `doctor` | `config` |
-| `snapshot` | `config`, `startDate`, `endDate`; optional `maxPages` |
+| Operation                      | Required inputs                                       |
+| ------------------------------ | ----------------------------------------------------- |
+| `gsc.sites`                    | None                                                  |
+| `gsc.sitemaps`                 | `site`                                                |
+| `gsc.inspect`                  | `site`, `url`                                         |
+| `gsc.report`                   | `site`, `request`; optional `maxPages`                |
+| `ga.accounts`                  | None                                                  |
+| `ga.property`, `ga.key-events` | `property`                                            |
+| `ga.report`                    | `property`, `request`; optional `maxPages`            |
+| `page`                         | `url`                                                 |
+| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`)    |
+| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`          |
+| `doctor`                       | `config`                                              |
+| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages` |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
@@ -76,15 +76,17 @@ Web search, no dimensions, 25,000 rows, offset zero. Ad hoc commands fetch one p
 unless `--max-pages` is supplied (maximum 20). Request examples:
 
 ```json
-{"startDate":"2026-08-01","endDate":"2026-08-28","dimensions":["page"]}
+{ "startDate": "2026-08-01", "endDate": "2026-08-28", "dimensions": ["page"] }
 ```
 
 ```json
 {
-  "dateRanges":[{"startDate":"2026-08-01","endDate":"2026-08-28"}],
-  "dimensions":[{"name":"eventName"}],
-  "metrics":[{"name":"eventCount"},{"name":"keyEvents"}],
-  "dimensionFilter":{"filter":{"fieldName":"hostName","stringFilter":{"matchType":"EXACT","value":"example.com"}}}
+  "dateRanges": [{ "startDate": "2026-08-01", "endDate": "2026-08-28" }],
+  "dimensions": [{ "name": "eventName" }],
+  "metrics": [{ "name": "eventCount" }, { "name": "keyEvents" }],
+  "dimensionFilter": {
+    "filter": { "fieldName": "hostName", "stringFilter": { "matchType": "EXACT", "value": "example.com" } }
+  }
 }
 ```
 
@@ -104,20 +106,20 @@ A config holds nonsecret provider IDs and the site's meaning:
 
 ```json
 {
-  "site":"https://example.com/",
-  "productionHostname":"example.com",
-  "gscSite":"sc-domain:example.com",
-  "gaProperty":"123456",
-  "sitemap":"https://example.com/sitemap.xml",
-  "pages":["https://example.com/"],
-  "context":{
-    "objective":"Help visitors use the product",
-    "successEvents":[],
-    "excludedKeyEvents":[],
-    "locale":"en-US",
-    "country":"US",
-    "routes":[{"pattern":"/","purpose":"Public entry","indexing":"index"}],
-    "measurementCaveats":[]
+  "site": "https://example.com/",
+  "productionHostname": "example.com",
+  "gscSite": "sc-domain:example.com",
+  "gaProperty": "123456",
+  "sitemap": "https://example.com/sitemap.xml",
+  "pages": ["https://example.com/"],
+  "context": {
+    "objective": "Help visitors use the product",
+    "successEvents": [],
+    "excludedKeyEvents": [],
+    "locale": "en-US",
+    "country": "US",
+    "routes": [{ "pattern": "/", "purpose": "Public entry", "indexing": "index" }],
+    "measurementCaveats": []
   }
 }
 ```
@@ -154,12 +156,12 @@ Interpretation rules:
 
 ## Credentials
 
-| Provider | Configuration |
-| --- | --- |
-| Search Console | `GSC_SERVICE_ACCOUNT_KEY`, or `GSC_CLIENT_ID`, `GSC_CLIENT_SECRET`, `GSC_REFRESH_TOKEN` |
-| GA4 | `PAGESIGHT_GA_CREDENTIALS`, then `GOOGLE_APPLICATION_CREDENTIALS`, then the usual local gcloud ADC file |
-| PageSpeed | `GOOGLE_API_KEY` optional |
-| CrUX | `GOOGLE_API_KEY` required |
+| Provider       | Configuration                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| Search Console | `GSC_SERVICE_ACCOUNT_KEY`, or `GSC_CLIENT_ID`, `GSC_CLIENT_SECRET`, `GSC_REFRESH_TOKEN`                 |
+| GA4            | `PAGESIGHT_GA_CREDENTIALS`, then `GOOGLE_APPLICATION_CREDENTIALS`, then the usual local gcloud ADC file |
+| PageSpeed      | `GOOGLE_API_KEY` optional                                                                               |
+| CrUX           | `GOOGLE_API_KEY` required                                                                               |
 
 GA accepts service-account JSON or `authorized_user` ADC JSON. Use
 `analytics.readonly` permission and grant property access. Enable both Analytics
@@ -192,14 +194,14 @@ host to run `bun /path/to/pagesight/src/index.ts` with the environment above.
 The new `observe` tool accepts `{ "request": <operation object> }` and returns
 structured API evidence. The original six tools remain available:
 
-| Tool | Capability |
-| --- | --- |
-| `audit` | PageSpeed, metadata, robots, sitemap processing errors and URL inspection |
-| `page` | Metadata, links, JSON-LD checks, redirects and contrast |
-| `speed` | PageSpeed and CrUX snapshots/history |
-| `search` | GSC reports, sitemap metadata and selected URL inspection |
-| `ai` | Robots and crawler-registry checks, llms.txt detection |
-| `setup` | Existing GSC authentication helpers |
+| Tool     | Capability                                                                |
+| -------- | ------------------------------------------------------------------------- |
+| `audit`  | PageSpeed, metadata, robots, sitemap processing errors and URL inspection |
+| `page`   | Metadata, links, JSON-LD checks, redirects and contrast                   |
+| `speed`  | PageSpeed and CrUX snapshots/history                                      |
+| `search` | GSC reports, sitemap metadata and selected URL inspection                 |
+| `ai`     | Robots and crawler-registry checks, llms.txt detection                    |
+| `setup`  | Existing GSC authentication helpers                                       |
 
 The legacy text tools do not invent indexed counts from deprecated sitemap fields,
 extrapolate sample verdicts to the whole site, or treat missing comparison rows as zero.

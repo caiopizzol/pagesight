@@ -52,6 +52,11 @@ export interface InspectionResult {
 }
 
 export async function inspectUrl(inspectionUrl: string, siteUrl: string): Promise<InspectionResult> {
+  const data = await inspectUrlResponse(inspectionUrl, siteUrl);
+  return data.inspectionResult as InspectionResult;
+}
+
+export async function inspectUrlResponse(inspectionUrl: string, siteUrl: string): Promise<Record<string, unknown>> {
   const data = await gscFetch(`${GSC_API}/urlInspection/index:inspect`, {
     inspectionUrl,
     siteUrl,
@@ -59,7 +64,7 @@ export async function inspectUrl(inspectionUrl: string, siteUrl: string): Promis
   if (!data.inspectionResult) {
     throw new Error("GSC API returned no inspection result");
   }
-  return data.inspectionResult as InspectionResult;
+  return data;
 }
 
 // --- Search Analytics ---
@@ -130,8 +135,12 @@ export interface GscSite {
 }
 
 export async function listSites(): Promise<GscSite[]> {
-  const data = await gscFetch(`${WEBMASTERS_API}/sites`);
+  const data = await listSitesResponse();
   return (data.siteEntry as GscSite[] | undefined) ?? [];
+}
+
+export function listSitesResponse(): Promise<Record<string, unknown>> {
+  return gscFetch(`${WEBMASTERS_API}/sites`);
 }
 
 export async function getSite(siteUrl: string): Promise<GscSite> {
@@ -160,8 +169,12 @@ export interface GscSitemap {
 }
 
 export async function listSitemaps(siteUrl: string): Promise<GscSitemap[]> {
-  const data = await gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
+  const data = await listSitemapsResponse(siteUrl);
   return (data.sitemap as GscSitemap[] | undefined) ?? [];
+}
+
+export function listSitemapsResponse(siteUrl: string): Promise<Record<string, unknown>> {
+  return gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
 }
 
 export async function getSitemap(siteUrl: string, feedpath: string): Promise<GscSitemap> {

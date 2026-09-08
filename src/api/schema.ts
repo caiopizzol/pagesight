@@ -22,7 +22,7 @@ export const gscRequestSchema = z
     dataState: z.enum(["final", "all", "hourly_all"]).default("final"),
     rowLimit: z.number().int().min(1).max(25000).default(25000),
     startRow: offset.default(0),
-    aggregationType: z.enum(["auto", "byPage", "byProperty"]).optional(),
+    aggregationType: z.enum(["auto", "byPage", "byProperty", "byNewsShowcasePanel"]).optional(),
     dimensionFilterGroups: z
       .array(
         z
