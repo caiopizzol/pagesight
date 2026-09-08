@@ -105,9 +105,10 @@ Use Bun 1.3.12 and Node 22.18 or later in the 22.x line. From the root, run
 The package check installs a tarball outside the checkout and exercises API, CLI,
 and MCP entrypoints. Run focused tests from `packages/pagesight`.
 
-Only `packages/pagesight` is published. Website-only commits use the `website`
-scope, which is excluded from npm releases; mixed changes must not use it.
-The release job disables npm workspace updates; Bun owns the lockfile.
+Only `packages/pagesight` is published. Release Please opens version and changelog
+PRs; merging one publishes to npm through `.github/workflows/release.yml`.
+Website-only changes do not trigger package releases. The workflow uses
+`RELEASE_PLEASE_TOKEN` for GitHub and npm trusted publishing (no npm token).
 
 Add operation schemas in `api/schema.ts`, workflows beside their owner, and
 routing in `api/execute.ts`. Export public additions from `api/index.ts`.
