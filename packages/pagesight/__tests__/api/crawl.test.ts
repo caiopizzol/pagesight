@@ -151,3 +151,64 @@ test("HTTP429 stops further crawling and preserves the remaining queue as unknow
     await server.stop(true);
   }
 });
+
+test("a depth-rejected URL can be fetched through a later permitted redirect", async () => {
+  const hits: string[] = [];
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch(req): Response {
+      const path = new URL(req.url).pathname;
+      hits.push(path);
+      if (path === "/robots.txt") return new Response("", { status: 404 });
+      if (path === "/redirect") return new Response(null, { status: 302, headers: { Location: "/target" } });
+      const html =
+        path === "/"
+          ? '<a href="/long">Long</a><a href="/redirect">Short</a>'
+          : path === "/long"
+            ? '<a href="/target">Target</a>'
+            : "<title>Target</title>";
+      return new Response(html, { headers: { "Content-Type": "text/html" } });
+    },
+  });
+  try {
+    const result = await crawlSite({
+      site: server.url.href,
+      seeds: [server.url.href],
+      maxPages: 10,
+      maxDepth: 1,
+      maxLinks: 10,
+      includeQuery: false,
+    });
+    expect(hits.filter((p) => p === "/target")).toHaveLength(1);
+    expect(result.pages.find((p) => p.url.endsWith("/target"))?.observedDepthFromSeeds).toBe(1);
+    expect(result.skipped.some((p) => p.url.endsWith("/target"))).toBe(false);
+  } finally {
+    await server.stop(true);
+  }
+});
+
+test("case-variant HTML content types retain missing metadata findings", async () => {
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: (req) =>
+      new URL(req.url).pathname === "/robots.txt"
+        ? new Response("", { status: 404 })
+        : new Response("<title>Page</title>", { headers: { "Content-Type": "TEXT/HTML; charset=utf-8" } }),
+  });
+  try {
+    const result = await crawlSite({
+      site: server.url.href,
+      seeds: [server.url.href],
+      maxPages: 1,
+      maxDepth: 0,
+      maxLinks: 10,
+      includeQuery: false,
+    });
+    expect(result.pages[0].title).toBe("Page");
+    expect(result.findings.some((f) => f.kind === "missing_html_metadata")).toBe(true);
+  } finally {
+    await server.stop(true);
+  }
+});

@@ -151,14 +151,15 @@ export async function crawlSite(input: Input) {
   }
   const queue: Array<{ url: string; depth: number; explicit: boolean; redirectHops: number }> = [];
   const scheduled = new Set<string>();
+  const discovered = new Set<string>();
   const seedUrls = input.seeds.map((url) => resolve(url, origin)).filter((url): url is string => url !== null);
   const enqueue = (url: string, depth: number, explicit = false, redirectHops = 0) => {
     if (scheduled.has(url)) return;
-    if (scheduled.size >= urlLimit) {
+    if (!discovered.has(url) && discovered.size >= urlLimit) {
       omittedDiscoveredUrls++;
       return;
     }
-    scheduled.add(url);
+    discovered.add(url);
     const denied = permitted(url);
     const reason =
       denied ??
@@ -169,9 +170,12 @@ export async function crawlSite(input: Input) {
           ? "depth_limit"
           : null);
     if (reason) {
-      skipped.push({ url, reason });
+      if (!skipped.some((entry) => entry.url === url)) skipped.push({ url, reason });
       return;
     }
+    const rejectedIndex = skipped.findIndex((entry) => entry.url === url);
+    if (rejectedIndex !== -1) skipped.splice(rejectedIndex, 1);
+    scheduled.add(url);
     queue.push({ url, depth, explicit, redirectHops });
   };
   for (const url of seedUrls) enqueue(url, 0, true);
@@ -314,7 +318,7 @@ export async function crawlSite(input: Input) {
       });
     if (
       page.status === 200 &&
-      page.contentType?.includes("text/html") &&
+      page.contentType?.toLowerCase().includes("text/html") &&
       (!page.title || !page.description || !page.canonical)
     )
       findings.push({
