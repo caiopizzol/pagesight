@@ -5,7 +5,7 @@ import { registerObserveTool } from "./tools/observe.js";
 import { registerPageTool } from "./tools/page/tool.js";
 import { registerSearchTool } from "./tools/search.js";
 import { registerSetupTool } from "./tools/setup.js";
-import { registerSpeedTool } from "./tools/speed.js";
+import { registerSpeedTool } from "./tools/speed/tool.js";
 
 const pkg = await Bun.file(new URL("../package.json", import.meta.url)).json();
 

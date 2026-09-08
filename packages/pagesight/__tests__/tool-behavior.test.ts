@@ -2,7 +2,7 @@ import { mockFetch, requestUrl } from "./support/fetch.js";
 import { expect, test } from "bun:test";
 import { registerPageTool } from "../src/tools/page/tool.js";
 import { registerSearchTool } from "../src/tools/search.js";
-import { registerSpeedTool } from "../src/tools/speed.js";
+import { registerSpeedTool } from "../src/tools/speed/tool.js";
 import { parseSitemapXml, sampleUrls } from "../src/lib/sitemap.js";
 import { callTool } from "./support/mcp.js";
 
