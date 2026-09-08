@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { createServer, request, type OutgoingHttpHeaders } from "node:http";
+import { pipeline } from "node:stream";
 import { connect, type Socket } from "node:net";
 import ipaddr from "ipaddr.js";
 
@@ -66,7 +67,7 @@ export async function startRenderNetwork(target: string) {
         },
         (response) => {
           outgoing.writeHead(response.statusCode!, response.headers);
-          response.pipe(outgoing);
+          pipeline(response, outgoing, () => upstream.destroy());
         },
       );
       upstream.on("socket", track);
@@ -74,7 +75,9 @@ export async function startRenderNetwork(target: string) {
         outgoing.destroy();
       });
       outgoing.on("close", () => upstream.destroy());
-      incoming.pipe(upstream);
+      pipeline(incoming, upstream, (error) => {
+        if (error) outgoing.destroy();
+      });
     } catch {
       outgoing.writeHead(403).end();
     }

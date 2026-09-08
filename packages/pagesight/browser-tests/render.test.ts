@@ -250,3 +250,33 @@ test("a rendered fixture cannot reach other local services by subresource or hos
     await privateService.stop(true);
   }
 }, 10000);
+
+test("truncated HTTP bodies produce failed observations rather than equal metadata", async () => {
+  const { createServer } = await import("node:net");
+  const server = createServer((socket) => {
+    socket.on("error", () => {});
+    socket.once("data", () => {
+      socket.write(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 1000\r\n\r\n<title>Incomplete</title>",
+      );
+      setTimeout(() => socket.destroy(), 20);
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const address = server.address() as { port: number };
+    const result = await execute({
+      operation: "page.verify",
+      url: `http://127.0.0.1:${address.port}/`,
+      settleMs: 0,
+      timeoutMs: 1000,
+    });
+    const data = result.pages[0]!.response as any;
+    expect(result.status).toBe("partial");
+    expect(data.observations.server.status).toBe("error");
+    expect(data.observations.direct.status).toBe("error");
+    expect(data.comparisons.serverToDirect.status).toBe("unavailable");
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+}, 5000);

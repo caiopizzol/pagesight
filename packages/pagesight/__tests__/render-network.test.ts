@@ -39,3 +39,40 @@ test("mixed DNS answers fail closed and each new connection rechecks addresses",
   expect(await checkedRenderAddress(url, url, resolve).catch(() => "blocked")).toBe("blocked");
   expect(calls).toBe(2);
 });
+
+test("a truncated upstream response fails without crashing the proxy process", async () => {
+  const module = new URL("../src/web/render-network.ts", import.meta.url).href;
+  const script = `
+    import { createServer } from "node:net";
+    import { startRenderNetwork } from ${JSON.stringify(module)};
+    const server = createServer(socket => {
+      socket.on("error", () => {});
+      socket.once("data", () => {
+        socket.write("HTTP/1.1 200 OK\\r\\nContent-Length: 1000\\r\\nContent-Type: text/html\\r\\n\\r\\n<title>short</title>");
+        setTimeout(() => socket.destroy(), 20);
+      });
+    });
+    await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+    const url = "http://127.0.0.1:" + server.address().port;
+    const network = await startRenderNetwork(url);
+    try {
+      const signal = AbortSignal.timeout(2000);
+      let failed = false;
+      try { await (await fetch(url, { proxy: network.proxy, signal })).text(); }
+      catch { failed = true; }
+      if (!failed) throw new Error("Truncated response accepted");
+      if (signal.aborted) throw new Error("Truncated upstream left downstream hanging");
+    } finally {
+      await network.close();
+      await new Promise(resolve => server.close(resolve));
+    }
+    console.log("survived");
+  `;
+  const child = Bun.spawn([process.execPath, "-e", script], { stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  expect({ exitCode, stderr, stdout }).toEqual({ exitCode: 0, stderr: "", stdout: "survived\n" });
+}, 5000);
