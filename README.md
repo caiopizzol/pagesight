@@ -37,3 +37,8 @@ Source and tests live in `packages/pagesight`.
 - [Bing diagnostics, HTML images, and UI findings](packages/pagesight/docs/diagnostics.md)
 
 MIT — see [LICENSE](LICENSE).
+
+For agents planning and verifying SEO improvements, follow the
+[SEO agent workflow](docs/seo-agent-workflow.md): demand and content decisions,
+site architecture, rendered-template/mobile checks, performance evidence,
+authority research and a recurring observation cadence.
