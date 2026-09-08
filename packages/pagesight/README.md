@@ -40,3 +40,8 @@ observations alongside a brief with findings, unknowns and next checks.
 See [the investigation guide](docs/investigation.md) for scope and interpretation.
 
 Use `pagesight crawl --config seo.config.json --out crawl.json` for a bounded internal-link/metadata graph and stored indexing sample. See [site discovery](docs/crawl.md) for robots, query and coverage policies.
+
+- [Cloudflare edge and security evidence](docs/cloudflare.md)
+- [Evaluate a deployed SEO change](docs/changes.md)
+- [Daily private observations](docs/monitoring.md)
+- [SEO agent workflow](docs/seo-agent-workflow.md)
