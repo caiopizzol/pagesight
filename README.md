@@ -69,3 +69,8 @@ The operation never changes DNS, cache, security or crawler settings.
 Provider references: [sampling](https://developers.cloudflare.com/analytics/graphql-api/sampling/),
 [limits](https://developers.cloudflare.com/analytics/graphql-api/limits/), and
 [dataset settings](https://developers.cloudflare.com/analytics/graphql-api/features/discovery/settings/).
+
+For agents planning and verifying SEO improvements, follow the
+[SEO agent workflow](docs/seo-agent-workflow.md): demand and content decisions,
+site architecture, rendered-template/mobile checks, performance evidence,
+authority research and a recurring observation cadence.

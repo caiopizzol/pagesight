@@ -15,7 +15,11 @@ type Input = { zone: string; hostname: string; startTime: string; endTime: strin
 // AIDEV-NOTE: Fixed selections exclude IPs, query strings and credentials. New fields change the privacy contract.
 export function cloudflareRequests(input: Input): Array<{ name: string; dataset: string; request: CloudflareQuery }> {
   const zoneVar = { zone: input.zone };
-  const filters = { datetime_geq: input.startTime, datetime_lt: input.endTime, clientRequestHTTPHost: input.hostname };
+  const filters = {
+    datetime_geq: input.startTime,
+    datetime_lt: input.endTime,
+    clientRequestHTTPHost: input.hostname.toLowerCase(),
+  };
   return [
     {
       name: "settings",
@@ -81,6 +85,7 @@ export async function cloudflareAudit(input: Input, query = cloudflareGraphql): 
     dataset: string;
     observedRows: number | null;
     possiblyTruncated: boolean;
+    effectiveRowLimit: number;
     unusableRows: number;
     collectedAt: string;
     errorPaths: unknown[];
@@ -89,6 +94,7 @@ export async function cloudflareAudit(input: Input, query = cloudflareGraphql): 
   const settingsSchema = z.object({
     enabled: z.boolean(),
     maxDuration: z.number().nonnegative(),
+    maxPageSize: z.number().int().positive().optional(),
     notOlderThan: z.number().nonnegative(),
     availableFields: z.array(z.string()),
   });
@@ -109,7 +115,8 @@ export async function cloudflareAudit(input: Input, query = cloudflareGraphql): 
         if (!row || typeof row !== "object") return true;
         const value = row as Record<string, unknown>;
         const dimensions = value.dimensions as Record<string, unknown> | undefined;
-        return (index === 1 ? dimensions?.clientRequestHTTPHost : value.clientRequestHTTPHost) !== input.hostname;
+        const hostname = index === 1 ? dimensions?.clientRequestHTTPHost : value.clientRequestHTTPHost;
+        return typeof hostname !== "string" || hostname.toLowerCase() !== input.hostname.toLowerCase();
       }).length ?? 0;
     const declared = settingsObservation.status === "ok" ? settingsSchema.safeParse(settings?.[dataset]) : null;
     if (!declared?.success)
@@ -121,7 +128,11 @@ export async function cloudflareAudit(input: Input, query = cloudflareGraphql): 
       if (Date.parse(input.endTime) - Date.parse(input.startTime) > declared.data.maxDuration * 1000)
         unknowns.push(`${dataset}: interval exceeds currently declared maximum duration.`);
     }
-    if (rows && rows.length >= input.limit)
+    const providerRowLimit = declared?.success ? declared.data.maxPageSize : undefined;
+    const effectiveRowLimit = Math.min(input.limit, providerRowLimit ?? input.limit);
+    if (providerRowLimit === undefined)
+      unknowns.push(`${dataset}: provider maximum page size unavailable; provider truncation is unknown.`);
+    if (rows && rows.length >= effectiveRowLimit)
       unknowns.push(`${dataset}: retained row limit reached; additional rows may exist.`);
     if (rows?.length === 0)
       unknowns.push(`${dataset}: empty retained set, not proof of zero traffic or security actions.`);
@@ -144,7 +155,8 @@ export async function cloudflareAudit(input: Input, query = cloudflareGraphql): 
     diagnostics.push({
       dataset,
       observedRows: rows?.length ?? null,
-      possiblyTruncated: Boolean(rows && rows.length >= input.limit),
+      possiblyTruncated: Boolean(rows && rows.length >= effectiveRowLimit),
+      effectiveRowLimit,
       unusableRows,
       collectedAt: observation.finishedAt,
       errorPaths: parsed.success

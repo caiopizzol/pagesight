@@ -131,3 +131,51 @@ test("retention, top-N truncation and response hostname mismatches are explicit 
   expect(data.unknowns.join()).toContain("disabled");
   expect(data.scope.querySignature).toHaveLength(64);
 });
+
+test("Cloudflare rejects rollover calendar timestamps", () => {
+  for (const invalid of ["2026-02-31T00:00:00Z", "2026-02-29T00:00:00Z", "2026-04-31T00:00:00Z"]) {
+    expect(
+      operationSchema.safeParse({
+        operation: "cloudflare.audit",
+        ...input,
+        startTime: invalid,
+        endTime: invalid.replace("00:00:00", "01:00:00"),
+      }).success,
+    ).toBe(false);
+  }
+});
+
+test("Cloudflare normalizes hostname case and detects provider row caps", async () => {
+  const request = { ...input, hostname: "EXAMPLE.COM", limit: 50 };
+  const filters: unknown[] = [];
+  const result = await cloudflareAudit(request, async (query) => {
+    if (!query.query.includes("query Settings")) filters.push((query.variables.filter as any).clientRequestHTTPHost);
+    const settings = {
+      enabled: true,
+      maxDuration: 86400,
+      maxPageSize: 1,
+      notOlderThan: 315360000,
+      availableFields: [],
+    };
+    return {
+      data: {
+        viewer: {
+          zones: [
+            {
+              zoneTag: input.zone,
+              settings: { httpRequestsAdaptiveGroups: settings, firewallEventsAdaptive: settings },
+              httpRequestsAdaptiveGroups: [{ dimensions: { clientRequestHTTPHost: "Example.Com" } }],
+              firewallEventsAdaptive: [{ clientRequestHTTPHost: "example.com" }],
+            },
+          ],
+        },
+      },
+    };
+  });
+  const data = result.pages[0].response as any;
+  expect(filters).toEqual(["example.com", "example.com"]);
+  expect(data.diagnostics.map((d: any) => d.unusableRows)).toEqual([0, 0]);
+  expect(data.diagnostics.map((d: any) => d.possiblyTruncated)).toEqual([true, true]);
+  expect(data.diagnostics.map((d: any) => d.effectiveRowLimit)).toEqual([1, 1]);
+  expect(data.unknowns.join()).toContain("row limit reached");
+});

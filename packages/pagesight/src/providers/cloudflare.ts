@@ -39,6 +39,8 @@ export async function cloudflareGraphql(request: CloudflareQuery): Promise<unkno
     return JSON.parse(await readBounded(response, 8_000_000));
   } catch (error) {
     if (error instanceof RequestError) throw error;
-    throw new RequestError("Cloudflare response could not be read as JSON", null, "invalid_response");
+    if (error instanceof SyntaxError)
+      throw new RequestError("Cloudflare response could not be read as JSON", response.status, "invalid_response");
+    throw new RequestError("Cloudflare response body failed or timed out", null, "network_error");
   }
 }

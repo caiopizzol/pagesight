@@ -44,3 +44,37 @@ test("Cloudflare transport keeps credentials out of evidence and maps unavailabl
     else process.env.CLOUDFLARE_API_TOKEN = previous;
   }
 });
+
+test("Cloudflare distinguishes interrupted bodies from malformed JSON", async () => {
+  const previous = process.env.CLOUDFLARE_API_TOKEN;
+  process.env.CLOUDFLARE_API_TOKEN = "fixture-private-token";
+  let interrupted = true;
+  const mocked = mockFetch(async () =>
+    interrupted
+      ? new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new DOMException("interrupted", "AbortError"));
+            },
+          }),
+        )
+      : new Response("{broken"),
+  );
+  try {
+    expect(
+      await cloudflareGraphql({ query: "query Settings {}", variables: {} }).catch((error: unknown) => error),
+    ).toMatchObject({
+      code: "network_error",
+    });
+    interrupted = false;
+    expect(
+      await cloudflareGraphql({ query: "query Settings {}", variables: {} }).catch((error: unknown) => error),
+    ).toMatchObject({
+      code: "invalid_response",
+    });
+  } finally {
+    mocked.mockRestore();
+    if (previous === undefined) delete process.env.CLOUDFLARE_API_TOKEN;
+    else process.env.CLOUDFLARE_API_TOKEN = previous;
+  }
+});
