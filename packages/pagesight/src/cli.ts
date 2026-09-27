@@ -60,6 +60,48 @@ Credentials: GSC_* env, PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIA
 Requests, property metadata, provider limits and errors are preserved in evidence.
 `;
 
+// Every CLI command and the flags it accepts; surface tests fail when one has no case.
+export const commands: Record<string, string[]> = {
+  render: ["url", "from-url", "link-selector", "settle-ms", "timeout-ms"],
+  "cloudflare.audit": ["zone", "hostname", "start", "end", "limit"],
+  "change.followup": ["manifest", "as-of", "lag-days", "format"],
+  "change.evaluate": ["record", "baseline", "current", "max-rows"],
+  "technical.compare": ["baseline", "current"],
+  "evidence.import": ["request"],
+  crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
+  investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
+  assess: ["snapshot", "max-rows", "format"],
+  opportunities: ["snapshot", "max-rows", "format", "min-impressions", "max-clicks"],
+  discover: ["url", "providers"],
+  compare: ["baseline", "current", "max-rows"],
+  "bing.crawl-stats": ["site"],
+  "bing.crawl-issues": ["site"],
+  "bing.url-info": ["site", "url"],
+  "bing.link-counts": ["site", "max-pages"],
+  "bing.url-links": ["site", "url", "max-pages"],
+  "bing.sites": [],
+  "bing.queries": ["site"],
+  "bing.pages": ["site"],
+  "bing.traffic": ["site"],
+  "gsc.sites": [],
+  "gsc.sitemaps": ["site"],
+  "gsc.inspect": ["site", "url"],
+  "gsc.report": ["site", "request", "max-pages"],
+  "ga.realtime": ["property", "request"],
+  "ga.accounts": [],
+  "ga.property": ["property"],
+  "ga.key-events": ["property"],
+  "ga.report": ["property", "request", "max-pages"],
+  page: ["url"],
+  "speed.psi": ["url", "strategy"],
+  "speed.crux": ["url", "origin", "form-factor"],
+  "speed.history": ["url", "origin", "form-factor"],
+  doctor: ["config"],
+  snapshot: ["config", "start", "end", "max-pages"],
+  api: ["request"],
+  serve: ["port"],
+};
+
 async function jsonFile(path: string | undefined, label: string): Promise<unknown> {
   if (!path) throw new RequestError(`Missing --${label}`, null, "invalid_input");
   try {
@@ -129,47 +171,7 @@ export async function runCli(args: string[]): Promise<number> {
     const operation = ["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "change", "technical"].includes(family)
       ? `${family}.${action ?? ""}`
       : family;
-    const flags: Record<string, string[]> = {
-      render: ["url", "from-url", "link-selector", "settle-ms", "timeout-ms"],
-      "cloudflare.audit": ["zone", "hostname", "start", "end", "limit"],
-      "change.followup": ["manifest", "as-of", "lag-days", "format"],
-      "change.evaluate": ["record", "baseline", "current", "max-rows"],
-      "technical.compare": ["baseline", "current"],
-      "evidence.import": ["request"],
-      crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
-      investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
-      assess: ["snapshot", "max-rows", "format"],
-      opportunities: ["snapshot", "max-rows", "format", "min-impressions", "max-clicks"],
-      discover: ["url", "providers"],
-      compare: ["baseline", "current", "max-rows"],
-      "bing.crawl-stats": ["site"],
-      "bing.crawl-issues": ["site"],
-      "bing.url-info": ["site", "url"],
-      "bing.link-counts": ["site", "max-pages"],
-      "bing.url-links": ["site", "url", "max-pages"],
-      "bing.sites": [],
-      "bing.queries": ["site"],
-      "bing.pages": ["site"],
-      "bing.traffic": ["site"],
-      "gsc.sites": [],
-      "gsc.sitemaps": ["site"],
-      "gsc.inspect": ["site", "url"],
-      "gsc.report": ["site", "request", "max-pages"],
-      "ga.realtime": ["property", "request"],
-      "ga.accounts": [],
-      "ga.property": ["property"],
-      "ga.key-events": ["property"],
-      "ga.report": ["property", "request", "max-pages"],
-      page: ["url"],
-      "speed.psi": ["url", "strategy"],
-      "speed.crux": ["url", "origin", "form-factor"],
-      "speed.history": ["url", "origin", "form-factor"],
-      doctor: ["config"],
-      snapshot: ["config", "start", "end", "max-pages"],
-      api: ["request"],
-      serve: ["port"],
-    };
-    const allowed = [...(flags[operation] ?? []), ...(operation === "serve" ? [] : ["out", "json"])];
+    const allowed = [...(commands[operation] ?? []), ...(operation === "serve" ? [] : ["out", "json"])];
     for (const flag of Object.keys(values))
       if (!allowed.includes(flag))
         throw new RequestError(`--${flag} is not supported for ${operation}`, null, "invalid_input");
