@@ -43,3 +43,4 @@ MIT — see [LICENSE](LICENSE).
 - [Rendered-page verification](packages/pagesight/docs/rendering.md)
 - [Daily private observations](packages/pagesight/docs/monitoring.md)
 - [SEO agent workflow](packages/pagesight/docs/seo-agent-workflow.md)
+
