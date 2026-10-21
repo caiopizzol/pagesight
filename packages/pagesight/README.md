@@ -1,7 +1,7 @@
 # Pagesight
 
 SEO, analytics, page, and performance evidence for developers and AI assistants.
-Use it through the TypeScript API, CLI, local HTTP server, or MCP.
+Use it through the TypeScript API, CLI, or MCP.
 
 Requires Bun. Try a page check without provider credentials:
 
@@ -20,7 +20,7 @@ console.log(result);
 Provider reports need access to the relevant Google account. Results keep
 raw observations, failures, and limits; missing data is not zero.
 
-- [API, CLI, HTTP, and MCP](docs/usage.md)
+- [API, CLI, and MCP](docs/usage.md)
 - [Snapshots and comparisons](docs/snapshots.md)
 - [Choose pages to investigate](docs/opportunities.md)
 - [Provider access](docs/credentials.md)

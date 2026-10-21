@@ -115,19 +115,6 @@ Exit codes: 0 success, 1 provider failure, 2 invalid input, 3 partial evidence.
 Partial snapshots are saved. A successful report can still have provider coverage
 limitations; inspect warnings and metadata before making comparisons.
 
-## Local HTTP interface
-
-```sh
-# Set PAGESIGHT_API_TOKEN in your private environment file (at least 24 characters).
-pagesight serve --port 6095
-```
-
-Send the shared operation JSON to `POST http://127.0.0.1:6095/v1/query` with
-`Authorization: Bearer <PAGESIGHT_API_TOKEN>`. The server binds only to loopback.
-Missing/invalid authentication returns 401; invalid operations return 400; provider
-failures return 502; partial evidence returns 200 with `status: partial`.
-This interface is for local agents, not an Internet deployment.
-
 ## MCP compatibility
 
 Run `pagesight mcp` to start the stdio MCP server. Configure your host to run

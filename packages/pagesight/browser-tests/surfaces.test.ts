@@ -9,8 +9,8 @@ import { operationSchema } from "../src/api/index.js";
 import { commands } from "../src/cli.js";
 import { fixture } from "../__tests__/support/followup.js";
 
-// Each case runs one CLI command offline, then sends its operation through the HTTP API and MCP observe.
-// The CLI's exit code, stdout, stderr and provider requests are snapshots; HTTP and MCP must match them.
+// Each case runs one CLI command offline, then sends its operation through MCP observe.
+// The CLI's exit code, stdout, stderr and provider requests are snapshots; MCP must match them.
 const entry = new URL("../src/index.ts", import.meta.url).pathname;
 const preload = new URL("../__tests__/support/offline-providers.ts", import.meta.url).pathname;
 const site = "https://example.com/";
@@ -18,7 +18,6 @@ const about = `${site}about`;
 const gscSite = "sc-domain:example.com";
 // A fixed port keeps rendered DOM hashes stable, because they include the page URL.
 const local = "http://127.0.0.1:29417/";
-const apiToken = "secret-local-api-token-for-surfaces";
 const saved = await fixture("2026-07-01", "2026-07-28");
 const config = { site };
 const dates = { startDate: "2026-08-01", endDate: "2026-08-28" };
@@ -130,9 +129,6 @@ const cases: Case[] = [
 ];
 
 let dir = "";
-let port = 0;
-let serveOutput = "";
-let server: ReturnType<typeof Bun.spawn> | undefined;
 const client = new Client({ name: "surfaces-test", version: "1" });
 const localSite = Bun.serve({
   hostname: "127.0.0.1",
@@ -152,16 +148,15 @@ const env = (log: string) => ({
   PAGESIGHT_FIXTURE_NOW: "2026-09-10T12:00:00.000Z",
   PAGESIGHT_FIXTURE_ACCESS_TOKEN: "secret-access-token",
   PAGESIGHT_GA_CREDENTIALS: join(dir, "ga-credentials.json"),
-  PAGESIGHT_API_TOKEN: apiToken,
   GSC_CLIENT_ID: "fixture-gsc-client",
   GSC_CLIENT_SECRET: "secret-gsc-client",
   GSC_REFRESH_TOKEN: "secret-gsc-refresh",
   GOOGLE_API_KEY: "secret-google-key",
 });
-async function run(argv: string[], environment = env("cli.log")) {
+async function run(argv: string[]) {
   const child = Bun.spawn([process.execPath, ...args(...argv)], {
     cwd: dir,
-    env: environment,
+    env: env("cli.log"),
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -179,25 +174,13 @@ async function drain(log: string) {
   await Bun.write(file, "");
   return lines.map((line) => JSON.parse(line) as { origin: string });
 }
-// The HTTP and MCP servers keep their Google access tokens, so only a fresh CLI exchanges one every time.
+// The MCP server keeps its Google access token, so only a fresh CLI exchanges one every time.
 const withoutTokens = (requests: Array<{ origin: string }>) =>
   requests.filter((request) => request.origin !== "https://oauth2.googleapis.com");
-const query = (init: RequestInit) => fetch(`http://127.0.0.1:${port}/v1/query`, init);
-const authorized = { Authorization: `Bearer ${apiToken}` };
 
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "pagesight-surfaces-"));
   for (const [name, value] of Object.entries(files)) await Bun.write(join(dir, name), JSON.stringify(value));
-  const probe = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
-  port = probe.port ?? 0;
-  await probe.stop(true);
-  const serve = Bun.spawn([process.execPath, ...args("serve", "--port", String(port))], {
-    env: env("http.log"),
-    stdout: "ignore",
-    stderr: "pipe",
-  });
-  server = serve;
-  serveOutput = new TextDecoder().decode((await serve.stderr.getReader().read()).value);
   await client.connect(
     new StdioClientTransport({ command: process.execPath, args: args("mcp"), env: env("mcp.log"), stderr: "pipe" }),
   );
@@ -205,15 +188,12 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client.close();
-  server?.kill();
-  await server?.exited;
   await localSite.stop(true);
   if (dir) await rm(dir, { recursive: true });
 });
 
 test("every CLI command and API operation has a case, and MCP lists observe", async () => {
-  // serve is covered by the next test; every case also uses the HTTP API it starts.
-  const covered = new Set(["serve"]);
+  const covered = new Set<string>();
   for (const { argv } of cases) covered.add(Object.hasOwn(commands, argv[0]) ? argv[0] : `${argv[0]}.${argv[1]}`);
   expect(Object.keys(commands).filter((command) => !covered.has(command))).toEqual([]);
   const operations = [...operationSchema.innerType().optionsMap.keys()];
@@ -222,57 +202,19 @@ test("every CLI command and API operation has a case, and MCP lists observe", as
   expect(tools.find((tool) => tool.name === "observe")?.description).toMatchSnapshot();
 });
 
-test("serve refuses a short token, then refuses unauthenticated, unknown and malformed requests before provider work", async () => {
-  // The port is taken, so a serve that skipped the token check would fail to bind instead of running.
-  expect(await run(["serve", "--port", String(port)], { ...env("cli.log"), PAGESIGHT_API_TOKEN: "short" })).toEqual({
-    exit: 2,
-    stdout: "",
-    stderr: '{"error":{"code":"invalid_input","message":"Set PAGESIGHT_API_TOKEN to at least 24 characters"}}\n',
-  });
-  expect(serveOutput).toBe(`Pagesight API listening on http://127.0.0.1:${port}/v1/query\n`);
-  const refused = [
-    await query({ method: "POST", body: JSON.stringify({ operation: "gsc.sites" }) }),
-    await query({ method: "GET", headers: authorized }),
-    await query({ method: "POST", headers: authorized, body: "{" }),
-  ];
-  expect(await Promise.all(refused.map(async (response) => [response.status, await response.text()]))).toEqual([
-    [401, '{"error":{"code":"unauthenticated"}}'],
-    [404, '{"error":{"code":"not_found"}}'],
-    [400, '{"error":{"code":"invalid_input","message":"Invalid JSON operation"}}'],
-  ]);
-  expect(await drain("http.log")).toEqual([]);
-  expect(await drain("cli.log")).toEqual([]);
-});
-
 for (const { argv, request } of cases)
   test(`pagesight ${argv.join(" ")}`, async () => {
     const cli = { ...(await run(argv)), requests: await drain("cli.log") };
     const out = argv.indexOf("--out");
     const written = out === -1 ? undefined : await Bun.file(join(dir, argv[out + 1])).text();
-    const response = request && (await query({ method: "POST", headers: authorized, body: JSON.stringify(request) }));
-    const http = response && {
-      status: response.status,
-      type: response.headers.get("content-type"),
-      cache: response.headers.get("cache-control"),
-      body: await response.text(),
-      requests: await drain("http.log"),
-    };
     const result = request && (await client.callTool({ name: "observe", arguments: { request } }));
     const mcp = result && { ...CallToolResultSchema.parse(result), requests: await drain("mcp.log") };
 
     expect(cli).toMatchSnapshot();
-    expect(JSON.stringify([cli, written, http, mcp])).not.toContain("secret-");
+    expect(JSON.stringify([cli, written, mcp])).not.toContain("secret-");
     if (written !== undefined) expect(written).toBe(cli.stdout);
-    if (!http || !mcp) return;
+    if (!mcp) return;
     const evidence = JSON.stringify(JSON.parse(cli.exit === 2 ? cli.stderr : cli.stdout));
-    expect(http).toEqual({
-      status: [200, 502, 400, 200][cli.exit],
-      type: "application/json;charset=utf-8",
-      cache: cli.exit === 2 ? null : "no-store",
-      body: evidence,
-      requests: expect.anything(),
-    });
-    expect(withoutTokens(http.requests)).toEqual(withoutTokens(cli.requests));
     expect(mcp.isError).toBe(cli.exit === 1 || cli.exit === 2);
     // MCP returns the same evidence, but its SDK parses the request before execute does, which reorders
     // keys in the echoed config. Invalid input is refused by that SDK check, with a message it formats.

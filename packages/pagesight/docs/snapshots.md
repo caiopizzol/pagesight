@@ -88,8 +88,7 @@ pagesight compare --baseline before.json --current after.json --max-rows 100
 
 The shared operation is `{ operation: "compare", baseline, current, maxRows: 100 }`,
 where baseline and current are parsed snapshot evidence objects. Only the CLI reads
-file paths. HTTP accepts objects up to 32 MB per request; larger pairs can use the
-local API or CLI. MCP `observe` accepts the same object. `evidenceSchema` and
+file paths. MCP `observe` accepts the same object. `evidenceSchema` and
 `snapshotEvidenceSchema` are exported for callers validating stored reports.
 
 This first comparison supports GSC reports with non-time row keys and GA reports

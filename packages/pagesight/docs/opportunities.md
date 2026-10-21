@@ -11,7 +11,7 @@ pagesight opportunities --snapshot before.json --min-impressions 20 --max-clicks
 ```
 
 The same `opportunities` operation accepts `snapshot`, `minImpressions`, `maxClicks`
-and `maxRows` through the TypeScript API, local HTTP API and MCP `observe`. JSON
+and `maxRows` through the TypeScript API and MCP `observe`. JSON
 is the CLI default; `--out` retains either format. Invalid inputs fail; missing or
 incomplete provider evidence produces partial output, preserving available facts.
 

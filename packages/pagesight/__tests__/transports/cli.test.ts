@@ -38,7 +38,6 @@ test("CLI rejects ignored flags and unexpected positional arguments before provi
     ["doctor", "--start", "2026-08-01"],
     ["snapshot", "--url", fixture.url.href],
     ["api", "--site", "sc-domain:example.com"],
-    ["serve", "--out", "ignored.json"],
     ["page", "unexpected", "--url", fixture.url.href],
   ]) {
     const child = Bun.spawn([process.execPath, entry, ...args], { stdout: "pipe", stderr: "pipe" });

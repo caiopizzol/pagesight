@@ -35,7 +35,6 @@ pagesight assess --snapshot saved.json [--format text] [--max-rows 10]
 pagesight opportunities --snapshot saved.json [--min-impressions 20] [--max-clicks 2] [--max-rows 10] [--format text]
 pagesight compare --baseline before.json --current after.json [--max-rows 100]
 pagesight api --request operation.json
-pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
 Data commands emit JSON by default; assess, opportunities and investigate accept --format text for readable summaries. --json is accepted for clarity.
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,

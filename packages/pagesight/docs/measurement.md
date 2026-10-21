@@ -57,8 +57,8 @@ pagesight ga realtime --property 123456 --request realtime.json --out observatio
 ```
 
 The equivalent API request is
-`{ operation: "ga.realtime", property: "123456", request: ... }`. HTTP and MCP
-`observe` accept it too. It uses the existing read-only GA credentials.
+`{ operation: "ga.realtime", property: "123456", request: ... }`. MCP
+`observe` accepts it too. It uses the existing read-only GA credentials.
 
 Realtime is a moving window, normally the last 30 minutes. Analytics 360 permits
 up to 60 minutes; ranges beyond 29 minutes ago are left for Google to authorize.

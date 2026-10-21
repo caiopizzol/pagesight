@@ -3,7 +3,7 @@
 <p align="center">
   Check your site's search traffic, analytics, and page performance.
   <br>
-  Built for developers and AI assistants. Use the TypeScript API, CLI, local HTTP server, or MCP.
+  Built for developers and AI assistants. Use the TypeScript API, CLI, or MCP.
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@ bun run test:package # Check the packed API, CLI, and MCP entrypoints
 
 Source and tests live in `packages/pagesight`.
 
-- [API, CLI, HTTP, and MCP](packages/pagesight/docs/usage.md)
+- [API, CLI, and MCP](packages/pagesight/docs/usage.md)
 - [Google credentials](packages/pagesight/docs/credentials.md)
 - [Snapshots and comparisons](packages/pagesight/docs/snapshots.md)
 

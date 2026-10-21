@@ -29,7 +29,7 @@ actions. Ambiguous links, navigation failures and URL mismatches never become em
 successful comparisons. The initial version does not exercise form-driven filters,
 back/forward history, screenshots, or visual layout; use a browser workflow for those.
 
-API, authenticated local HTTP and MCP `observe` take the same operation:
+API, CLI and MCP `observe` take the same operation:
 
 ```json
 {

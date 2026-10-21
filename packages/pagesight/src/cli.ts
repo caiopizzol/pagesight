@@ -33,7 +33,6 @@ pagesight assess --snapshot saved.json [--format text] [--max-rows 10]
 pagesight opportunities --snapshot saved.json [--min-impressions 20] [--max-clicks 2] [--max-rows 10] [--format text]
 pagesight compare --baseline before.json --current after.json [--max-rows 100]
 pagesight api --request operation.json
-pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
 Data commands emit JSON by default; assess, opportunities and investigate accept --format text for readable summaries. --json is accepted for clarity.
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
@@ -68,7 +67,6 @@ export const commands: Record<string, string[]> = {
   doctor: ["config"],
   snapshot: ["config", "start", "end", "max-pages"],
   api: ["request"],
-  serve: ["port"],
 };
 
 async function jsonFile(path: string | undefined, label: string): Promise<unknown> {
@@ -91,7 +89,6 @@ export async function runCli(args: string[]): Promise<number> {
         "link-selector": { type: "string" },
         "settle-ms": { type: "string" },
         "timeout-ms": { type: "string" },
-        port: { type: "string" },
         help: { type: "boolean", short: "h" },
         json: { type: "boolean" },
         config: { type: "string" },
@@ -128,19 +125,10 @@ export async function runCli(args: string[]): Promise<number> {
     if (positionals.length > (["gsc", "ga", "speed"].includes(family) ? 2 : 1))
       throw new RequestError("Too many command arguments", null, "invalid_input");
     const operation = ["gsc", "ga", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
-    const allowed = [...(commands[operation] ?? []), ...(operation === "serve" ? [] : ["out", "json"])];
+    const allowed = [...(commands[operation] ?? []), "out", "json"];
     for (const flag of Object.keys(values))
       if (!allowed.includes(flag))
         throw new RequestError(`--${flag} is not supported for ${operation}`, null, "invalid_input");
-    if (operation === "serve") {
-      const port = Number(values.port ?? 6095);
-      if (!Number.isInteger(port) || port < 1 || port > 65535)
-        throw new RequestError("Invalid port", null, "invalid_input");
-      const { startHttpApi } = await import("./http.js");
-      const server = startHttpApi(process.env.PAGESIGHT_API_TOKEN ?? "", port);
-      process.stderr.write(`Pagesight API listening on ${server.url}v1/query\n`);
-      return 0;
-    }
     if (values.format && !["json", "text"].includes(values.format))
       throw new RequestError("Use --format json or text", null, "invalid_input");
     if (values.json && values.format === "text")

@@ -11,8 +11,7 @@ pagesight investigate --config seo.config.json \
 Use `--format text` for a readable brief. JSON retains the brief **and** every raw
 provider request, response, error, pagination state and collection time. An agent
 can read the brief first and follow its source names into `observations`. The same
-`investigate` operation works through the shared API, authenticated local HTTP API
-and MCP `observe`:
+`investigate` operation works through the shared API and MCP `observe`:
 
 ```json
 {

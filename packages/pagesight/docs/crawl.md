@@ -7,7 +7,7 @@ pagesight crawl --config seo.config.json --max-pages 20 --max-depth 3 \
 
 `crawl` gathers same-origin public HTML links and metadata plus an optional sitemap
 inventory, then inspects a bounded sample of fetched HTML URLs in Search Console.
-It uses the shared API, CLI, authenticated local HTTP and MCP `observe`.
+It uses the shared API, CLI and MCP `observe`.
 
 Inputs: `config`, `maxPages` (default20, maximum100 HTTP page probes), `maxDepth`
 (default3, maximum10), `maxLinks` (default500, maximum1000 retained anchors per
