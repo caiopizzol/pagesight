@@ -1,31 +1,15 @@
 import { expect, spyOn, test } from "bun:test";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { gaCredentialPath } from "../../src/providers/ga.js";
 import { mkdtemp, rm } from "node:fs/promises";
+import { clearGoogleTokens } from "../../src/providers/google-auth.js";
 import { execute } from "../../src/api/index.js";
-
-test("empty GA credential variables fall through to the next source", () => {
-  const keys = ["PAGESIGHT_GA_CREDENTIALS", "GOOGLE_APPLICATION_CREDENTIALS"];
-  const previous = keys.map((key) => process.env[key]);
-  try {
-    process.env.PAGESIGHT_GA_CREDENTIALS = "";
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/test-adc.json";
-    expect(gaCredentialPath()).toBe("/tmp/test-adc.json");
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = "";
-    expect(gaCredentialPath()).toBe(join(homedir(), ".config/gcloud/application_default_credentials.json"));
-  } finally {
-    keys.forEach((key, i) => {
-      if (previous[i] === undefined) delete process.env[key];
-      else process.env[key] = previous[i];
-    });
-  }
-});
 
 test("GA metadata flags remaining pages and reports credential source without secrets", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pagesight-test-"));
   const previous = process.env.PAGESIGHT_GA_CREDENTIALS;
   process.env.PAGESIGHT_GA_CREDENTIALS = join(dir, "credentials.json");
+  clearGoogleTokens();
   await Bun.write(
     process.env.PAGESIGHT_GA_CREDENTIALS,
     JSON.stringify({
@@ -59,6 +43,7 @@ test("GA metadata flags remaining pages and reports credential source without se
       expect(JSON.stringify(result)).not.toContain(secret);
   } finally {
     mocked.mockRestore();
+    clearGoogleTokens();
     if (previous === undefined) delete process.env.PAGESIGHT_GA_CREDENTIALS;
     else process.env.PAGESIGHT_GA_CREDENTIALS = previous;
     await rm(dir, { recursive: true });

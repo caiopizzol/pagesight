@@ -19,6 +19,8 @@ bunx --bun pagesight page --url https://example.com
 bunx --bun pagesight robots --url https://example.com
 ```
 
+Search Console and GA4 need one sign-in: `bunx --bun pagesight login google`.
+
 ## Development
 
 Use Bun 1.3.12 and Node 22.18 or later in the 22.x line. From the repository root:

@@ -7,7 +7,8 @@ import { gaRealtime } from "./ga-realtime.js";
 import { doctor } from "./doctor.js";
 import { ZodError } from "zod";
 import { queryCrux, queryCruxHistory } from "../providers/crux.js";
-import { gaCredentialInfo, gaFetch, normalizeGaProperty } from "../providers/ga.js";
+import { gaFetch, normalizeGaProperty } from "../providers/ga.js";
+import { googleCredentialInfo } from "../providers/google-auth.js";
 import { inspectUrlResponse, listSitemapsResponse, listSitesResponse } from "../providers/gsc.js";
 import { RequestError } from "../shared/http.js";
 import { runPagespeed } from "../providers/pagespeed.js";
@@ -43,7 +44,7 @@ export async function execute(input: unknown): Promise<Evidence> {
   )
     throw new RequestError("Navigation source must share the target origin", null, "invalid_input");
   const result = await dispatch(op);
-  if (op.operation.startsWith("ga.")) result.credential = await gaCredentialInfo();
+  if (op.operation.startsWith("ga.")) result.credential = await googleCredentialInfo("ga");
   const response = result.pages[0]?.response as { nextPageToken?: string } | undefined;
   if (response?.nextPageToken) {
     result.status = "partial";

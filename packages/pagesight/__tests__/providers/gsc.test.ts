@@ -1,7 +1,7 @@
 import { expect, spyOn, test } from "bun:test";
 import { execute } from "../../src/api/index.js";
 import { gscRequestSchema } from "../../src/api/schema.js";
-import { clearTokenCache } from "../../src/providers/gsc-auth.js";
+import { clearGoogleTokens } from "../../src/providers/google-auth.js";
 
 test("GSC raw envelopes survive the API", async () => {
   const keys = ["GSC_SERVICE_ACCOUNT_KEY", "GSC_CLIENT_ID", "GSC_CLIENT_SECRET", "GSC_REFRESH_TOKEN"];
@@ -10,7 +10,7 @@ test("GSC raw envelopes survive the API", async () => {
   process.env.GSC_CLIENT_ID = "test-client";
   process.env.GSC_CLIENT_SECRET = "test-secret";
   process.env.GSC_REFRESH_TOKEN = "test-refresh";
-  clearTokenCache();
+  clearGoogleTokens();
   const entries = [{ siteUrl: "sc-domain:example.com", permissionLevel: "siteOwner" }];
   const sitemaps = [{ path: "https://example.com/sitemap.xml" }];
   const inspection = { inspectionResultLink: "https://example.com/inspection" };
@@ -45,7 +45,7 @@ test("GSC raw envelopes survive the API", async () => {
     }
   } finally {
     mocked.mockRestore();
-    clearTokenCache();
+    clearGoogleTokens();
     keys.forEach((key, i) => {
       if (previous[i] === undefined) delete process.env[key];
       else process.env[key] = previous[i];

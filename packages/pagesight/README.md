@@ -18,8 +18,18 @@ const result = await execute({ operation: "page", url: "https://example.com" });
 console.log(result);
 ```
 
-Provider reports need access to the relevant Google account. Results keep
-raw observations, failures, and limits; missing data is not zero.
+Search Console and GA4 reports take one sign-in. This release ships no OAuth client,
+so set `PAGESIGHT_GOOGLE_CLIENT_ID` and `PAGESIGHT_GOOGLE_CLIENT_SECRET` from your own
+Google OAuth "Desktop app" client first:
+
+```sh
+bunx --bun pagesight login google
+bunx --bun pagesight discover --url https://example.com
+```
+
+Environment credentials, service accounts and gcloud ADC still work for CI; see
+[provider access](docs/credentials.md). Results keep raw observations, failures,
+and limits; missing data is not zero.
 
 - [API, CLI, and MCP](docs/usage.md)
 - [Snapshots and comparisons](docs/snapshots.md)

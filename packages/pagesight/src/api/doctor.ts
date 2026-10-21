@@ -1,4 +1,4 @@
-import { getAuthMethod } from "../providers/gsc-auth.js";
+import { googleCredentialInfo } from "../providers/google-auth.js";
 import { getSite } from "../providers/gsc.js";
 import { defaultDates } from "../shared/dates.js";
 import { aggregate, capture, type Evidence } from "./evidence.js";
@@ -10,7 +10,10 @@ export async function doctor(config: SiteConfig, run: Executor): Promise<Evidenc
   const pending: Promise<Evidence>[] = [run({ operation: "page", url: config.site })];
   const site = config.gscSite;
   const property = config.gaProperty;
-  if (site) pending.push(capture("gsc", "access", site, { site, method: getAuthMethod() }, () => getSite(site)));
+  if (site)
+    pending.push(
+      capture("gsc", "access", site, { site, credential: await googleCredentialInfo("gsc") }, () => getSite(site)),
+    );
   if (property)
     pending.push(
       run({ operation: "ga.property", property }),

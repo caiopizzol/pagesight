@@ -57,6 +57,8 @@ const investigate = [
 ];
 const cases: Case[] = [
   { argv: ["--help"] },
+  { argv: ["login", "google", "--no-browser"] },
+  { argv: ["logout"] },
   {
     argv: ["render", "--url", `${local}target`, "--from-url", local, "--link-selector", "#go", "--settle-ms", "0"],
     request: {
@@ -152,6 +154,7 @@ const env = (log: string) => ({
   PAGESIGHT_FIXTURE_LOG: join(dir, log),
   PAGESIGHT_FIXTURE_NOW: "2026-09-10T12:00:00.000Z",
   PAGESIGHT_FIXTURE_ACCESS_TOKEN: "secret-access-token",
+  PAGESIGHT_CONFIG_DIR: join(dir, "config"),
   PAGESIGHT_GA_CREDENTIALS: join(dir, "ga-credentials.json"),
   GSC_CLIENT_ID: "fixture-gsc-client",
   GSC_CLIENT_SECRET: "secret-gsc-client",
