@@ -22,3 +22,9 @@ test("API rejects invalid and future dates regardless of transport", async () =>
   ).toBeInstanceOf(Error);
   expect(defaultDates(new Date("2026-09-08T01:00:00Z"))).toEqual({ startDate: "2026-08-08", endDate: "2026-09-04" });
 });
+
+test("usage docs list every operation the API accepts", async () => {
+  const usage = await Bun.file(new URL("../../docs/usage.md", import.meta.url)).text();
+  const operations = [...operationSchema.innerType().optionsMap.keys()] as string[];
+  expect(operations.filter((operation) => !usage.includes(`\`${operation}\``))).toEqual([]);
+});

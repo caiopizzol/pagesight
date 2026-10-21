@@ -26,26 +26,29 @@ GA evidence identifies the credential source variable, credential type, and serv
 account email when present. It never includes the token or private key. Aggregate
 results include a concise per-observation `summary` alongside full observations.
 
-| Operation                      | Required inputs                                                            |
-| ------------------------------ | -------------------------------------------------------------------------- |
-| `discover`                     | `url`; optional `providers` (`["gsc", "ga"]` by default)                   |
-| `gsc.sites`                    | None                                                                       |
-| `gsc.sitemaps`                 | `site`                                                                     |
-| `gsc.inspect`                  | `site`, `url`                                                              |
-| `gsc.report`                   | `site`, `request`; optional `maxPages`                                     |
-| `ga.accounts`                  | None                                                                       |
-| `ga.property`, `ga.key-events` | `property`                                                                 |
-| `ga.realtime`                  | `property`, `request`; moving window, no offset                            |
-| `ga.report`                    | `property`, `request`; optional `maxPages`                                 |
-| `page`                         | `url`                                                                      |
-| `robots`                       | `url`; reads that origin's `/robots.txt`, `/llms.txt`, `/llms-full.txt`    |
-| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`), `categories`           |
-| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`                               |
-| `doctor`                       | `config`                                                                   |
-| `crawl`                        | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md)) |
-| `investigate`                  | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows`    |
-| `assess`                       | `snapshot`; optional `maxRows` (default 10, max 100)                       |
-| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages`                      |
+| Operation                      | Required inputs                                                                               |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `discover`                     | `url`; optional `providers` (`["gsc", "ga"]` by default)                                      |
+| `gsc.sites`                    | None                                                                                          |
+| `gsc.sitemaps`                 | `site`                                                                                        |
+| `gsc.inspect`                  | `site`, `url`                                                                                 |
+| `gsc.report`                   | `site`, `request`; optional `maxPages`                                                        |
+| `ga.accounts`                  | None                                                                                          |
+| `ga.property`, `ga.key-events` | `property`                                                                                    |
+| `ga.realtime`                  | `property`, `request`; moving window, no offset                                               |
+| `ga.report`                    | `property`, `request`; optional `maxPages`                                                    |
+| `page`                         | `url`                                                                                         |
+| `page.verify`                  | `url`; optional `navigation` (`fromUrl`, `linkSelector`), `settleMs`, `timeoutMs`, `viewport` |
+| `robots`                       | `url`; reads that origin's `/robots.txt`, `/llms.txt`, `/llms-full.txt`                       |
+| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`), `categories`                              |
+| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`                                                  |
+| `doctor`                       | `config`                                                                                      |
+| `crawl`                        | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md))                    |
+| `investigate`                  | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows`                       |
+| `assess`                       | `snapshot`; optional `maxRows` (default 10, max 100)                                          |
+| `opportunities`                | `snapshot`; optional `minImpressions`, `maxClicks`, `maxRows`                                 |
+| `compare`                      | `baseline`, `current` snapshots; optional `maxRows`                                           |
+| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages`                                         |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
@@ -85,12 +88,16 @@ accessibility or rendered-page audit.
 and reports its HTTP status, RFC 9309 parse errors, declared sitemaps, whether
 Googlebot may fetch `/`, and each known AI crawler with its operator, category
 and access. It also reports the status and byte size of `/llms.txt` and
-`/llms-full.txt`; a file over 1 MB is reported without a size.
+`/llms-full.txt`; a file over 1 MB is reported without a size, and a file that
+could not be fetched is reported with a null status and a warning. robots.txt
+itself is read with a 500 KiB limit; a larger file fails the operation instead of
+being parsed in part.
 
 The AI crawler list comes from the [ai.robots.txt](https://github.com/ai-robots-txt/ai.robots.txt)
-registry, fetched at run time and cached for 24 hours. When that fetch fails the
-list is empty and a warning says so; an empty list is not evidence that nothing
-is blocked. robots.txt states a policy; it does not prove how any crawler behaves.
+registry, fetched at run time and cached for 24 hours. A failed refresh reuses the
+cached list, however old it is, without a warning; with nothing cached the list is
+empty and a warning says so. An empty list is not evidence that nothing is blocked.
+robots.txt states a policy; it does not prove how any crawler behaves.
 
 ## CLI
 
@@ -143,6 +150,7 @@ Run `pagesight mcp` to start the stdio MCP server. Configure your host to run
 `bun /path/to/pagesight/packages/pagesight/src/index.ts mcp` with the environment above. Existing MCP
 launch configurations must include the `mcp` argument; no arguments show CLI help.
 
-`observe` is the only tool. It accepts `{ "request": <operation object> }` using
-the operations above and returns the same evidence as the API and the CLI: exact
-requests, provider responses, warnings and pagination status.
+`observe` is the only tool. It accepts `{ "request": <operation object> }` for any
+operation in the table above, validated by the exported `operationSchema`, and
+returns the same evidence as the API and the CLI: exact requests, provider
+responses, warnings and pagination status.
