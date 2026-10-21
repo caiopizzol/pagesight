@@ -10,7 +10,6 @@ export async function doctor(config: SiteConfig, run: Executor): Promise<Evidenc
   const pending: Promise<Evidence>[] = [run({ operation: "page", url: config.site })];
   const site = config.gscSite;
   const property = config.gaProperty;
-  if (config.bingSite) pending.push(run({ operation: "bing.traffic", site: config.bingSite }));
   if (site) pending.push(capture("gsc", "access", site, { site, method: getAuthMethod() }, () => getSite(site)));
   if (property)
     pending.push(

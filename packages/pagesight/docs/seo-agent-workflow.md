@@ -14,8 +14,8 @@ dates and tracking changes. A configured key event is not a validated conversion
 Test the event against a real action and check provider data separately from the
 browser request. Realtime activity cannot identify an individual test session.
 
-GSC measures search visibility, GA measures collected activity, and edge analytics (Cloudflare)
-sample edge requests. They have different omissions, timezones and units. Never combine
+GSC measures search visibility and GA measures collected activity. They have
+different omissions, timezones and units. Never combine
 them into a conversion funnel or SEO score. Review access when a provider fails;
 do not request broader credentials unless a specific read requires them.
 
@@ -100,9 +100,9 @@ warnings as demonstrated indexing failures. Restore temporary viewport overrides
 
 Save raw browser observations/screenshots where the tool supports export. If export
 is unavailable, retain the tool transcript and label manually transcribed artifacts;
-do not claim they are original screenshots. Browser findings may be imported using
-`evidence.import` with provider `other`, exact sampled URLs, capture time, coverage
-and source label. Imports remain unverified by Pagesight. Avoid cookies, client IDs,
+do not claim they are original screenshots. Keep browser findings with their exact
+sampled URLs, capture time, coverage and source label; Pagesight has not verified
+them. Avoid cookies, client IDs,
 full tracking payloads and private browser data in shared artifacts.
 
 Run `pagesight speed psi --url URL --strategy mobile` for lab evidence and
@@ -116,9 +116,9 @@ successful rendering nor crawler permission proves Google indexed the page.
 
 Start with first-party provenance, clear methodology, reference/publication dates,
 limitations, ownership/contact and useful primary data. Cite original sources and
-explain what the product adds. Inspect GSC's Links UI/export or Bing link reads when
-available, retaining their coverage and dates. GSC Links has no supported Pagesight API endpoint; import its UI/export findings
-with `evidence.import`, preserving dates and coverage. Existing API access does not imply
+explain what the product adds. Inspect GSC's Links UI/export when
+available, retaining their coverage and dates. GSC Links has no supported Pagesight API endpoint; keep its UI/export findings
+outside Pagesight, preserving dates and coverage. Existing API access does not imply
 access to every UI-only report. If a competitor backlink question needs a third-party
 index, specify the domains, export limits and cost first; different indexes are not
 an exhaustive census and their authority scores are not Google ranking metrics.

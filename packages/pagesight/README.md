@@ -17,14 +17,13 @@ const result = await execute({ operation: "page", url: "https://example.com" });
 console.log(result);
 ```
 
-Provider reports need access to the relevant Google or Bing account. Results keep
+Provider reports need access to the relevant Google account. Results keep
 raw observations, failures, and limits; missing data is not zero.
 
 - [API, CLI, HTTP, and MCP](docs/usage.md)
 - [Snapshots and comparisons](docs/snapshots.md)
 - [Choose pages to investigate](docs/opportunities.md)
 - [Provider access](docs/credentials.md)
-- [Bing diagnostics, HTML images, and UI findings](docs/diagnostics.md)
 
 MIT — see [LICENSE](LICENSE).
 
@@ -41,7 +40,4 @@ See [the investigation guide](docs/investigation.md) for scope and interpretatio
 
 Use `pagesight crawl --config seo.config.json --out crawl.json` for a bounded internal-link/metadata graph and stored indexing sample. See [site discovery](docs/crawl.md) for robots, query and coverage policies.
 
-- [Cloudflare edge and security evidence](docs/cloudflare.md)
-- [Evaluate a deployed SEO change](docs/changes.md)
-- [Daily private observations](docs/monitoring.md)
 - [SEO agent workflow](docs/seo-agent-workflow.md)

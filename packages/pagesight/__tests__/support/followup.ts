@@ -1,25 +1,9 @@
 import { configSchema, operationSchema } from "../../src/api/schema.js";
 import { snapshot } from "../../src/api/snapshot.js";
 import { capture } from "../../src/api/evidence.js";
-export const record = {
-  schemaVersion: 1,
-  id: "title-1",
-  site: "https://example.com/",
-  affectedUrls: ["https://example.com/item?q=1"],
-  description: "Clarified title",
-  hypothesis: "Searchers understand the page",
-  deployedAt: "2026-08-02T00:30:00Z",
-  expectedSignal: "Observe query clicks",
-  measurementChanges: [],
-  overlappingChanges: [],
-};
+const site = "https://example.com/";
 export async function fixture(startDate: string, endDate: string, timezone = "UTC") {
-  const config = configSchema.parse({
-    site: record.site,
-    gscSite: "sc-domain:example.com",
-    gaProperty: "123",
-    pages: [],
-  });
+  const config = configSchema.parse({ site, gscSite: "sc-domain:example.com", gaProperty: "123", pages: [] });
   const result = await snapshot({ config, startDate, endDate, maxPages: 1 }, async (raw) => {
     const op = operationSchema.parse(raw);
     if (op.operation === "gsc.report") {
@@ -47,7 +31,7 @@ export async function fixture(startDate: string, endDate: string, timezone = "UT
       result.pagination = { exhausted: true, nextOffset: null, rowsReturned: 1 };
       return result;
     }
-    return capture("fixture", op.operation, record.site, {}, async () => ({}));
+    return capture("fixture", op.operation, site, {}, async () => ({}));
   });
   const at = new Date(Date.parse(endDate) + 3.5 * 86400000).toISOString();
   result.startedAt = at;

@@ -7,7 +7,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import { operationSchema } from "../src/api/index.js";
 import { commands } from "../src/cli.js";
-import { fixture, record } from "../__tests__/support/followup.js";
+import { fixture } from "../__tests__/support/followup.js";
 
 // Each case runs one CLI command offline, then sends its operation through the HTTP API and MCP observe.
 // The CLI's exit code, stdout, stderr and provider requests are snapshots; HTTP and MCP must match them.
@@ -21,25 +21,13 @@ const local = "http://127.0.0.1:29417/";
 const apiToken = "secret-local-api-token-for-surfaces";
 const saved = await fixture("2026-07-01", "2026-07-28");
 const config = { site };
-const findings = {
-  provider: "bing",
-  site,
-  source: { kind: "csv", label: "URLs", capturedAt: null, scannedAt: null, coverage: "Unknown" },
-  findings: [{ rule: "Short description", severity: "unknown", urls: [] }],
-};
 const dates = { startDate: "2026-08-01", endDate: "2026-08-28" };
 const gscRequest = { ...dates, dimensions: ["query"] };
 const gaRequest = { dateRanges: [dates], metrics: [{ name: "sessions" }] };
 const realtime = { metrics: [{ name: "activeUsers" }] };
-const interval = { startTime: "2026-09-09T00:00:00Z", endTime: "2026-09-10T00:00:00Z" };
-const zone = "0123456789abcdef0123456789abcdef";
-const asOf = "2026-09-05T12:00:00Z";
 const files = {
   "config.json": config,
   "saved.json": saved,
-  "record.json": record,
-  "experiments.json": [{ label: "Title", record: "record.json", baseline: "saved.json" }],
-  "findings.json": findings,
   "gsc-report.json": gscRequest,
   "ga-report.json": gaRequest,
   "realtime.json": realtime,
@@ -57,7 +45,6 @@ const simple = (operation: string, fields: Record<string, string> = {}): Case =>
   argv: [...operation.split("."), ...Object.entries(fields).flatMap(([name, value]) => [`--${name}`, value])],
   request: { operation, ...fields },
 });
-const followup = ["change", "followup", "--manifest", "experiments.json", "--as-of", asOf];
 const investigate = [
   "investigate",
   "--config",
@@ -81,30 +68,6 @@ const cases: Case[] = [
     },
   },
   {
-    argv: ["cloudflare", "audit", "--zone", zone, "--hostname", "example.com"].concat([
-      "--start",
-      interval.startTime,
-      "--end",
-      interval.endTime,
-      "--limit",
-      "2",
-    ]),
-    request: { operation: "cloudflare.audit", zone, hostname: "example.com", ...interval, limit: 2 },
-  },
-  {
-    argv: followup,
-    request: { operation: "change.followup", experiments: [{ label: "Title", record, baseline: saved }], asOf },
-  },
-  { argv: [...followup, "--format", "text"] },
-  {
-    argv: ["change", "evaluate", "--record", "record.json", "--baseline", "saved.json"],
-    request: { operation: "change.evaluate", record, baseline: saved },
-  },
-  {
-    argv: ["technical", "compare", "--current", "saved.json"],
-    request: { operation: "technical.compare", current: saved },
-  },
-  {
     argv: ["crawl", "--config", "config.json", "--max-pages", "2"],
     request: { operation: "crawl", config, maxPages: 2 },
   },
@@ -115,26 +78,13 @@ const cases: Case[] = [
   { argv: ["assess", "--snapshot", "saved.json"], request: { operation: "assess", snapshot: saved } },
   { argv: ["assess", "--snapshot", "saved.json", "--format", "text", "--out", "assessment.txt"] },
   {
-    argv: ["evidence", "import", "--request", "findings.json"],
-    request: { operation: "evidence.import", document: findings },
-  },
-  {
     argv: ["compare", "--baseline", "saved.json", "--current", "saved.json"],
     request: { operation: "compare", baseline: saved, current: saved },
   },
   {
-    argv: ["discover", "--url", site, "--providers", "gsc,ga,bing"],
-    request: { operation: "discover", url: site, providers: ["gsc", "ga", "bing"] },
+    argv: ["discover", "--url", site, "--providers", "gsc,ga"],
+    request: { operation: "discover", url: site, providers: ["gsc", "ga"] },
   },
-  simple("bing.crawl-stats", { site }),
-  simple("bing.crawl-issues", { site }),
-  simple("bing.url-info", { site, url: about }),
-  simple("bing.link-counts", { site }),
-  simple("bing.url-links", { site, url: about }),
-  simple("bing.sites"),
-  simple("bing.queries", { site }),
-  simple("bing.pages", { site }),
-  simple("bing.traffic", { site }),
   simple("gsc.sites"),
   simple("gsc.sitemaps", { site: gscSite }),
   simple("gsc.inspect", { site: gscSite, url: about }),
@@ -207,8 +157,6 @@ const env = (log: string) => ({
   GSC_CLIENT_SECRET: "secret-gsc-client",
   GSC_REFRESH_TOKEN: "secret-gsc-refresh",
   GOOGLE_API_KEY: "secret-google-key",
-  BING_WEBMASTER_API_KEY: "secret-bing-key",
-  CLOUDFLARE_API_TOKEN: "secret-cloudflare-token",
 });
 async function run(argv: string[], environment = env("cli.log")) {
   const child = Bun.spawn([process.execPath, ...args(...argv)], {
@@ -268,7 +216,7 @@ test("every CLI command and API operation has a case, and MCP lists observe", as
   const covered = new Set(["serve"]);
   for (const { argv } of cases) covered.add(Object.hasOwn(commands, argv[0]) ? argv[0] : `${argv[0]}.${argv[1]}`);
   expect(Object.keys(commands).filter((command) => !covered.has(command))).toEqual([]);
-  const operations = [...operationSchema.innerType().innerType().optionsMap.keys()];
+  const operations = [...operationSchema.innerType().optionsMap.keys()];
   expect(operations.filter((operation) => !cases.some(({ request }) => request?.operation === operation))).toEqual([]);
   const { tools } = await client.listTools();
   expect(tools.find((tool) => tool.name === "observe")?.description).toMatchSnapshot();

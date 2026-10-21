@@ -30,8 +30,8 @@ production channel/event, and organic landing/event evidence when available.
 Each table shows its original dimension and metric names. Rows are ordered by
 the first metric, then row keys; only the requested number are displayed. They
 are observed rows, not exhaustive search rankings. No totals are inferred by
-summing session, user, page or query rows. Bing and page observations retain
-provider status but have no generated performance conclusions in this version.
+summing session, user, page or query rows. Page observations retain provider
+status but have no generated performance conclusions in this version.
 
 A missing or unusable selected report produces an explicit unknown. Unrelated
 hostnames in the census do not invalidate correctly production-filtered reports;
@@ -104,44 +104,11 @@ Keep separate evidence for each stage:
 4. Query Realtime again and a historical report with explicit dates and production
    filters after allowing processing time. Other visitors may contribute to both.
    Do not manufacture event names or claim session-level attribution from totals.
-5. Save a small attributed finding using the existing import format. Raw captures
+5. Save a small attributed finding next to the private capture. Raw captures
    may contain cookies, client/session IDs, tokens or sensitive URL parameters;
    keep them private and transcribe only the fields needed to explain the result.
 6. Repeat the same case after a tracking change. Record both evidence sets and
    the deployed version. Pagesight itself does not edit tags or provider settings.
-
-Example `verification.json` (illustrative, not a completed test):
-
-```json
-{
-  "provider": "ga",
-  "site": "https://example.com/",
-  "source": {
-    "kind": "manual",
-    "label": "Explorer brand-change browser check",
-    "capturedAt": null,
-    "scannedAt": null,
-    "coverage": "One browser session and one filter change; timestamps not supplied"
-  },
-  "findings": [
-    {
-      "rule": "One filter change attempted two page_view requests",
-      "severity": "unknown",
-      "urls": ["https://example.com/explore"],
-      "notes": "Expected one request. Both requests received HTTP 204. Their presence in aggregate GA reports does not identify this test session. See the private capture for timing and destination."
-    }
-  ]
-}
-```
-
-```sh
-pagesight evidence import --request verification.json --out observations/verification.json
-```
-
-The import remains `user-import` with `verification: "unverified"`: Pagesight
-stores the attribution but does not replay the flow, fetch a capture or verify
-its claims. It is separate from `assess`; imports cannot silently upgrade snapshot
-facts or turn an unverified assertion into a provider result.
 
 References: [Realtime REST API](https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runRealtimeReport),
 [Realtime dimensions and metrics](https://developers.google.com/analytics/devguides/reporting/data/v1/realtime-api-schema),

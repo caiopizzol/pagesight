@@ -26,27 +26,25 @@ GA evidence identifies the credential source variable, credential type, and serv
 account email when present. It never includes the token or private key. Aggregate
 results include a concise per-observation `summary` alongside full observations.
 
-| Operation                                    | Required inputs                                                            |
-| -------------------------------------------- | -------------------------------------------------------------------------- |
-| `discover`                                   | `url`; optional `providers` (`["gsc", "ga"]` by default)                   |
-| `bing.sites`                                 | None                                                                       |
-| `bing.queries`, `bing.pages`, `bing.traffic` | `site`                                                                     |
-| `gsc.sites`                                  | None                                                                       |
-| `gsc.sitemaps`                               | `site`                                                                     |
-| `gsc.inspect`                                | `site`, `url`                                                              |
-| `gsc.report`                                 | `site`, `request`; optional `maxPages`                                     |
-| `ga.accounts`                                | None                                                                       |
-| `ga.property`, `ga.key-events`               | `property`                                                                 |
-| `ga.realtime`                                | `property`, `request`; moving window, no offset                            |
-| `ga.report`                                  | `property`, `request`; optional `maxPages`                                 |
-| `page`                                       | `url`                                                                      |
-| `speed.psi`                                  | `url`; optional `strategy` (`mobile` or `desktop`)                         |
-| `speed.crux`, `speed.history`                | `url`; optional `origin: true`, `formFactor`                               |
-| `doctor`                                     | `config`                                                                   |
-| `crawl`                                      | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md)) |
-| `investigate`                                | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows`    |
-| `assess`                                     | `snapshot`; optional `maxRows` (default 10, max 100)                       |
-| `snapshot`                                   | `config`, `startDate`, `endDate`; optional `maxPages`                      |
+| Operation                      | Required inputs                                                            |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `discover`                     | `url`; optional `providers` (`["gsc", "ga"]` by default)                   |
+| `gsc.sites`                    | None                                                                       |
+| `gsc.sitemaps`                 | `site`                                                                     |
+| `gsc.inspect`                  | `site`, `url`                                                              |
+| `gsc.report`                   | `site`, `request`; optional `maxPages`                                     |
+| `ga.accounts`                  | None                                                                       |
+| `ga.property`, `ga.key-events` | `property`                                                                 |
+| `ga.realtime`                  | `property`, `request`; moving window, no offset                            |
+| `ga.report`                    | `property`, `request`; optional `maxPages`                                 |
+| `page`                         | `url`                                                                      |
+| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`)                         |
+| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`                               |
+| `doctor`                       | `config`                                                                   |
+| `crawl`                        | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md)) |
+| `investigate`                  | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows`    |
+| `assess`                       | `snapshot`; optional `maxRows` (default 10, max 100)                       |
+| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages`                      |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
@@ -57,6 +55,21 @@ link, social-meta and contrast checks.
 See [measurement and verification](measurement.md) for saved-snapshot assessments,
 Realtime requests, freshness limits and repeatable browser checks.
 See [investigating one URL](investigation.md) for fresh exact-page search, organic and technical evidence.
+
+## HTML image evidence
+
+`pagesight page --url https://example.com/` includes `descriptionLength`
+(Unicode code points, or null) and `imageEvidence`. Images include raw `src`,
+`altPresent`, `altText`, `inNoscript`, width/height, role and aria-hidden attributes.
+Missing ALT has `altPresent: false, altText: null`; an explicitly empty ALT is
+`altPresent: true, altText: ""`. Empty ALT can be appropriate for decorative images.
+No description-length threshold or image-purpose verdict is imposed.
+
+The inventory includes noscript fallback markup, retains at most 200 images,
+and reports `omittedImages` and `truncated`. Fallback images follow ordinary images
+in output; this is not DOM order. No scripts run or image URLs are requested.
+The existing 2 MB page limit still applies. This is markup evidence, not a full
+accessibility or rendered-page audit.
 
 ## CLI
 

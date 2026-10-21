@@ -1,5 +1,3 @@
-import { loadFollowupManifest } from "./followup-manifest.js";
-import { renderFollowup } from "./followup-text.js";
 import { renderInvestigation } from "./investigation-text.js";
 import { renderAssessment } from "./assessment-text.js";
 import { renderOpportunities } from "./opportunities-text.js";
@@ -13,25 +11,11 @@ export const help = `Pagesight — read-only site evidence
 pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
 pagesight discover --url https://example.com/ [--providers gsc,ga]
-pagesight cloudflare audit --zone ZONE_ID --hostname example.com --start UTC_TIME --end UTC_TIME [--limit 50]
-
-pagesight change followup --manifest experiments.json [--as-of UTC_TIME] [--lag-days 3] [--format text]
-pagesight change evaluate --record change.json --baseline before.json [--current after.json] [--max-rows 20]
-pagesight technical compare --current current.json [--baseline previous.json]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
 pagesight gsc sitemaps --site sc-domain:example.com
 pagesight gsc inspect --site sc-domain:example.com --url https://example.com/
 pagesight gsc report --site sc-domain:example.com --request report.json [--max-pages 4]
-pagesight bing crawl-stats --site https://example.com/
-pagesight bing crawl-issues --site https://example.com/
-pagesight bing url-info --site https://example.com/ --url https://example.com/page
-pagesight bing link-counts --site https://example.com/ [--max-pages 4]
-pagesight bing url-links --site https://example.com/ --url https://example.com/page [--max-pages 4]
-pagesight bing sites
-pagesight bing queries --site https://example.com/
-pagesight bing pages --site https://example.com/
-pagesight bing traffic --site https://example.com/
 pagesight ga realtime --property 123456 --request realtime.json
 pagesight ga accounts
 pagesight ga property --property 123456
@@ -48,41 +32,26 @@ pagesight investigate --config seo.config.json --url https://example.com/page [-
 pagesight assess --snapshot saved.json [--format text] [--max-rows 10]
 pagesight opportunities --snapshot saved.json [--min-impressions 20] [--max-clicks 2] [--max-rows 10] [--format text]
 pagesight compare --baseline before.json --current after.json [--max-rows 100]
-pagesight evidence import --request findings.json
 pagesight api --request operation.json
 pagesight serve [--port 6095]    Local HTTP API; requires PAGESIGHT_API_TOKEN
 
-Data commands emit JSON by default; assess, opportunities, investigate and change followup accept --format text for readable summaries. --json is accepted for clarity.
+Data commands emit JSON by default; assess, opportunities and investigate accept --format text for readable summaries. --json is accepted for clarity.
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
 2 invalid input, 3 partial evidence. Snapshot defaults to 28 days ending Pacific
 today minus 3 days; max-pages defaults to 4 (ad hoc reports: 1; maximum: 20).
-Credentials: GSC_* env, PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed), BING_WEBMASTER_API_KEY (Bing).
+Credentials: GSC_* env, PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed).
 Requests, property metadata, provider limits and errors are preserved in evidence.
 `;
 
 // Every CLI command and the flags it accepts; surface tests fail when one has no case.
 export const commands: Record<string, string[]> = {
   render: ["url", "from-url", "link-selector", "settle-ms", "timeout-ms"],
-  "cloudflare.audit": ["zone", "hostname", "start", "end", "limit"],
-  "change.followup": ["manifest", "as-of", "lag-days", "format"],
-  "change.evaluate": ["record", "baseline", "current", "max-rows"],
-  "technical.compare": ["baseline", "current"],
-  "evidence.import": ["request"],
   crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
   investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
   assess: ["snapshot", "max-rows", "format"],
   opportunities: ["snapshot", "max-rows", "format", "min-impressions", "max-clicks"],
   discover: ["url", "providers"],
   compare: ["baseline", "current", "max-rows"],
-  "bing.crawl-stats": ["site"],
-  "bing.crawl-issues": ["site"],
-  "bing.url-info": ["site", "url"],
-  "bing.link-counts": ["site", "max-pages"],
-  "bing.url-links": ["site", "url", "max-pages"],
-  "bing.sites": [],
-  "bing.queries": ["site"],
-  "bing.pages": ["site"],
-  "bing.traffic": ["site"],
   "gsc.sites": [],
   "gsc.sitemaps": ["site"],
   "gsc.inspect": ["site", "url"],
@@ -118,17 +87,10 @@ export async function runCli(args: string[]): Promise<number> {
       allowPositionals: true,
       strict: true,
       options: {
-        zone: { type: "string" },
-        hostname: { type: "string" },
         "from-url": { type: "string" },
         "link-selector": { type: "string" },
         "settle-ms": { type: "string" },
         "timeout-ms": { type: "string" },
-        limit: { type: "string" },
-        record: { type: "string" },
-        manifest: { type: "string" },
-        "as-of": { type: "string" },
-        "lag-days": { type: "string" },
         port: { type: "string" },
         help: { type: "boolean", short: "h" },
         json: { type: "boolean" },
@@ -163,14 +125,9 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (
-      positionals.length >
-      (["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "change", "technical"].includes(family) ? 2 : 1)
-    )
+    if (positionals.length > (["gsc", "ga", "speed"].includes(family) ? 2 : 1))
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "bing", "speed", "evidence", "cloudflare", "change", "technical"].includes(family)
-      ? `${family}.${action ?? ""}`
-      : family;
+    const operation = ["gsc", "ga", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
     const allowed = [...(commands[operation] ?? []), ...(operation === "serve" ? [] : ["out", "json"])];
     for (const flag of Object.keys(values))
       if (!allowed.includes(flag))
@@ -202,33 +159,7 @@ export async function runCli(args: string[]): Promise<number> {
         settleMs: Number(values["settle-ms"] ?? 1000),
         timeoutMs: Number(values["timeout-ms"] ?? 20000),
       };
-    } else if (operation === "evidence.import")
-      input = { operation, document: await jsonFile(values.request, "request") };
-    else if (operation === "cloudflare.audit")
-      input = {
-        operation,
-        zone: values.zone,
-        hostname: values.hostname,
-        startTime: values.start,
-        endTime: values.end,
-        limit: Number(values.limit ?? 50),
-      };
-    else if (operation === "change.followup")
-      input = {
-        operation,
-        experiments: await loadFollowupManifest(values.manifest),
-        asOf: values["as-of"],
-        lagDays: Number(values["lag-days"] ?? 3),
-      };
-    else if (operation === "change.evaluate")
-      input = {
-        operation,
-        record: await jsonFile(values.record, "record"),
-        baseline: await jsonFile(values.baseline, "baseline"),
-        ...(values.current ? { current: await jsonFile(values.current, "current") } : {}),
-        maxRows: Number(values["max-rows"] ?? 20),
-      };
-    else if (operation === "crawl")
+    } else if (operation === "crawl")
       input = {
         operation,
         config: await jsonFile(values.config, "config"),
@@ -237,12 +168,6 @@ export async function runCli(args: string[]): Promise<number> {
         maxLinks: Number(values["max-links"] ?? 500),
         inspectLimit: Number(values["inspect-limit"] ?? 3),
         includeQuery: values["include-query"] ?? false,
-      };
-    else if (operation === "technical.compare")
-      input = {
-        operation,
-        current: await jsonFile(values.current, "current"),
-        ...(values.baseline ? { baseline: await jsonFile(values.baseline, "baseline") } : {}),
       };
     else if (operation === "opportunities")
       input = {
@@ -297,13 +222,11 @@ export async function runCli(args: string[]): Promise<number> {
     const result = await execute(input);
     const output =
       values.format === "text"
-        ? operation === "change.followup"
-          ? renderFollowup(result)
-          : operation === "investigate"
-            ? renderInvestigation(result)
-            : operation === "opportunities"
-              ? renderOpportunities(result)
-              : renderAssessment(result)
+        ? operation === "investigate"
+          ? renderInvestigation(result)
+          : operation === "opportunities"
+            ? renderOpportunities(result)
+            : renderAssessment(result)
         : `${JSON.stringify(result, null, 2)}\n`;
     if (values.out) await Bun.write(values.out, output);
     process.stdout.write(output);

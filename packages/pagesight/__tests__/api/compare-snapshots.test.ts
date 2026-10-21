@@ -173,21 +173,17 @@ test("pagination differences preserve observed rows, but gaps and duplicates are
   expect((await compare([baseline], [duplicate]))[0].status).toBe("incompatible");
 });
 
-test("failed providers and unsupported Bing reports remain explicit", async () => {
+test("failed providers and unsupported non-report observations remain explicit", async () => {
   const failed = await gsc(1);
   failed.status = "error";
   failed.pages = [];
   expect((await compare([await gsc(0)], [failed]))[0].status).toBe("unavailable");
-  const bing = await capture(
-    "bing",
-    "traffic",
-    "https://example.com/",
-    { method: "GetRankAndTrafficStats" },
-    async () => ({ d: [] }),
+  const sitemaps = await capture("gsc", "sitemaps", "sc-domain:example.com", { site: "sc-domain:example.com" }, () =>
+    Promise.resolve({ sitemap: [] }),
   );
-  bing.name = "bing.traffic";
-  expect((await compare([bing], [bing]))[0].status).toBe("unsupported");
-  expect((await compare([bing], [await gsc(1)]))[0].status).toBe("unavailable");
+  sitemaps.name = "gsc.sitemaps";
+  expect((await compare([sitemaps], [sitemaps]))[0].status).toBe("unsupported");
+  expect((await compare([sitemaps], [await gsc(1)]))[0].status).toBe("unavailable");
 });
 
 test("snapshot imports reject old versions, malformed evidence, mismatched sites and duplicate names", async () => {

@@ -32,14 +32,10 @@ bun run test:package # Check the packed API, CLI, and MCP entrypoints
 Source and tests live in `packages/pagesight`.
 
 - [API, CLI, HTTP, and MCP](packages/pagesight/docs/usage.md)
-- [Google and Bing credentials](packages/pagesight/docs/credentials.md)
+- [Google credentials](packages/pagesight/docs/credentials.md)
 - [Snapshots and comparisons](packages/pagesight/docs/snapshots.md)
-- [Bing diagnostics, HTML images, and UI findings](packages/pagesight/docs/diagnostics.md)
 
 MIT — see [LICENSE](LICENSE).
 
-- [Cloudflare edge and security evidence](packages/pagesight/docs/cloudflare.md)
-- [Plan follow-ups and evaluate a deployed SEO change](packages/pagesight/docs/changes.md)
 - [Rendered-page verification](packages/pagesight/docs/rendering.md)
-- [Daily private observations](packages/pagesight/docs/monitoring.md)
 - [SEO agent workflow](packages/pagesight/docs/seo-agent-workflow.md)
