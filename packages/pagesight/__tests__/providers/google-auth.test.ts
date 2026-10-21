@@ -177,22 +177,25 @@ test("a product whose scope the login never granted has no credential", async ()
   );
 });
 
-test("a service-account key signs the requesting product's scope", async () => {
-  const directory = await sandbox();
+async function keyPair(): Promise<{ pem: string; publicKey: CryptoKey }> {
   const keys = await crypto.subtle.generateKey(
     { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
     true,
     ["sign", "verify"],
   );
-  const pem = Buffer.from(await crypto.subtle.exportKey("pkcs8", keys.privateKey)).toString("base64");
+  const encoded = Buffer.from(await crypto.subtle.exportKey("pkcs8", keys.privateKey)).toString("base64");
+  return { pem: `-----BEGIN PRIVATE KEY-----\n${encoded}\n-----END PRIVATE KEY-----`, publicKey: keys.publicKey };
+}
+
+const claims = (assertion: string) => JSON.parse(Buffer.from(assertion.split(".")[1], "base64url").toString());
+
+test("a service-account key signs the requesting product's scope", async () => {
+  const directory = await sandbox();
+  const keys = await keyPair();
   const path = join(directory, "key.json");
   await Bun.write(
     path,
-    JSON.stringify({
-      type: "service_account",
-      client_email: "fixture@example.com",
-      private_key: `-----BEGIN PRIVATE KEY-----\n${pem}\n-----END PRIVATE KEY-----`,
-    }),
+    JSON.stringify({ type: "service_account", client_email: "fixture@example.com", private_key: keys.pem }),
   );
   process.env.GSC_SERVICE_ACCOUNT_KEY = path;
   process.env.PAGESIGHT_GA_CREDENTIALS = path;
@@ -210,9 +213,9 @@ test("a service-account key signs the requesting product's scope", async () => {
     expect(await googleAccessToken("gsc")).toBe("fixture-token");
     expect(await googleAccessToken("ga")).toBe("fixture-token");
     const parts = assertions.map((assertion) => assertion.split("."));
-    const claims = parts.map(([, payload]) => JSON.parse(Buffer.from(payload, "base64url").toString()));
-    expect(claims.map((claim) => claim.scope)).toEqual([GSC_SCOPE, GA_SCOPE]);
-    expect(claims[0].iss).toBe("fixture@example.com");
+    const signed = assertions.map(claims);
+    expect(signed.map((claim) => claim.scope)).toEqual([GSC_SCOPE, GA_SCOPE]);
+    expect(signed[0].iss).toBe("fixture@example.com");
     expect(
       await crypto.subtle.verify(
         "RSASSA-PKCS1-v1_5",
@@ -221,6 +224,44 @@ test("a service-account key signs the requesting product's scope", async () => {
         new TextEncoder().encode(`${parts[0][0]}.${parts[0][1]}`),
       ),
     ).toBe(true);
+  } finally {
+    mocked.mockRestore();
+  }
+});
+
+test("a replaced service-account file exchanges a token for the account it now holds", async () => {
+  const directory = await sandbox();
+  const { pem } = await keyPair();
+  const path = join(directory, "key.json");
+  process.env.PAGESIGHT_GA_CREDENTIALS = path;
+  const issuers: string[] = [];
+  const mocked = mockFetch(async (_input, init) => {
+    const body = new URLSearchParams(init?.body instanceof URLSearchParams ? init.body : "");
+    issuers.push(claims(body.get("assertion") ?? "").iss);
+    return Response.json({ access_token: `token-${issuers.length}`, expires_in: 3600 });
+  });
+  try {
+    const tokens: string[] = [];
+    for (const [clientEmail, privateKeyId] of [
+      ["first@example.com", "key-1"],
+      ["second@example.com", "key-1"],
+      ["second@example.com", "key-2"],
+    ]) {
+      await Bun.write(
+        path,
+        JSON.stringify({
+          type: "service_account",
+          client_email: clientEmail,
+          private_key_id: privateKeyId,
+          private_key: pem,
+        }),
+      );
+      tokens.push(await googleAccessToken("ga"));
+    }
+    expect(tokens).toEqual(["token-1", "token-2", "token-3"]);
+    expect(issuers).toEqual(["first@example.com", "second@example.com", "second@example.com"]);
+    expect(await googleAccessToken("ga")).toBe("token-3");
+    expect(issuers).toHaveLength(3);
   } finally {
     mocked.mockRestore();
   }

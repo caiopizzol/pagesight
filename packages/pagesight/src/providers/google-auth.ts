@@ -9,7 +9,7 @@ export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const EXPIRY_MARGIN_SECONDS = 60;
 
 type Credential =
-  | { type: "service_account"; path: string; clientEmail: string }
+  | { type: "service_account"; clientEmail: string; privateKeyId: string; privateKey: string }
   | { type: "authorized_user"; clientId: string; clientSecret: string; refreshToken: string };
 
 interface CredentialSource {
@@ -64,10 +64,15 @@ export async function writeGoogleLogin(login: GoogleLogin): Promise<string> {
   return path;
 }
 
-function toCredential(key: Record<string, unknown>, path: string): Credential {
+function toCredential(key: Record<string, unknown>): Credential {
   const text = (field: string) => (typeof key[field] === "string" ? key[field] : "");
   if (key.type === "service_account" && text("client_email") && text("private_key"))
-    return { type: "service_account", path, clientEmail: text("client_email") };
+    return {
+      type: "service_account",
+      clientEmail: text("client_email"),
+      privateKeyId: text("private_key_id"),
+      privateKey: text("private_key"),
+    };
   if (key.type === "authorized_user" && text("client_id") && text("client_secret") && text("refresh_token"))
     return {
       type: "authorized_user",
@@ -84,7 +89,7 @@ function toCredential(key: Record<string, unknown>, path: string): Credential {
 
 async function readCredential(path: string): Promise<Credential> {
   try {
-    return toCredential(await Bun.file(path).json(), path);
+    return toCredential(await Bun.file(path).json());
   } catch (error) {
     if (error instanceof RequestError) throw error;
     throw new RequestError("Cannot parse the configured Google credential JSON", null, "invalid_credentials");
@@ -209,9 +214,10 @@ export function googleTokenRequest(body: Record<string, string>): Promise<Google
 const cache = new Map<string, { token: string; expiresAt: number }>();
 const inFlight = new Map<string, Promise<string>>();
 
+// The account the token belongs to, not the file it came from: a replaced file is a different account.
 const identity = (credential: Credential) =>
   credential.type === "service_account"
-    ? `service_account:${credential.path}`
+    ? `service_account:${credential.clientEmail}:${credential.privateKeyId}`
     : `authorized_user:${credential.clientId}:${credential.refreshToken}`;
 
 export async function googleAccessToken(product: GoogleProduct): Promise<string> {
@@ -259,7 +265,6 @@ async function serviceAccountToken(
   credential: Extract<Credential, { type: "service_account" }>,
   scope: string,
 ): Promise<GoogleTokenResponse> {
-  const key = (await Bun.file(credential.path).json()) as { private_key: string };
   const now = Math.floor(Date.now() / 1000);
   const header = base64Url(new TextEncoder().encode(JSON.stringify({ alg: "RS256", typ: "JWT" })));
   const payload = base64Url(
@@ -276,7 +281,7 @@ async function serviceAccountToken(
   const signingInput = `${header}.${payload}`;
   const signingKey = await crypto.subtle.importKey(
     "pkcs8",
-    pemToBuffer(key.private_key),
+    pemToBuffer(credential.privateKey),
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
     ["sign"],
