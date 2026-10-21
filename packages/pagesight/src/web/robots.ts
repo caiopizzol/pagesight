@@ -7,6 +7,7 @@
  */
 
 import { readBounded, RequestError } from "../shared/http.js";
+import { fetchFollowing } from "./fetch.js";
 
 interface RobotsGroup {
   userAgents: string[];
@@ -285,18 +286,18 @@ async function auditAiCrawlers(robots: RobotsTxt): Promise<CrawlerStatus[]> {
 
 // --- Fetch ---
 
-export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: RobotsTxt; statusCode: number }> {
-  const url = new URL("/robots.txt", origin).href;
+// Google stops reading robots.txt at 500 KiB.
+// https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt#file-format
+const ROBOTS_BYTE_LIMIT = 512_000;
 
-  const res = await fetch(url, {
-    headers: { "User-Agent": "Pagesight/0.1" },
-    redirect: "follow",
-  });
+export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: RobotsTxt; statusCode: number }> {
+  const { response: res } = await fetchFollowing(new URL("/robots.txt", origin).href);
 
   // RFC 9309 §§2.3.1.3–4 distinguish unavailable (4xx) from unreachable (5xx).
   // Pagesight treats 429 conservatively; Google also excludes it from the allow-on-4xx rule.
   // https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt#handling-http-status-codes
   if (res.status >= 500 || res.status === 429) {
+    await res.body?.cancel();
     const disallowAll: RobotsTxt = {
       groups: [{ userAgents: ["*"], rules: [{ type: "disallow", path: "/" }] }],
       sitemaps: [],
@@ -307,10 +308,11 @@ export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: Robot
   }
 
   if (res.status >= 400) {
+    await res.body?.cancel();
     return { robotsTxt: { groups: [], sitemaps: [], raw: "", errors: [] }, statusCode: res.status };
   }
 
-  const raw = await res.text();
+  const raw = await readBounded(res, ROBOTS_BYTE_LIMIT);
   return { robotsTxt: parseRobotsTxt(raw), statusCode: res.status };
 }
 
@@ -319,11 +321,7 @@ export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: Robot
 const LLMS_BYTE_LIMIT = 1_048_576;
 
 async function observeLlmsFile(origin: string, path: string) {
-  const response = await fetch(new URL(path, origin), {
-    headers: { "User-Agent": "Pagesight/0.1" },
-    redirect: "follow",
-    signal: AbortSignal.timeout(10_000),
-  });
+  const { response } = await fetchFollowing(new URL(path, origin).href);
   if (!response.ok) {
     await response.body?.cancel();
     return { path, status: response.status, bytes: null };
@@ -345,7 +343,14 @@ export async function observeRobots(url: string) {
     warnings.push("The AI crawler registry could not be fetched; aiCrawlers is empty, not empty of blocks.");
     return [] as CrawlerStatus[];
   });
-  const llms = await Promise.all([observeLlmsFile(origin, "/llms.txt"), observeLlmsFile(origin, "/llms-full.txt")]);
+  const llms = await Promise.all(
+    ["/llms.txt", "/llms-full.txt"].map((path) =>
+      observeLlmsFile(origin, path).catch(() => {
+        warnings.push(`${path} could not be fetched; its status is unknown.`);
+        return { path, status: null as number | null, bytes: null };
+      }),
+    ),
+  );
   for (const file of llms)
     if (file.status === 200 && file.bytes === null)
       warnings.push(`${file.path} exceeds the ${LLMS_BYTE_LIMIT} byte read limit; its size is unknown.`);
