@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/caiopizzol/pagesight/compare/v0.20.0...v1.0.0) (2026-10-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* focus Pagesight on Search Console, GA4 and page evidence ([#40](https://github.com/caiopizzol/pagesight/issues/40))
+
+### Features
+
+* **auth:** sign in with Google once for Search Console and GA4 ([#41](https://github.com/caiopizzol/pagesight/issues/41)) ([af8e9d8](https://github.com/caiopizzol/pagesight/commit/af8e9d8dbec243f380572fc08439b5d29b3f0135))
+
+
+### Code Refactoring
+
+* focus Pagesight on Search Console, GA4 and page evidence ([#40](https://github.com/caiopizzol/pagesight/issues/40)) ([a37ad8e](https://github.com/caiopizzol/pagesight/commit/a37ad8e5d5dbb5391c27b113dd0dbc8da5ca01b2))
+
 ## [0.20.0](https://github.com/caiopizzol/pagesight/compare/v0.19.0...v0.20.0) (2026-09-28)
 
 
