@@ -12,10 +12,11 @@
 
 ## Quick start
 
-Requires [Bun](https://bun.sh). This page check needs no provider credentials:
+Requires [Bun](https://bun.sh). These checks need no provider credentials:
 
 ```sh
 bunx --bun pagesight page --url https://example.com
+bunx --bun pagesight robots --url https://example.com
 ```
 
 ## Development

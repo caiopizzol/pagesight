@@ -48,21 +48,13 @@ test("CLI rejects ignored flags and unexpected positional arguments before provi
   }
 });
 
-test("explicit MCP startup exposes existing tools and observe calls the same API", async () => {
+test("explicit MCP startup exposes observe alone and it calls the same API", async () => {
   const transport = new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" });
   const client = new Client({ name: "pagesight-test", version: "1.0.0" });
   try {
     await client.connect(transport);
     const listed = await client.listTools();
-    expect(listed.tools.map((t) => t.name).sort()).toEqual([
-      "ai",
-      "audit",
-      "observe",
-      "page",
-      "search",
-      "setup",
-      "speed",
-    ]);
+    expect(listed.tools.map((t) => t.name)).toEqual(["observe"]);
     expect(listed.tools.find((t) => t.name === "observe")?.description).toContain("discover");
     const result = await client.callTool({
       name: "observe",

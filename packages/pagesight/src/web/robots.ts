@@ -8,19 +8,19 @@
 
 import { readBounded, RequestError } from "../shared/http.js";
 
-export interface RobotsGroup {
+interface RobotsGroup {
   userAgents: string[];
   rules: Array<{ type: "allow" | "disallow"; path: string }>;
 }
 
-export interface RobotsTxt {
+interface RobotsTxt {
   groups: RobotsGroup[];
   sitemaps: string[];
   raw: string;
   errors: string[];
 }
 
-export interface CrawlerStatus {
+interface CrawlerStatus {
   name: string;
   company: string;
   category: string;
@@ -265,7 +265,7 @@ export function isAllowed(
 
 // --- AI Crawler Audit ---
 
-export async function auditAiCrawlers(robots: RobotsTxt): Promise<CrawlerStatus[]> {
+async function auditAiCrawlers(robots: RobotsTxt): Promise<CrawlerStatus[]> {
   const registry = await fetchRegistry();
 
   return registry.map((crawler) => {

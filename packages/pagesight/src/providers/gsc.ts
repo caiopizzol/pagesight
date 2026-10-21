@@ -20,42 +20,6 @@ async function gscFetch(url: string, body?: unknown): Promise<Record<string, unk
 
 // --- URL Inspection ---
 
-export interface InspectionResult {
-  inspectionResultLink: string;
-  indexStatusResult: {
-    verdict: string;
-    coverageState: string;
-    robotsTxtState: string;
-    indexingState: string;
-    lastCrawlTime?: string;
-    pageFetchState: string;
-    googleCanonical?: string;
-    userCanonical?: string;
-    sitemap?: string[];
-    referringUrls?: string[];
-    crawledAs: string;
-  };
-  richResultsResult?: {
-    verdict: string;
-    detectedItems: Array<{
-      richResultType: string;
-      items: Array<{
-        name?: string;
-        issues: Array<{ issueMessage: string; severity: string }>;
-      }>;
-    }>;
-  };
-  mobileUsabilityResult?: {
-    verdict: string;
-    issues?: Array<{ issueType: string; message?: string }>;
-  };
-}
-
-export async function inspectUrl(inspectionUrl: string, siteUrl: string): Promise<InspectionResult> {
-  const data = await inspectUrlResponse(inspectionUrl, siteUrl);
-  return data.inspectionResult as InspectionResult;
-}
-
 export async function inspectUrlResponse(inspectionUrl: string, siteUrl: string): Promise<Record<string, unknown>> {
   const data = await gscFetch(`${GSC_API}/urlInspection/index:inspect`, {
     inspectionUrl,
@@ -69,7 +33,7 @@ export async function inspectUrlResponse(inspectionUrl: string, siteUrl: string)
 
 // --- Search Analytics ---
 
-export interface SearchAnalyticsRow {
+interface SearchAnalyticsRow {
   keys: string[];
   clicks: number;
   impressions: number;
@@ -77,7 +41,7 @@ export interface SearchAnalyticsRow {
   position: number;
 }
 
-export interface SearchAnalyticsMetadata {
+interface SearchAnalyticsMetadata {
   first_incomplete_date?: string;
   first_incomplete_hour?: string;
 }
@@ -88,13 +52,13 @@ export interface SearchAnalyticsResponse {
   metadata?: SearchAnalyticsMetadata;
 }
 
-export interface SearchAnalyticsFilter {
+interface SearchAnalyticsFilter {
   dimension: string;
   operator: string;
   expression: string;
 }
 
-export interface SearchAnalyticsOptions {
+interface SearchAnalyticsOptions {
   startDate: string;
   endDate: string;
   dimensions?: string[];
@@ -129,14 +93,9 @@ export async function querySearchAnalytics(
 
 // --- Sites ---
 
-export interface GscSite {
+interface GscSite {
   siteUrl: string;
   permissionLevel: string;
-}
-
-export async function listSites(): Promise<GscSite[]> {
-  const data = await listSitesResponse();
-  return (data.siteEntry as GscSite[] | undefined) ?? [];
 }
 
 export function listSitesResponse(): Promise<Record<string, unknown>> {
@@ -150,36 +109,6 @@ export async function getSite(siteUrl: string): Promise<GscSite> {
 
 // --- Sitemaps ---
 
-export interface GscSitemapContent {
-  type: string;
-  submitted?: string;
-  indexed?: string;
-}
-
-export interface GscSitemap {
-  path: string;
-  lastSubmitted?: string;
-  isPending: boolean;
-  isSitemapsIndex: boolean;
-  type?: string;
-  lastDownloaded?: string;
-  warnings?: string;
-  errors?: string;
-  contents?: GscSitemapContent[];
-}
-
-export async function listSitemaps(siteUrl: string): Promise<GscSitemap[]> {
-  const data = await listSitemapsResponse(siteUrl);
-  return (data.sitemap as GscSitemap[] | undefined) ?? [];
-}
-
 export function listSitemapsResponse(siteUrl: string): Promise<Record<string, unknown>> {
   return gscFetch(`${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
-}
-
-export async function getSitemap(siteUrl: string, feedpath: string): Promise<GscSitemap> {
-  const data = await gscFetch(
-    `${WEBMASTERS_API}/sites/${encodeURIComponent(siteUrl)}/sitemaps/${encodeURIComponent(feedpath)}`,
-  );
-  return data as unknown as GscSitemap;
 }

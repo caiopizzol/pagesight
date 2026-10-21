@@ -3,11 +3,12 @@
 SEO, analytics, page, and performance evidence for developers and AI assistants.
 Use it through the TypeScript API, CLI, or MCP.
 
-Requires Bun. Try a page check without provider credentials:
+Requires Bun. Page and crawler-policy checks need no provider credentials:
 
 ```sh
 bun add pagesight
 bunx --bun pagesight page --url https://example.com
+bunx --bun pagesight robots --url https://example.com
 ```
 
 ```ts

@@ -8,31 +8,21 @@ function getApiKey(): string {
   return key;
 }
 
-export type CruxFormFactor = "DESKTOP" | "PHONE" | "TABLET";
+type CruxFormFactor = "DESKTOP" | "PHONE" | "TABLET";
 
-export type CruxMetric =
-  | "cumulative_layout_shift"
-  | "first_contentful_paint"
-  | "interaction_to_next_paint"
-  | "largest_contentful_paint"
-  | "experimental_time_to_first_byte"
-  | "round_trip_time"
-  | "navigation_types"
-  | "form_factors";
-
-export interface CruxHistogramBin {
+interface CruxHistogramBin {
   start: number | string;
   end?: number | string;
   density: number;
 }
 
-export interface CruxMetricData {
+interface CruxMetricData {
   histogram?: CruxHistogramBin[];
   percentiles?: { p75: number | string };
   fractions?: Record<string, number>;
 }
 
-export interface CruxRecord {
+interface CruxRecord {
   key: { formFactor?: string; origin?: string; url?: string };
   metrics: Record<string, CruxMetricData>;
   collectionPeriod: {
@@ -41,12 +31,12 @@ export interface CruxRecord {
   };
 }
 
-export interface CruxResponse {
+interface CruxResponse {
   record: CruxRecord;
   urlNormalizationDetails?: { originalUrl: string; normalizedUrl: string };
 }
 
-export interface CruxHistoryMetricData {
+interface CruxHistoryMetricData {
   histogramTimeseries?: Array<{
     start: number | string;
     end?: number | string;
@@ -56,7 +46,7 @@ export interface CruxHistoryMetricData {
   fractionTimeseries?: Record<string, { fractions: Array<number | null> }>;
 }
 
-export interface CruxHistoryRecord {
+interface CruxHistoryRecord {
   key: { formFactor?: string; origin?: string; url?: string };
   metrics: Record<string, CruxHistoryMetricData>;
   collectionPeriods: Array<{
@@ -65,7 +55,7 @@ export interface CruxHistoryRecord {
   }>;
 }
 
-export interface CruxHistoryResponse {
+interface CruxHistoryResponse {
   record: CruxHistoryRecord;
   urlNormalizationDetails?: { originalUrl: string; normalizedUrl: string };
 }

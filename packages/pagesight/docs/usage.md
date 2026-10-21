@@ -51,7 +51,6 @@ results include a concise per-observation `summary` alongside full observations.
 `observe` input uses the same schema. `page` observes fetched HTML, status,
 redirects, canonical, robots directives, Open Graph and Twitter metas, hreflang
 alternates, JSON-LD and a content hash. It does not execute browser JavaScript.
-The original MCP page tool retains its additional link and contrast checks.
 
 `speed.psi` requests the `performance` and `seo` Lighthouse categories unless
 `categories` selects others from `performance`, `accessibility`, `best-practices`
@@ -134,24 +133,12 @@ Exit codes: 0 success, 1 provider failure, 2 invalid input, 3 partial evidence.
 Partial snapshots are saved. A successful report can still have provider coverage
 limitations; inspect warnings and metadata before making comparisons.
 
-## MCP compatibility
+## MCP
 
 Run `pagesight mcp` to start the stdio MCP server. Configure your host to run
 `bun /path/to/pagesight/packages/pagesight/src/index.ts mcp` with the environment above. Existing MCP
 launch configurations must include the `mcp` argument; no arguments show CLI help.
 
-The new `observe` tool accepts `{ "request": <operation object> }` and returns
-structured API evidence. The original six tools remain available:
-
-| Tool     | Capability                                                                |
-| -------- | ------------------------------------------------------------------------- |
-| `audit`  | PageSpeed, metadata, robots, sitemap processing errors and URL inspection |
-| `page`   | Metadata, links, JSON-LD checks, redirects and contrast                   |
-| `speed`  | PageSpeed and CrUX snapshots/history                                      |
-| `search` | GSC reports, sitemap metadata and selected URL inspection                 |
-| `ai`     | Robots and crawler-registry checks, llms.txt detection                    |
-| `setup`  | Existing GSC authentication helpers                                       |
-
-The legacy text tools do not invent indexed counts from deprecated sitemap fields,
-extrapolate sample verdicts to the whole site, or treat missing comparison rows as zero.
-Use `observe` for exact request/response evidence and pagination status.
+`observe` is the only tool. It accepts `{ "request": <operation object> }` using
+the operations above and returns the same evidence as the API and the CLI: exact
+requests, provider responses, warnings and pagination status.

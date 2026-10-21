@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { clearTokenCache } from "../../src/providers/gsc-auth.js";
 import { getServiceAccountToken } from "../../src/providers/google-tokens.js";
 import { gaAccessToken, gaFetch } from "../../src/providers/ga.js";
-import { listSites } from "../../src/providers/gsc.js";
+import { listSitesResponse } from "../../src/providers/gsc.js";
 
 test("service-account token exchange signs the requested provider scope", async () => {
   const keys = await crypto.subtle.generateKey(
@@ -88,8 +88,8 @@ test("GSC and GA refresh their own cached token after a 401", async () => {
     return new Response("unauthorized", { status: 401 });
   });
   try {
-    expect(await listSites().catch((error) => error)).toBeInstanceOf(Error);
-    expect(await listSites().catch((error) => error)).toBeInstanceOf(Error);
+    expect(await listSitesResponse().catch((error) => error)).toBeInstanceOf(Error);
+    expect(await listSitesResponse().catch((error) => error)).toBeInstanceOf(Error);
     expect(await gaAccessToken()).toBe("fixture-token");
     expect(await gaFetch("properties/1").catch((error) => error)).toBeInstanceOf(Error);
     expect(await gaAccessToken()).toBe("fixture-token");

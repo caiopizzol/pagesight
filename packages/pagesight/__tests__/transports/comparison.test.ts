@@ -4,9 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { execute } from "../../src/api/index.js";
-import { registerObserveTool } from "../../src/tools/observe.js";
+import { createMcpServer } from "../../src/mcp-server.js";
 import { gsc, saved } from "../support/comparison.js";
 
 test("CLI comparison reads saved objects and agrees with the API", async () => {
@@ -41,10 +40,9 @@ test("MCP accepts large snapshot objects and uses the same comparison", async ()
     current = saved([await gsc(1)]);
   Object.assign(baseline.pages[0].response as object, { privateFixturePadding: "x".repeat(1_100_000) });
   const input = { operation: "compare", baseline, current };
-  const server = new McpServer({ name: "compare-test", version: "1" });
+  const server = createMcpServer();
   const client = new Client({ name: "compare-test-client", version: "1" });
   const [a, b] = InMemoryTransport.createLinkedPair();
-  registerObserveTool(server);
   try {
     const direct = await execute(input);
     await server.connect(a);
