@@ -9,6 +9,21 @@ export function createSiteFixture() {
           `<urlset><url><loc>${fixture.url}?a=1&amp;b=2</loc><lastmod>2099-01-01</lastmod></url></urlset>`,
         );
       if (url.pathname === "/bad") return new Response("private token=not-for-output", { status: 403 });
+      if (url.pathname === "/social")
+        return new Response(
+          [
+            "<title>Social</title>",
+            '<meta property="og:title" content="Open Graph title">',
+            '<meta property="OG:Image" content="https://cdn.example.com/card.png">',
+            '<meta name="twitter:card" content="summary_large_image">',
+            '<meta name="description" content="Described">',
+            '<link rel="alternate" hreflang="en" href="/en">',
+            '<link rel="alternate" hreflang="pt-BR" href="https://pt.example.com/">',
+            '<link rel="alternate" hreflang="de" href="http://[broken">',
+            '<link rel="alternate" href="/feed.xml" type="application/rss+xml">',
+          ].join(""),
+          { headers: { "Content-Type": "text/html" } },
+        );
       if (url.pathname === "/bad-canonical")
         return new Response('<title>Still observable</title><link rel="canonical" href="http://[broken">');
       if (url.pathname === "/entities.xml")

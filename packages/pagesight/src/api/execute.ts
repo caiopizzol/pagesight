@@ -18,6 +18,7 @@ import { operationSchema } from "./schema.js";
 import { discover } from "./discover.js";
 import { snapshot } from "./snapshot.js";
 import { observePage } from "../web/page-observation.js";
+import { observeRobots } from "../web/robots.js";
 
 export type Executor = (input: unknown) => Promise<Evidence>;
 type ParsedOperation = ReturnType<typeof operationSchema.parse>;
@@ -118,13 +119,17 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
       return gaReport(op.property, op.request, op.maxPages);
     case "page":
       return capture("web", "page", op.url, { url: op.url }, () => observePage(op.url));
+    case "robots":
+      return capture("web", "robots", op.url, { url: op.url }, () => observeRobots(op.url), [
+        "robots.txt declares crawler policy; it does not prove how any crawler behaves.",
+      ]);
     case "speed.psi":
       return capture(
         "psi",
         "run",
         op.url,
-        { url: op.url, strategy: op.strategy, categories: ["performance", "seo"] },
-        () => runPagespeed(op.url, { strategy: op.strategy, categories: ["performance", "seo"] }),
+        { url: op.url, strategy: op.strategy, categories: op.categories },
+        () => runPagespeed(op.url, { strategy: op.strategy, categories: op.categories }),
         ["Single Lighthouse lab run; not field performance or ranking evidence."],
       );
     case "speed.crux":

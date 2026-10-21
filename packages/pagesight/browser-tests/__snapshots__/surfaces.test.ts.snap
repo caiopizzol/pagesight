@@ -25,7 +25,8 @@ pagesight ga key-events --property 123456
 pagesight ga report --property 123456 --request report.json [--max-pages 4]
 pagesight render --url URL [--from-url URL --link-selector CSS] [--settle-ms 1000] [--timeout-ms 20000]
 pagesight page --url https://example.com/
-pagesight speed psi --url https://example.com/ [--strategy mobile]
+pagesight robots --url https://example.com/
+pagesight speed psi --url https://example.com/ [--strategy mobile] [--categories performance,seo]
 pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
@@ -721,6 +722,9 @@ exports[`pagesight investigate --config config.json --url https://example.com/ab
                   "descriptionLength": null,
                   "canonical": null,
                   "robots": [],
+                  "openGraph": {},
+                  "twitter": {},
+                  "hreflang": [],
                   "sha256": "4a1779d04d251b521ac9e718a0d3b5d6c0961763512d03b20b3c1ef36f446730",
                   "bytes": 20,
                   "structuredData": [],
@@ -2682,6 +2686,9 @@ exports[`pagesight page --url https://example.com/ --json 1`] = `
         "descriptionLength": null,
         "canonical": null,
         "robots": [],
+        "openGraph": {},
+        "twitter": {},
+        "hreflang": [],
         "sha256": "5f1a968dbbe52e6f82d19d85353f2a23a0031fe937972cc6584b144345ab897f",
         "bytes": 48,
         "structuredData": [],
@@ -2700,6 +2707,90 @@ exports[`pagesight page --url https://example.com/ --json 1`] = `
     }
   ],
   "warnings": []
+}
+"
+,
+}
+`;
+
+exports[`pagesight robots --url https://example.com/ 1`] = `
+{
+  "exit": 0,
+  "requests": [
+    {
+      "method": "GET",
+      "origin": "https://example.com",
+      "path": "/llms-full.txt",
+      "query": [],
+    },
+    {
+      "method": "GET",
+      "origin": "https://example.com",
+      "path": "/llms.txt",
+      "query": [],
+    },
+    {
+      "method": "GET",
+      "origin": "https://example.com",
+      "path": "/robots.txt",
+      "query": [],
+    },
+    {
+      "method": "GET",
+      "origin": "https://raw.githubusercontent.com",
+      "path": "/ai-robots-txt/ai.robots.txt/main/robots.json",
+      "query": [],
+    },
+  ],
+  "stderr": "",
+  "stdout": 
+"{
+  "schemaVersion": 1,
+  "provider": "web",
+  "operation": "robots",
+  "target": "https://example.com/",
+  "startedAt": "2026-09-10T12:00:00.000Z",
+  "finishedAt": "2026-09-10T12:00:00.000Z",
+  "status": "ok",
+  "pages": [
+    {
+      "request": {
+        "url": "https://example.com/"
+      },
+      "response": {
+        "url": "https://example.com/",
+        "origin": "https://example.com",
+        "status": 200,
+        "errors": [],
+        "sitemaps": [],
+        "googlebotAllowed": true,
+        "aiCrawlers": [
+          {
+            "name": "GPTBot",
+            "operator": "OpenAI",
+            "category": "AI model training",
+            "allowed": true
+          }
+        ],
+        "llms": [
+          {
+            "path": "/llms.txt",
+            "status": 200,
+            "bytes": 10
+          },
+          {
+            "path": "/llms-full.txt",
+            "status": 404,
+            "bytes": null
+          }
+        ],
+        "warnings": []
+      }
+    }
+  ],
+  "warnings": [
+    "robots.txt declares crawler policy; it does not prove how any crawler behaves."
+  ]
 }
 "
 ,
@@ -2756,6 +2847,79 @@ exports[`pagesight speed psi --url https://example.com/ 1`] = `
         "categories": [
           "performance",
           "seo"
+        ]
+      },
+      "response": {
+        "id": "https://example.com/",
+        "lighthouseResult": {
+          "categories": {
+            "performance": {
+              "score": 0.9
+            }
+          }
+        }
+      }
+    }
+  ],
+  "warnings": [
+    "Single Lighthouse lab run; not field performance or ranking evidence."
+  ]
+}
+"
+,
+}
+`;
+
+exports[`pagesight speed psi --url https://example.com/ --categories accessibility,best-practices 1`] = `
+{
+  "exit": 0,
+  "requests": [
+    {
+      "method": "GET",
+      "origin": "https://www.googleapis.com",
+      "path": "/pagespeedonline/v5/runPagespeed",
+      "query": [
+        [
+          "url",
+          "https://example.com/",
+        ],
+        [
+          "key",
+          "[redacted]",
+        ],
+        [
+          "strategy",
+          "mobile",
+        ],
+        [
+          "category",
+          "accessibility",
+        ],
+        [
+          "category",
+          "best-practices",
+        ],
+      ],
+    },
+  ],
+  "stderr": "",
+  "stdout": 
+"{
+  "schemaVersion": 1,
+  "provider": "psi",
+  "operation": "run",
+  "target": "https://example.com/",
+  "startedAt": "2026-09-10T12:00:00.000Z",
+  "finishedAt": "2026-09-10T12:00:00.000Z",
+  "status": "ok",
+  "pages": [
+    {
+      "request": {
+        "url": "https://example.com/",
+        "strategy": "mobile",
+        "categories": [
+          "accessibility",
+          "best-practices"
         ]
       },
       "response": {
@@ -3006,6 +3170,9 @@ exports[`pagesight doctor --config config.json 1`] = `
                   "descriptionLength": null,
                   "canonical": null,
                   "robots": [],
+                  "openGraph": {},
+                  "twitter": {},
+                  "hreflang": [],
                   "sha256": "5f1a968dbbe52e6f82d19d85353f2a23a0031fe937972cc6584b144345ab897f",
                   "bytes": 48,
                   "structuredData": [],
@@ -3123,6 +3290,9 @@ exports[`pagesight snapshot --config config.json 1`] = `
                   "descriptionLength": null,
                   "canonical": null,
                   "robots": [],
+                  "openGraph": {},
+                  "twitter": {},
+                  "hreflang": [],
                   "sha256": "5f1a968dbbe52e6f82d19d85353f2a23a0031fe937972cc6584b144345ab897f",
                   "bytes": 48,
                   "structuredData": [],

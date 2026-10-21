@@ -248,11 +248,17 @@ const operationVariants = z.discriminatedUnion("operation", [
     })
     .strict(),
   z.object({ operation: z.literal("page"), url: httpUrl }).strict(),
+  z.object({ operation: z.literal("robots"), url: httpUrl }).strict(),
   z
     .object({
       operation: z.literal("speed.psi"),
       url: httpUrl,
       strategy: z.enum(["mobile", "desktop"]).default("mobile"),
+      categories: z
+        .array(z.enum(["performance", "accessibility", "best-practices", "seo"]))
+        .min(1)
+        .max(4)
+        .default(["performance", "seo"]),
     })
     .strict(),
   z

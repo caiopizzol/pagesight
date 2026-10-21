@@ -103,7 +103,12 @@ const cases: Case[] = [
     request: { operation: "ga.report", property: "123", request: gaRequest },
   },
   { argv: ["page", "--url", site, "--json"], request: { operation: "page", url: site } },
+  simple("robots", { url: site }),
   simple("speed.psi", { url: site }),
+  {
+    argv: ["speed", "psi", "--url", site, "--categories", "accessibility,best-practices"],
+    request: { operation: "speed.psi", url: site, categories: ["accessibility", "best-practices"] },
+  },
   simple("speed.crux", { url: site }),
   simple("speed.crux", { url: `${site}missing` }),
   {

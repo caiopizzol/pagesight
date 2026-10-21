@@ -261,7 +261,7 @@ export function registerAuditTool(server: McpServer): void {
           categories: ["performance", "accessibility", "seo", "best-practices"] as PsiCategoryType[],
         }),
         fetchRobotsTxt(origin).then(async ({ robotsTxt }) => {
-          const crawlers = await auditAiCrawlers(robotsTxt);
+          const crawlers = await auditAiCrawlers(robotsTxt).catch(() => []);
           const { allowed: googlebotAllowed } = isAllowed(robotsTxt, "Googlebot", "/");
           return { robotsTxt, crawlers, googlebotAllowed };
         }),

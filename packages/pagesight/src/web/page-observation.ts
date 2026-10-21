@@ -8,6 +8,9 @@ export async function observePage(url: string) {
   const metadata: { canonical: string | null; description: string | null } = { canonical: null, description: null };
   const robots: string[] = [];
   const data: string[] = [];
+  const openGraph: Record<string, string> = {};
+  const twitter: Record<string, string> = {};
+  const hreflang: Array<{ lang: string; href: string }> = [];
   const rewriter = new HTMLRewriter()
     .on("title", {
       text(chunk) {
@@ -29,9 +32,24 @@ export async function observePage(url: string) {
     .on("meta", {
       element(el) {
         const name = el.getAttribute("name")?.toLowerCase();
+        const property = el.getAttribute("property")?.toLowerCase();
         const value = el.getAttribute("content");
         if (name === "description") metadata.description = value;
         if ((name === "robots" || name === "googlebot") && value) robots.push(`${name}: ${value}`);
+        if (property?.startsWith("og:") && value !== null) openGraph[property] = value;
+        if (name?.startsWith("twitter:") && value !== null) twitter[name] = value;
+      },
+    })
+    .on('link[rel="alternate"][hreflang]', {
+      element(el) {
+        const lang = el.getAttribute("hreflang");
+        const href = el.getAttribute("href");
+        if (!lang || !href) return;
+        try {
+          hreflang.push({ lang, href: new URL(href, finalUrl).href });
+        } catch {
+          warnings.push(`Malformed alternate href for hreflang ${lang}; that alternate is unknown.`);
+        }
       },
     })
     .on('script[type="application/ld+json"]', {
@@ -54,6 +72,9 @@ export async function observePage(url: string) {
     descriptionLength: metadata.description === null ? null : Array.from(metadata.description).length,
     canonical: metadata.canonical,
     robots,
+    openGraph,
+    twitter,
+    hreflang,
     sha256: Bun.CryptoHasher.hash("sha256", body, "hex"),
     bytes: Buffer.byteLength(body),
     structuredData: data.filter(Boolean).map((text) => {

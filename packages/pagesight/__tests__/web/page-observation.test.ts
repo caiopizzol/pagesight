@@ -17,6 +17,21 @@ test("page inventory reads attribute order and preserves noindex without declari
   expect(sitemap.futureLastmods).toEqual(["2099-01-01"]);
 });
 
+test("page evidence records Open Graph, Twitter and absolute hreflang alternates", async () => {
+  const result = await execute({ operation: "page", url: `${fixture.url}social` });
+  expect(result.status).toBe("ok");
+  expect(result.pages[0].response).toMatchObject({
+    openGraph: { "og:title": "Open Graph title", "og:image": "https://cdn.example.com/card.png" },
+    twitter: { "twitter:card": "summary_large_image" },
+    hreflang: [
+      { lang: "en", href: `${fixture.url}en` },
+      { lang: "pt-BR", href: "https://pt.example.com/" },
+    ],
+    description: "Described",
+    warnings: expect.arrayContaining(["Malformed alternate href for hreflang de; that alternate is unknown."]),
+  });
+});
+
 test("malformed canonical keeps independently observed page evidence", async () => {
   const result = await execute({ operation: "page", url: `${fixture.url}bad-canonical` });
   expect(result.status).toBe("ok");

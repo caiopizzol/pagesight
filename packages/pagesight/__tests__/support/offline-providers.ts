@@ -75,7 +75,11 @@ const routes: Record<string, (request: Request) => Response> = {
       : json({ error: { code: 400, status: "INVALID_ARGUMENT" } }, 400),
   "POST https://chromeuxreport.googleapis.com/v1/records:queryRecord": crux,
   "POST https://chromeuxreport.googleapis.com/v1/records:queryHistoryRecord": crux,
+  "GET https://raw.githubusercontent.com/ai-robots-txt/ai.robots.txt/main/robots.json": () =>
+    json({ GPTBot: { operator: "[OpenAI](https://openai.com)", respect: "Yes", function: "AI model training" } }),
   "GET https://example.com/robots.txt": () => new Response("User-agent: *\nAllow: /\n"),
+  "GET https://example.com/llms.txt": () => new Response("# Example\n"),
+  "GET https://example.com/llms-full.txt": () => new Response(null, { status: 404 }),
   "GET https://example.com/": () => html("Example", '<a href="/about">About</a>'),
   "GET https://example.com/about": () => html("About"),
 };

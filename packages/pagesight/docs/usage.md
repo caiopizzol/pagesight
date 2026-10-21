@@ -38,7 +38,8 @@ results include a concise per-observation `summary` alongside full observations.
 | `ga.realtime`                  | `property`, `request`; moving window, no offset                            |
 | `ga.report`                    | `property`, `request`; optional `maxPages`                                 |
 | `page`                         | `url`                                                                      |
-| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`)                         |
+| `robots`                       | `url`; reads that origin's `/robots.txt`, `/llms.txt`, `/llms-full.txt`    |
+| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`), `categories`           |
 | `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`                               |
 | `doctor`                       | `config`                                                                   |
 | `crawl`                        | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md)) |
@@ -48,9 +49,13 @@ results include a concise per-observation `summary` alongside full observations.
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
-redirects, canonical, robots directives, JSON-LD and a content hash. It does not
-execute browser JavaScript. The original MCP page tool retains its additional
-link, social-meta and contrast checks.
+redirects, canonical, robots directives, Open Graph and Twitter metas, hreflang
+alternates, JSON-LD and a content hash. It does not execute browser JavaScript.
+The original MCP page tool retains its additional link and contrast checks.
+
+`speed.psi` requests the `performance` and `seo` Lighthouse categories unless
+`categories` selects others from `performance`, `accessibility`, `best-practices`
+and `seo`.
 
 See [measurement and verification](measurement.md) for saved-snapshot assessments,
 Realtime requests, freshness limits and repeatable browser checks.
@@ -71,6 +76,19 @@ in output; this is not DOM order. No scripts run or image URLs are requested.
 The existing 2 MB page limit still applies. This is markup evidence, not a full
 accessibility or rendered-page audit.
 
+## Crawler policy evidence
+
+`pagesight robots --url https://example.com/` reads that origin's `/robots.txt`
+and reports its HTTP status, RFC 9309 parse errors, declared sitemaps, whether
+Googlebot may fetch `/`, and each known AI crawler with its operator, category
+and access. It also reports the status and byte size of `/llms.txt` and
+`/llms-full.txt`; a file over 1 MB is reported without a size.
+
+The AI crawler list comes from the [ai.robots.txt](https://github.com/ai-robots-txt/ai.robots.txt)
+registry, fetched at run time and cached for 24 hours. When that fetch fails the
+list is empty and a warning says so; an empty list is not evidence that nothing
+is blocked. robots.txt states a policy; it does not prove how any crawler behaves.
+
 ## CLI
 
 ```sh
@@ -80,7 +98,8 @@ pagesight doctor --config seo.config.json
 pagesight gsc report --site sc-domain:example.com --request report.json --max-pages 4
 pagesight ga report --property 123456 --request ga-report.json
 pagesight page --url https://example.com/
-pagesight speed psi --url https://example.com/
+pagesight robots --url https://example.com/
+pagesight speed psi --url https://example.com/ --categories performance,seo
 pagesight speed crux --url https://example.com/ --origin
 pagesight snapshot --config seo.config.json --out observations/baseline.json
 pagesight api --request operation.json

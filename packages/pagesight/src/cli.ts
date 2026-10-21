@@ -23,7 +23,8 @@ pagesight ga key-events --property 123456
 pagesight ga report --property 123456 --request report.json [--max-pages 4]
 pagesight render --url URL [--from-url URL --link-selector CSS] [--settle-ms 1000] [--timeout-ms 20000]
 pagesight page --url https://example.com/
-pagesight speed psi --url https://example.com/ [--strategy mobile]
+pagesight robots --url https://example.com/
+pagesight speed psi --url https://example.com/ [--strategy mobile] [--categories performance,seo]
 pagesight speed crux --url https://example.com/ [--origin] [--form-factor PHONE]
 pagesight speed history --url https://example.com/ [--origin]
 pagesight snapshot --config seo.config.json [--start YYYY-MM-DD --end YYYY-MM-DD]
@@ -61,7 +62,8 @@ export const commands: Record<string, string[]> = {
   "ga.key-events": ["property"],
   "ga.report": ["property", "request", "max-pages"],
   page: ["url"],
-  "speed.psi": ["url", "strategy"],
+  robots: ["url"],
+  "speed.psi": ["url", "strategy", "categories"],
   "speed.crux": ["url", "origin", "form-factor"],
   "speed.history": ["url", "origin", "form-factor"],
   doctor: ["config"],
@@ -101,6 +103,7 @@ export async function runCli(args: string[]): Promise<number> {
         end: { type: "string" },
         "max-pages": { type: "string" },
         strategy: { type: "string" },
+        categories: { type: "string" },
         "form-factor": { type: "string" },
         origin: { type: "boolean" },
         providers: { type: "string" },
@@ -202,6 +205,7 @@ export async function runCli(args: string[]): Promise<number> {
         ...(values.request ? { request: await jsonFile(values.request, "request") } : {}),
         ...(values["max-pages"] ? { maxPages: Number(values["max-pages"]) } : {}),
         ...(values.strategy ? { strategy: values.strategy } : {}),
+        ...(values.categories !== undefined ? { categories: values.categories.split(",") } : {}),
         ...(values["form-factor"] ? { formFactor: values["form-factor"] } : {}),
         ...(values.origin ? { origin: true } : {}),
         ...(values.providers !== undefined ? { providers: values.providers.split(",") } : {}),

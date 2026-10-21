@@ -278,7 +278,7 @@ export function registerAiTool(server: McpServer): void {
         }
 
         const [crawlers, llmsTxt, llmsFullTxt] = await Promise.all([
-          auditAiCrawlers(robotsTxt),
+          auditAiCrawlers(robotsTxt).catch(() => []),
           checkLlmsTxt(origin, "/llms.txt"),
           checkLlmsTxt(origin, "/llms-full.txt"),
         ]);
