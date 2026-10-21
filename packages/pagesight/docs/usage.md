@@ -51,6 +51,10 @@ results include a concise per-observation `summary` alongside full observations.
 `observe` input uses the same schema. `page` observes fetched HTML, status,
 redirects, canonical, robots directives, Open Graph and Twitter metas, hreflang
 alternates, JSON-LD and a content hash. It does not execute browser JavaScript.
+`openGraph` is a list of `{ property, content }` and `twitter` a list of
+`{ name, content }`, both in document order, so repeated properties such as two
+`og:image` tags are all reported. `canonical` and hreflang hrefs resolve against
+the document's `<base href>` when the page declares one.
 
 `speed.psi` requests the `performance` and `seo` Lighthouse categories unless
 `categories` selects others from `performance`, `accessibility`, `best-practices`
