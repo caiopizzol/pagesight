@@ -1,11 +1,11 @@
-import { clearTokenCache, getAccessToken } from "./gsc-auth.js";
+import { clearGoogleTokens, googleAccessToken } from "./google-auth.js";
 import { RequestError, requestJson } from "../shared/http.js";
 
 const GSC_API = "https://searchconsole.googleapis.com/v1";
 const WEBMASTERS_API = "https://www.googleapis.com/webmasters/v3";
 
 async function gscFetch(url: string, body?: unknown): Promise<Record<string, unknown>> {
-  const token = await getAccessToken();
+  const token = await googleAccessToken("gsc");
   try {
     return await requestJson<Record<string, unknown>>(url, {
       method: body ? "POST" : "GET",
@@ -13,7 +13,7 @@ async function gscFetch(url: string, body?: unknown): Promise<Record<string, unk
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (error) {
-    if (error instanceof RequestError && error.status === 401) clearTokenCache();
+    if (error instanceof RequestError && error.status === 401) clearGoogleTokens("gsc");
     throw error;
   }
 }
