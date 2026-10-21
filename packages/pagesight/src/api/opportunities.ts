@@ -2,10 +2,11 @@ import { z } from "zod";
 import { assessSnapshot, type AssessmentTable } from "./assessment.js";
 import { capture } from "./evidence.js";
 import type { ImportedSnapshot } from "./evidence-schema.js";
-import { configSchema, httpUrl } from "./schema.js";
+import { configSchema } from "./schema.js";
+import { httpUrl } from "./http-url.js";
 import { parseNumericValue } from "./report-table.js";
 
-export interface OpportunityPolicy {
+interface OpportunityPolicy {
   minImpressions: number;
   maxClicks: number;
   maxRows: number;

@@ -1,14 +1,10 @@
 import { httpUrl } from "./http-url.js";
-export { httpUrl } from "./http-url.js";
-import { changeRecordSchema } from "./change-record.js";
-import { uiFindingsSchema } from "./ui-findings.js";
 import { z } from "zod";
 import { snapshotEvidenceSchema } from "./evidence-schema.js";
 import { dateSchema, pacificDate } from "../shared/dates.js";
 
-export { dateSchema } from "../shared/dates.js";
 const offset = z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
-export const maxPagesSchema = z.number().int().min(1).max(20).default(1);
+const maxPagesSchema = z.number().int().min(1).max(20).default(1);
 export const gscRequestSchema = z
   .object({
     startDate: dateSchema,
@@ -107,7 +103,6 @@ export const configSchema = z
   .object({
     site: httpUrl,
     gscSite: z.string().min(1).optional(),
-    bingSite: httpUrl.optional(),
     gaProperty: z
       .string()
       .regex(/^(properties\/)?\d+$/)
@@ -142,11 +137,11 @@ export const configSchema = z
   }))
   .refine((c) => new URL(c.site).hostname === c.productionHostname, "productionHostname must match site")
   .refine(
-    (c) => Boolean(c.pages.length || c.sitemap || c.gscSite || c.gaProperty || c.bingSite),
+    (c) => Boolean(c.pages.length || c.sitemap || c.gscSite || c.gaProperty),
     "Select at least one page or provider",
   );
 export type SiteConfig = z.infer<typeof configSchema>;
-export const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
+const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
   const config = configSchema.safeParse(snapshot.pages[0].response.context.config);
   if (!config.success)
     for (const issue of config.error.issues)
@@ -172,44 +167,6 @@ const operationVariants = z.discriminatedUnion("operation", [
   renderRequestSchema,
   z
     .object({
-      operation: z.literal("change.followup"),
-      experiments: z
-        .array(z.unknown())
-        .min(1)
-        .max(50)
-        .describe(
-          "Entries: {label, record: change record, baseline: configured snapshot, current?: configured snapshot}. Each entry is validated independently; use embedded objects, not filesystem paths.",
-        ),
-      asOf: z.string().datetime().optional(),
-      lagDays: z.number().int().min(1).max(30).default(3),
-    })
-    .strict(),
-
-  z
-    .object({
-      operation: z.literal("cloudflare.audit"),
-      zone: z.string().regex(/^[a-f0-9]{32}$/),
-      hostname: z
-        .string()
-        .min(1)
-        .max(253)
-        .regex(/^[a-zA-Z0-9.-]+$/),
-      startTime: z.string().datetime(),
-      endTime: z.string().datetime(),
-      limit: z.number().int().min(1).max(100).default(50),
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("change.evaluate"),
-      record: changeRecordSchema,
-      baseline: assessedSnapshotSchema,
-      current: assessedSnapshotSchema.optional(),
-      maxRows: z.number().int().min(1).max(100).default(20),
-    })
-    .strict(),
-  z
-    .object({
       operation: z.literal("crawl"),
       config: configSchema,
       maxPages: z.number().int().min(1).max(100).default(20),
@@ -217,13 +174,6 @@ const operationVariants = z.discriminatedUnion("operation", [
       maxLinks: z.number().int().min(1).max(1000).default(500),
       includeQuery: z.boolean().default(false),
       inspectLimit: z.number().int().min(0).max(10).default(3),
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("technical.compare"),
-      baseline: assessedSnapshotSchema.optional(),
-      current: assessedSnapshotSchema,
     })
     .strict(),
   z
@@ -253,7 +203,6 @@ const operationVariants = z.discriminatedUnion("operation", [
       maxRows: z.number().int().min(1).max(100).default(10),
     })
     .strict(),
-  z.object({ operation: z.literal("evidence.import"), document: uiFindingsSchema }).strict(),
   z
     .object({
       operation: z.literal("compare"),
@@ -267,21 +216,12 @@ const operationVariants = z.discriminatedUnion("operation", [
       operation: z.literal("discover"),
       url: httpUrl,
       providers: z
-        .array(z.enum(["gsc", "ga", "bing"]))
+        .array(z.enum(["gsc", "ga"]))
         .min(1)
-        .max(3)
+        .max(2)
         .default(["gsc", "ga"]),
     })
     .strict(),
-  z.object({ operation: z.literal("bing.crawl-stats"), site: httpUrl }).strict(),
-  z.object({ operation: z.literal("bing.crawl-issues"), site: httpUrl }).strict(),
-  z.object({ operation: z.literal("bing.url-info"), site: httpUrl, url: httpUrl }).strict(),
-  z.object({ operation: z.literal("bing.link-counts"), site: httpUrl, maxPages: maxPagesSchema }).strict(),
-  z.object({ operation: z.literal("bing.url-links"), site: httpUrl, url: httpUrl, maxPages: maxPagesSchema }).strict(),
-  z.object({ operation: z.literal("bing.sites") }).strict(),
-  z.object({ operation: z.literal("bing.queries"), site: httpUrl }).strict(),
-  z.object({ operation: z.literal("bing.pages"), site: httpUrl }).strict(),
-  z.object({ operation: z.literal("bing.traffic"), site: httpUrl }).strict(),
   z.object({ operation: z.literal("gsc.sites") }).strict(),
   z.object({ operation: z.literal("gsc.sitemaps"), site: z.string().min(1) }).strict(),
   z.object({ operation: z.literal("gsc.inspect"), site: z.string().min(1), url: httpUrl }).strict(),
@@ -306,11 +246,17 @@ const operationVariants = z.discriminatedUnion("operation", [
     })
     .strict(),
   z.object({ operation: z.literal("page"), url: httpUrl }).strict(),
+  z.object({ operation: z.literal("robots"), url: httpUrl }).strict(),
   z
     .object({
       operation: z.literal("speed.psi"),
       url: httpUrl,
       strategy: z.enum(["mobile", "desktop"]).default("mobile"),
+      categories: z
+        .array(z.enum(["performance", "accessibility", "best-practices", "seo"]))
+        .min(1)
+        .max(4)
+        .default(["performance", "seo"]),
     })
     .strict(),
   z
@@ -340,19 +286,10 @@ const operationVariants = z.discriminatedUnion("operation", [
     })
     .strict(),
 ]);
-export const operationSchema = operationVariants
-  .refine(
-    (op) =>
-      op.operation !== "cloudflare.audit" ||
-      (Date.parse(op.startTime) < Date.parse(op.endTime) &&
-        Date.parse(op.endTime) - Date.parse(op.startTime) <= 86400000 &&
-        Date.parse(op.endTime) <= Date.now()),
-    "Cloudflare requires a past UTC interval of at most 24 hours",
-  )
-  .refine(
-    (op) =>
-      (op.operation !== "snapshot" && op.operation !== "investigate") ||
-      (op.startDate <= op.endDate && op.endDate <= pacificDate()),
-    "Invalid or future reporting interval",
-  );
+export const operationSchema = operationVariants.refine(
+  (op) =>
+    (op.operation !== "snapshot" && op.operation !== "investigate") ||
+    (op.startDate <= op.endDate && op.endDate <= pacificDate()),
+  "Invalid or future reporting interval",
+);
 export type Operation = z.input<typeof operationSchema>;

@@ -1,15 +1,9 @@
 import { verifyRender } from "./verify-render.js";
-import { followupChanges } from "./followup-changes.js";
-import { cloudflareAudit } from "./cloudflare.js";
-
-import { evaluateChange } from "./evaluate-change.js";
 import { crawl } from "./crawl.js";
-import { technicalChanges } from "./technical-changes.js";
 import { investigate } from "./investigation.js";
 import { assessSnapshot } from "./assessment.js";
 import { opportunities } from "./opportunities.js";
 import { gaRealtime } from "./ga-realtime.js";
-import { importUiFindings } from "./ui-findings.js";
 import { doctor } from "./doctor.js";
 import { ZodError } from "zod";
 import { queryCrux, queryCruxHistory } from "../providers/crux.js";
@@ -17,7 +11,6 @@ import { gaCredentialInfo, gaFetch, normalizeGaProperty } from "../providers/ga.
 import { inspectUrlResponse, listSitemapsResponse, listSitesResponse } from "../providers/gsc.js";
 import { RequestError } from "../shared/http.js";
 import { runPagespeed } from "../providers/pagespeed.js";
-import { bingDiagnostics, bingObservation } from "./bing.js";
 import { compareSnapshots } from "./compare-snapshots.js";
 import { capture, type Evidence } from "./evidence.js";
 import { gaReport, gscReport } from "./reports.js";
@@ -25,6 +18,7 @@ import { operationSchema } from "./schema.js";
 import { discover } from "./discover.js";
 import { snapshot } from "./snapshot.js";
 import { observePage } from "../web/page-observation.js";
+import { observeRobots } from "../web/robots.js";
 
 export type Executor = (input: unknown) => Promise<Evidence>;
 type ParsedOperation = ReturnType<typeof operationSchema.parse>;
@@ -50,8 +44,6 @@ export async function execute(input: unknown): Promise<Evidence> {
     throw new RequestError("Navigation source must share the target origin", null, "invalid_input");
   const result = await dispatch(op);
   if (op.operation.startsWith("ga.")) result.credential = await gaCredentialInfo();
-  if (op.operation.startsWith("bing."))
-    result.credential = { source: "BING_WEBMASTER_API_KEY", type: "api_key", clientEmail: null };
   const response = result.pages[0]?.response as { nextPageToken?: string } | undefined;
   if (response?.nextPageToken) {
     result.status = "partial";
@@ -64,17 +56,8 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
   switch (op.operation) {
     case "page.verify":
       return verifyRender(op);
-    case "cloudflare.audit":
-      return cloudflareAudit(op);
-
-    case "change.followup":
-      return followupChanges(op.experiments, op.asOf ?? new Date().toISOString(), op.lagDays);
-    case "change.evaluate":
-      return evaluateChange(op.record, op.baseline, op.current, op.maxRows);
     case "crawl":
       return crawl(op, execute);
-    case "technical.compare":
-      return technicalChanges(op.baseline, op.current);
     case "investigate":
       return investigate(op, execute);
     case "opportunities":
@@ -85,29 +68,10 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
       });
     case "assess":
       return assessSnapshot(op.snapshot, op.maxRows);
-    case "evidence.import":
-      return importUiFindings(op.document);
     case "compare":
       return compareSnapshots(op.baseline, op.current, op.maxRows);
     case "discover":
       return discover(op.url, op.providers, execute);
-    case "bing.crawl-stats":
-    case "bing.crawl-issues":
-      return bingDiagnostics(op.operation === "bing.crawl-stats" ? "crawl-stats" : "crawl-issues", op.site);
-    case "bing.url-info":
-      return bingDiagnostics("url-info", op.site, op.url);
-    case "bing.link-counts":
-      return bingDiagnostics("link-counts", op.site, undefined, op.maxPages);
-    case "bing.url-links":
-      return bingDiagnostics("url-links", op.site, op.url, op.maxPages);
-    case "bing.sites":
-      return bingObservation("sites");
-    case "bing.queries":
-      return bingObservation("queries", op.site);
-    case "bing.pages":
-      return bingObservation("pages", op.site);
-    case "bing.traffic":
-      return bingObservation("traffic", op.site);
     case "gsc.sites":
       return capture("gsc", "sites", "accessible-properties", {}, listSitesResponse);
     case "gsc.sitemaps":
@@ -155,13 +119,17 @@ async function dispatch(op: ParsedOperation): Promise<Evidence> {
       return gaReport(op.property, op.request, op.maxPages);
     case "page":
       return capture("web", "page", op.url, { url: op.url }, () => observePage(op.url));
+    case "robots":
+      return capture("web", "robots", op.url, { url: op.url }, () => observeRobots(op.url), [
+        "robots.txt declares crawler policy; it does not prove how any crawler behaves.",
+      ]);
     case "speed.psi":
       return capture(
         "psi",
         "run",
         op.url,
-        { url: op.url, strategy: op.strategy, categories: ["performance", "seo"] },
-        () => runPagespeed(op.url, { strategy: op.strategy, categories: ["performance", "seo"] }),
+        { url: op.url, strategy: op.strategy, categories: op.categories },
+        () => runPagespeed(op.url, { strategy: op.strategy, categories: op.categories }),
         ["Single Lighthouse lab run; not field performance or ranking evidence."],
       );
     case "speed.crux":

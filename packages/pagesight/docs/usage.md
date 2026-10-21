@@ -26,37 +26,78 @@ GA evidence identifies the credential source variable, credential type, and serv
 account email when present. It never includes the token or private key. Aggregate
 results include a concise per-observation `summary` alongside full observations.
 
-| Operation                                    | Required inputs                                                            |
-| -------------------------------------------- | -------------------------------------------------------------------------- |
-| `discover`                                   | `url`; optional `providers` (`["gsc", "ga"]` by default)                   |
-| `bing.sites`                                 | None                                                                       |
-| `bing.queries`, `bing.pages`, `bing.traffic` | `site`                                                                     |
-| `gsc.sites`                                  | None                                                                       |
-| `gsc.sitemaps`                               | `site`                                                                     |
-| `gsc.inspect`                                | `site`, `url`                                                              |
-| `gsc.report`                                 | `site`, `request`; optional `maxPages`                                     |
-| `ga.accounts`                                | None                                                                       |
-| `ga.property`, `ga.key-events`               | `property`                                                                 |
-| `ga.realtime`                                | `property`, `request`; moving window, no offset                            |
-| `ga.report`                                  | `property`, `request`; optional `maxPages`                                 |
-| `page`                                       | `url`                                                                      |
-| `speed.psi`                                  | `url`; optional `strategy` (`mobile` or `desktop`)                         |
-| `speed.crux`, `speed.history`                | `url`; optional `origin: true`, `formFactor`                               |
-| `doctor`                                     | `config`                                                                   |
-| `crawl`                                      | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md)) |
-| `investigate`                                | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows`    |
-| `assess`                                     | `snapshot`; optional `maxRows` (default 10, max 100)                       |
-| `snapshot`                                   | `config`, `startDate`, `endDate`; optional `maxPages`                      |
+| Operation                      | Required inputs                                                                               |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `discover`                     | `url`; optional `providers` (`["gsc", "ga"]` by default)                                      |
+| `gsc.sites`                    | None                                                                                          |
+| `gsc.sitemaps`                 | `site`                                                                                        |
+| `gsc.inspect`                  | `site`, `url`                                                                                 |
+| `gsc.report`                   | `site`, `request`; optional `maxPages`                                                        |
+| `ga.accounts`                  | None                                                                                          |
+| `ga.property`, `ga.key-events` | `property`                                                                                    |
+| `ga.realtime`                  | `property`, `request`; moving window, no offset                                               |
+| `ga.report`                    | `property`, `request`; optional `maxPages`                                                    |
+| `page`                         | `url`                                                                                         |
+| `page.verify`                  | `url`; optional `navigation` (`fromUrl`, `linkSelector`), `settleMs`, `timeoutMs`, `viewport` |
+| `robots`                       | `url`; reads that origin's `/robots.txt`, `/llms.txt`, `/llms-full.txt`                       |
+| `speed.psi`                    | `url`; optional `strategy` (`mobile` or `desktop`), `categories`                              |
+| `speed.crux`, `speed.history`  | `url`; optional `origin: true`, `formFactor`                                                  |
+| `doctor`                       | `config`                                                                                      |
+| `crawl`                        | `config`; optional crawl bounds and `inspectLimit` (see [crawl](crawl.md))                    |
+| `investigate`                  | `config`, `url`, `startDate`, `endDate`; optional `maxPages`, `maxRows`                       |
+| `assess`                       | `snapshot`; optional `maxRows` (default 10, max 100)                                          |
+| `opportunities`                | `snapshot`; optional `minImpressions`, `maxClicks`, `maxRows`                                 |
+| `compare`                      | `baseline`, `current` snapshots; optional `maxRows`                                           |
+| `snapshot`                     | `config`, `startDate`, `endDate`; optional `maxPages`                                         |
 
 `operationSchema` and `configSchema` are exported for typed validation. The MCP
 `observe` input uses the same schema. `page` observes fetched HTML, status,
-redirects, canonical, robots directives, JSON-LD and a content hash. It does not
-execute browser JavaScript. The original MCP page tool retains its additional
-link, social-meta and contrast checks.
+redirects, canonical, robots directives, Open Graph and Twitter metas, hreflang
+alternates, JSON-LD and a content hash. It does not execute browser JavaScript.
+`openGraph` is a list of `{ property, content }` and `twitter` a list of
+`{ name, content }`, both in document order, so repeated properties such as two
+`og:image` tags are all reported. `canonical` and hreflang hrefs resolve against
+the document's `<base href>` when the page declares one.
+
+`speed.psi` requests the `performance` and `seo` Lighthouse categories unless
+`categories` selects others from `performance`, `accessibility`, `best-practices`
+and `seo`.
 
 See [measurement and verification](measurement.md) for saved-snapshot assessments,
 Realtime requests, freshness limits and repeatable browser checks.
 See [investigating one URL](investigation.md) for fresh exact-page search, organic and technical evidence.
+
+## HTML image evidence
+
+`pagesight page --url https://example.com/` includes `descriptionLength`
+(Unicode code points, or null) and `imageEvidence`. Images include raw `src`,
+`altPresent`, `altText`, `inNoscript`, width/height, role and aria-hidden attributes.
+Missing ALT has `altPresent: false, altText: null`; an explicitly empty ALT is
+`altPresent: true, altText: ""`. Empty ALT can be appropriate for decorative images.
+No description-length threshold or image-purpose verdict is imposed.
+
+The inventory includes noscript fallback markup, retains at most 200 images,
+and reports `omittedImages` and `truncated`. Fallback images follow ordinary images
+in output; this is not DOM order. No scripts run or image URLs are requested.
+The existing 2 MB page limit still applies. This is markup evidence, not a full
+accessibility or rendered-page audit.
+
+## Crawler policy evidence
+
+`pagesight robots --url https://example.com/` reads that origin's `/robots.txt`
+and reports its HTTP status, RFC 9309 parse errors, declared sitemaps, whether
+Googlebot may fetch `/`, and each known AI crawler with its operator, category
+and access. It also reports the status and byte size of `/llms.txt` and
+`/llms-full.txt`; a file over 1 MB is reported without a size, and a file that
+could not be fetched is reported with a null status and a warning. robots.txt
+itself is read with a 500 KiB limit; a larger file fails the operation instead of
+being parsed in part.
+
+The AI crawler list comes from the [ai.robots.txt](https://github.com/ai-robots-txt/ai.robots.txt)
+registry, fetched at run time and cached for 24 hours. A failed refresh reuses the
+cached list, however old it is, without a warning; with nothing cached the list is
+empty and a warning says so. An empty list is not evidence that nothing is blocked.
+robots.txt states a policy; it does not prove how any crawler behaves.
 
 ## CLI
 
@@ -67,7 +108,8 @@ pagesight doctor --config seo.config.json
 pagesight gsc report --site sc-domain:example.com --request report.json --max-pages 4
 pagesight ga report --property 123456 --request ga-report.json
 pagesight page --url https://example.com/
-pagesight speed psi --url https://example.com/
+pagesight robots --url https://example.com/
+pagesight speed psi --url https://example.com/ --categories performance,seo
 pagesight speed crux --url https://example.com/ --origin
 pagesight snapshot --config seo.config.json --out observations/baseline.json
 pagesight api --request operation.json
@@ -102,37 +144,13 @@ Exit codes: 0 success, 1 provider failure, 2 invalid input, 3 partial evidence.
 Partial snapshots are saved. A successful report can still have provider coverage
 limitations; inspect warnings and metadata before making comparisons.
 
-## Local HTTP interface
-
-```sh
-# Set PAGESIGHT_API_TOKEN in your private environment file (at least 24 characters).
-pagesight serve --port 6095
-```
-
-Send the shared operation JSON to `POST http://127.0.0.1:6095/v1/query` with
-`Authorization: Bearer <PAGESIGHT_API_TOKEN>`. The server binds only to loopback.
-Missing/invalid authentication returns 401; invalid operations return 400; provider
-failures return 502; partial evidence returns 200 with `status: partial`.
-This interface is for local agents, not an Internet deployment.
-
-## MCP compatibility
+## MCP
 
 Run `pagesight mcp` to start the stdio MCP server. Configure your host to run
 `bun /path/to/pagesight/packages/pagesight/src/index.ts mcp` with the environment above. Existing MCP
 launch configurations must include the `mcp` argument; no arguments show CLI help.
 
-The new `observe` tool accepts `{ "request": <operation object> }` and returns
-structured API evidence. The original six tools remain available:
-
-| Tool     | Capability                                                                |
-| -------- | ------------------------------------------------------------------------- |
-| `audit`  | PageSpeed, metadata, robots, sitemap processing errors and URL inspection |
-| `page`   | Metadata, links, JSON-LD checks, redirects and contrast                   |
-| `speed`  | PageSpeed and CrUX snapshots/history                                      |
-| `search` | GSC reports, sitemap metadata and selected URL inspection                 |
-| `ai`     | Robots and crawler-registry checks, llms.txt detection                    |
-| `setup`  | Existing GSC authentication helpers                                       |
-
-The legacy text tools do not invent indexed counts from deprecated sitemap fields,
-extrapolate sample verdicts to the whole site, or treat missing comparison rows as zero.
-Use `observe` for exact request/response evidence and pagination status.
+`observe` is the only tool. It accepts `{ "request": <operation object> }` for any
+operation in the table above, validated by the exported `operationSchema`, and
+returns the same evidence as the API and the CLI: exact requests, provider
+responses, warnings and pagination status.

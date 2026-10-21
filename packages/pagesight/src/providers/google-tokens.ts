@@ -1,6 +1,6 @@
 import { RequestError, requestJson } from "../shared/http.js";
 
-export const TOKEN_URL = "https://oauth2.googleapis.com/token";
+const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 interface TokenResponse {
   access_token: string;

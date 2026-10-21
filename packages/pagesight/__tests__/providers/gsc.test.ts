@@ -2,9 +2,8 @@ import { expect, spyOn, test } from "bun:test";
 import { execute } from "../../src/api/index.js";
 import { gscRequestSchema } from "../../src/api/schema.js";
 import { clearTokenCache } from "../../src/providers/gsc-auth.js";
-import { inspectUrl, listSitemaps, listSites } from "../../src/providers/gsc.js";
 
-test("GSC raw envelopes survive the API while legacy helpers keep their shapes", async () => {
+test("GSC raw envelopes survive the API", async () => {
   const keys = ["GSC_SERVICE_ACCOUNT_KEY", "GSC_CLIENT_ID", "GSC_CLIENT_SECRET", "GSC_REFRESH_TOKEN"];
   const previous = keys.map((key) => process.env[key]);
   delete process.env.GSC_SERVICE_ACCOUNT_KEY;
@@ -44,11 +43,6 @@ test("GSC raw envelopes survive the API while legacy helpers keep their shapes",
       expect(result.status).toBe("ok");
       expect(result.pages[0].response).toMatchObject({ providerMetadata: marker });
     }
-    expect(await listSites()).toEqual(entries);
-    expect(await listSitemaps("sc-domain:example.com")).toEqual(expect.arrayContaining(sitemaps));
-    expect(await inspectUrl("https://example.com/", "sc-domain:example.com")).toEqual(
-      expect.objectContaining(inspection),
-    );
   } finally {
     mocked.mockRestore();
     clearTokenCache();

@@ -88,8 +88,7 @@ pagesight compare --baseline before.json --current after.json --max-rows 100
 
 The shared operation is `{ operation: "compare", baseline, current, maxRows: 100 }`,
 where baseline and current are parsed snapshot evidence objects. Only the CLI reads
-file paths. HTTP accepts objects up to 32 MB per request; larger pairs can use the
-local API or CLI. MCP `observe` accepts the same object. `evidenceSchema` and
+file paths. MCP `observe` accepts the same object. `evidenceSchema` and
 `snapshotEvidenceSchema` are exported for callers validating stored reports.
 
 This first comparison supports GSC reports with non-time row keys and GA reports
@@ -99,8 +98,8 @@ Reports without dimensions are also supported. Other GA dimensions and
 `dimensionExpression` aliases require a separate comparison policy. It checks
 snapshot format version 1, unique observation names, site, property, dimensions,
 metrics, filters, aggregation, report periods and GA timezone/currency/metric types.
-GSC data must be finalized. Time dimensions, Bing's provider-defined windows, HTML,
-sitemap and provider metadata observations are explicitly unsupported for comparison.
+GSC data must be finalized. Time dimensions, HTML, sitemap and provider metadata
+observations are explicitly unsupported for comparison.
 Recapture snapshots created before versioned, named observations were introduced.
 
 Each observation is `compared`, `limited`, `incompatible`, `unavailable`, or

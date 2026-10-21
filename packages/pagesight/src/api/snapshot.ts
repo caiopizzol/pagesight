@@ -25,14 +25,6 @@ export function snapshotOperations(
       ...config.pages.map((url) => ({ operation: "gsc.inspect" as const, url, site })),
     );
   }
-  if (config.bingSite) {
-    const site = config.bingSite;
-    operations.push(
-      { operation: "bing.queries", site },
-      { operation: "bing.pages", site },
-      { operation: "bing.traffic", site },
-    );
-  }
   if (config.gaProperty) {
     const property = config.gaProperty;
     const hostFilter = {
@@ -194,7 +186,6 @@ export function observationName(op: Operation): string {
 export function providerSelection(config: SiteConfig) {
   return {
     gsc: config.gscSite ? "selected" : "not_selected",
-    bing: config.bingSite ? "selected" : "not_selected",
     ga: config.gaProperty ? "selected" : "not_selected",
     sitemap: config.sitemap ? "selected" : "not_selected",
     web: config.pages.length ? "selected" : "not_selected",

@@ -280,7 +280,6 @@ export async function assessSnapshot(snapshot: ImportedSnapshot, maxRows: number
       providerSelection: {
         gsc: Boolean(config.gscSite),
         ga: Boolean(config.gaProperty),
-        bing: Boolean(config.bingSite),
       },
       findings,
       tables,

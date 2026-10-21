@@ -2,14 +2,14 @@ import { requestJson } from "../shared/http.js";
 
 const PSI_API = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
-export interface PsiCategory {
+interface PsiCategory {
   id: string;
   title: string;
   score: number | null;
   auditRefs?: Array<{ id: string; weight: number }>;
 }
 
-export interface PsiAuditDetailItem {
+interface PsiAuditDetailItem {
   node?: {
     selector: string;
     snippet?: string;
@@ -25,14 +25,14 @@ export interface PsiAuditDetailItem {
   [key: string]: unknown;
 }
 
-export interface PsiAuditDetails {
+interface PsiAuditDetails {
   type: string;
   items?: PsiAuditDetailItem[];
   overallSavingsMs?: number;
   overallSavingsBytes?: number;
 }
 
-export interface PsiAudit {
+interface PsiAudit {
   id: string;
   title: string;
   description: string;
@@ -44,19 +44,19 @@ export interface PsiAudit {
   details?: PsiAuditDetails;
 }
 
-export interface PsiMetric {
+interface PsiMetric {
   percentile: number;
   distributions: Array<{ min: number; max?: number; proportion: number }>;
   category: string;
 }
 
-export interface PsiLoadingExperience {
+interface PsiLoadingExperience {
   id: string;
   metrics: Record<string, PsiMetric>;
   overall_category: string;
 }
 
-export interface PsiResult {
+interface PsiResult {
   id: string;
   loadingExperience?: PsiLoadingExperience;
   originLoadingExperience?: PsiLoadingExperience;
@@ -78,12 +78,8 @@ export interface PsiResult {
   analysisUTCTimestamp: string;
 }
 
-export type PsiStrategy = "mobile" | "desktop";
-export type PsiCategoryType = "performance" | "accessibility" | "best-practices" | "seo";
-
-export function hasApiKey(): boolean {
-  return !!process.env.GOOGLE_API_KEY;
-}
+type PsiStrategy = "mobile" | "desktop";
+type PsiCategoryType = "performance" | "accessibility" | "best-practices" | "seo";
 
 export async function runPagespeed(
   url: string,

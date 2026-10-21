@@ -3,7 +3,7 @@
 <p align="center">
   Check your site's search traffic, analytics, and page performance.
   <br>
-  Built for developers and AI assistants. Use the TypeScript API, CLI, local HTTP server, or MCP.
+  Built for developers and AI assistants. Use the TypeScript API, CLI, or MCP.
 </p>
 
 <p align="center">
@@ -12,10 +12,11 @@
 
 ## Quick start
 
-Requires [Bun](https://bun.sh). This page check needs no provider credentials:
+Requires [Bun](https://bun.sh). These checks need no provider credentials:
 
 ```sh
 bunx --bun pagesight page --url https://example.com
+bunx --bun pagesight robots --url https://example.com
 ```
 
 ## Development
@@ -31,15 +32,11 @@ bun run test:package # Check the packed API, CLI, and MCP entrypoints
 
 Source and tests live in `packages/pagesight`.
 
-- [API, CLI, HTTP, and MCP](packages/pagesight/docs/usage.md)
-- [Google and Bing credentials](packages/pagesight/docs/credentials.md)
+- [API, CLI, and MCP](packages/pagesight/docs/usage.md)
+- [Google credentials](packages/pagesight/docs/credentials.md)
 - [Snapshots and comparisons](packages/pagesight/docs/snapshots.md)
-- [Bing diagnostics, HTML images, and UI findings](packages/pagesight/docs/diagnostics.md)
 
 MIT — see [LICENSE](LICENSE).
 
-- [Cloudflare edge and security evidence](packages/pagesight/docs/cloudflare.md)
-- [Plan follow-ups and evaluate a deployed SEO change](packages/pagesight/docs/changes.md)
 - [Rendered-page verification](packages/pagesight/docs/rendering.md)
-- [Daily private observations](packages/pagesight/docs/monitoring.md)
 - [SEO agent workflow](packages/pagesight/docs/seo-agent-workflow.md)

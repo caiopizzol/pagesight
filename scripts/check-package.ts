@@ -63,10 +63,10 @@ try {
   try {
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [bin, "mcp"], stderr: "pipe" }));
     const { tools } = await client.listTools();
-    if (tools.map(tool => tool.name).sort().join() !== "ai,audit,observe,page,search,setup,speed") throw new Error("MCP tools changed");
+    if (tools.map(tool => tool.name).sort().join() !== "observe") throw new Error("MCP tools changed");
   } finally { await client.close(); }
 } finally { await fixture.stop(true); }
-console.log("Packed API, CLI, and seven MCP tools passed");
+console.log("Packed API, CLI, and the observe MCP tool passed");
 `,
   );
   console.log(run(["run", "smoke.ts"], temporary).trim());

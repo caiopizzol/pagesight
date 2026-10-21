@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { getAuthMethod, getOAuthSetupUrl } from "../../src/providers/gsc-auth.js";
+import { getAuthMethod } from "../../src/providers/gsc-auth.js";
 
 describe("getAuthMethod", () => {
   const origEnv = { ...process.env };
@@ -31,24 +31,5 @@ describe("getAuthMethod", () => {
     process.env.GSC_SERVICE_ACCOUNT_KEY = "/path/to/key.json";
     process.env.GSC_REFRESH_TOKEN = "some-token";
     expect(getAuthMethod()).toBe("service_account");
-  });
-});
-
-describe("getOAuthSetupUrl", () => {
-  test("generates valid URL with client_id", () => {
-    const url = getOAuthSetupUrl("test-client-id.apps.googleusercontent.com");
-    expect(url).toContain("accounts.google.com/o/oauth2/auth");
-    expect(url).toContain("client_id=test-client-id.apps.googleusercontent.com");
-    expect(url).toContain("response_type=code");
-    expect(url).toContain("scope=");
-    expect(url).toContain("webmasters");
-    expect(url).toContain("access_type=offline");
-    expect(url).toContain("prompt=consent");
-  });
-
-  test("uses localhost redirect URI", () => {
-    const url = getOAuthSetupUrl("test-id");
-    expect(url).toContain("redirect_uri=http%3A%2F%2Flocalhost");
-    expect(url).not.toContain("oob");
   });
 });

@@ -1,6 +1,6 @@
 import { readBounded, RequestError } from "../shared/http.js";
 
-export async function fetchText(url: string, maxBytes: number, origin?: string, proxy?: string) {
+export async function fetchFollowing(url: string, origin?: string, proxy?: string) {
   const redirects: Array<{ url: string; status: number; location: string }> = [];
   let current = url;
   const signal = AbortSignal.timeout(20_000);
@@ -26,7 +26,12 @@ export async function fetchText(url: string, maxBytes: number, origin?: string, 
       current = new URL(location, current).href;
       continue;
     }
-    return { response, body: await readBounded(response, maxBytes), finalUrl: current, redirects };
+    return { response, finalUrl: current, redirects };
   }
   throw new RequestError("Redirect limit exceeded", null, "redirect_limit");
+}
+
+export async function fetchText(url: string, maxBytes: number, origin?: string, proxy?: string) {
+  const { response, finalUrl, redirects } = await fetchFollowing(url, origin, proxy);
+  return { response, body: await readBounded(response, maxBytes), finalUrl, redirects };
 }

@@ -23,7 +23,7 @@ function metric(baseline: number | string, current: number | string) {
 
 type SnapshotContext = ImportedSnapshot["pages"][0]["response"]["context"];
 
-export function compareObservation(
+function compareObservation(
   baseline: Evidence | undefined,
   current: Evidence | undefined,
   maxRows: number,
@@ -49,8 +49,7 @@ export function compareObservation(
     return {
       name,
       status: "unsupported",
-      reason:
-        "This version compares GSC and GA reports only. Bing windows and other observations require a separate comparison policy.",
+      reason: "This version compares GSC and GA reports only. Other observations require a separate comparison policy.",
       warnings,
     };
   if (baseline.status === "error" || current.status === "error" || !baseline.pages.length || !current.pages.length)

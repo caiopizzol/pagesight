@@ -4,19 +4,16 @@ import { tmpdir } from "node:os";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { execute } from "../../src/api/index.js";
-import { startHttpApi } from "../../src/http.js";
 import { fixture } from "../support/assessment.js";
 
 const entry = new URL("../../src/index.ts", import.meta.url).pathname;
 const preload = new URL("../support/ga-preload.ts", import.meta.url).pathname;
-const token = "measurement-test-local-token-long-enough";
 
-test("assessment evidence agrees across API, CLI, HTTP and MCP; text output is opt-in", async () => {
+test("assessment evidence agrees across API, CLI and MCP; text output is opt-in", async () => {
   const dir = await mkdtemp(`${tmpdir()}/pagesight-assessment-`);
   const snapshot = await fixture();
   const request = { operation: "assess", snapshot, maxRows: 2 };
   await Bun.write(`${dir}/snapshot.json`, JSON.stringify(snapshot));
-  const server = startHttpApi(token, 0);
   const client = new Client({ name: "measurement-test", version: "1" });
   try {
     const direct = await execute(request);
@@ -27,13 +24,6 @@ test("assessment evidence agrees across API, CLI, HTTP and MCP; text output is o
     const cli = await new Response(child.stdout).json();
     expect(await child.exited).toBe(0);
     expect(cli.pages).toEqual(direct.pages);
-    const http = await fetch(new URL("v1/query", server.url), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-    expect(http.status).toBe(200);
-    expect((await http.json()).pages).toEqual(direct.pages);
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" }));
     const mcp = await client.callTool({ name: "observe", arguments: { request } });
     expect((mcp.structuredContent as { pages: unknown }).pages).toEqual(direct.pages);
@@ -57,7 +47,6 @@ test("assessment evidence agrees across API, CLI, HTTP and MCP; text output is o
     expect(await Bun.file(`${dir}/report.txt`).text()).toBe(output);
   } finally {
     await client.close();
-    await server.stop(true);
     await rm(dir, { recursive: true });
   }
 });
@@ -84,7 +73,6 @@ test("Realtime uses the same read endpoint and request through every adapter", a
     request: { dimensions: [{ name: "eventName" }], metrics: [{ name: "eventCount" }] },
   };
   await Bun.write(`${dir}/request.json`, JSON.stringify(request.request));
-  const server = startHttpApi(token, 0);
   const client = new Client({ name: "realtime-test", version: "1" });
   try {
     const direct = await execute(request);
@@ -111,13 +99,6 @@ test("Realtime uses the same read endpoint and request through every adapter", a
     expect(await child.exited).toBe(0);
     expect(cli.pages).toEqual(direct.pages);
     expect(JSON.stringify(cli)).not.toContain("fixture-secret");
-    const http = await fetch(new URL("v1/query", server.url), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-    expect(http.status).toBe(200);
-    expect((await http.json()).pages).toEqual(direct.pages);
     await client.connect(
       new StdioClientTransport({
         command: process.execPath,
@@ -130,7 +111,6 @@ test("Realtime uses the same read endpoint and request through every adapter", a
     expect((mcp.structuredContent as { pages: unknown }).pages).toEqual(direct.pages);
   } finally {
     await client.close();
-    await server.stop(true);
     globalThis.fetch = originalFetch;
     if (previousCredential === undefined) delete process.env.PAGESIGHT_GA_CREDENTIALS;
     else process.env.PAGESIGHT_GA_CREDENTIALS = previousCredential;
@@ -138,13 +118,12 @@ test("Realtime uses the same read endpoint and request through every adapter", a
   }
 });
 
-test("opportunity candidates agree across API, CLI, HTTP and MCP with readable text", async () => {
+test("opportunity candidates agree across API, CLI and MCP with readable text", async () => {
   const { opportunityFixture } = await import("../support/opportunities.js");
   const snapshot = await opportunityFixture();
   const request = { operation: "opportunities", snapshot, minImpressions: 40, maxClicks: 1, maxRows: 1 };
   const dir = await mkdtemp(`${tmpdir()}/pagesight-opportunities-`);
   await Bun.write(`${dir}/snapshot.json`, JSON.stringify(snapshot));
-  const server = startHttpApi(token, 0);
   const client = new Client({ name: "opportunities-test", version: "1" });
   try {
     const direct = await execute(request);
@@ -167,13 +146,6 @@ test("opportunity candidates agree across API, CLI, HTTP and MCP with readable t
     const cli = await new Response(child.stdout).json();
     expect(await child.exited).toBe(3);
     expect(cli.pages).toEqual(direct.pages);
-    const response = await fetch(new URL("v1/query", server.url), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-    expect(response.status).toBe(200);
-    expect((await response.json()).pages).toEqual(direct.pages);
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" }));
     const mcp = await client.callTool({ name: "observe", arguments: { request } });
     expect((mcp.structuredContent as { pages: unknown }).pages).toEqual(direct.pages);
@@ -185,12 +157,11 @@ test("opportunity candidates agree across API, CLI, HTTP and MCP with readable t
     expect(await readable.exited).toBe(3);
   } finally {
     await client.close();
-    await server.stop(true);
     await rm(dir, { recursive: true });
   }
 });
 
-test("URL investigation collects live HTML through API, CLI, HTTP and MCP with explicit missing-provider evidence", async () => {
+test("URL investigation collects live HTML through API, CLI and MCP with explicit missing-provider evidence", async () => {
   const web = Bun.serve({
     hostname: "127.0.0.1",
     port: 0,
@@ -204,7 +175,6 @@ test("URL investigation collects live HTML through API, CLI, HTTP and MCP with e
   const request = { operation: "investigate", config, url, startDate: "2026-08-01", endDate: "2026-08-28" };
   const dir = await mkdtemp(`${tmpdir()}/pagesight-investigation-`);
   await Bun.write(`${dir}/config.json`, JSON.stringify(config));
-  const server = startHttpApi(token, 0);
   const client = new Client({ name: "investigation-test", version: "1" });
   try {
     const direct = await execute(request);
@@ -235,13 +205,6 @@ test("URL investigation collects live HTML through API, CLI, HTTP and MCP with e
     const cli = await new Response(child.stdout).json();
     expect(await child.exited).toBe(3);
     expect(data(cli)).toEqual(data(direct));
-    const response = await fetch(new URL("v1/query", server.url), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-    expect(response.status).toBe(200);
-    expect(data(await response.json())).toEqual(data(direct));
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" }));
     const mcp = await client.callTool({ name: "observe", arguments: { request } });
     expect(data(mcp.structuredContent)).toEqual(data(direct));
@@ -273,13 +236,12 @@ test("URL investigation collects live HTML through API, CLI, HTTP and MCP with e
     expect(await Bun.file(`${dir}/brief.txt`).text()).toBe(text);
   } finally {
     await client.close();
-    await server.stop(true);
     await web.stop(true);
     await rm(dir, { recursive: true });
   }
 });
 
-test("bounded crawl is reachable through CLI, HTTP and MCP with the shared graph contract", async () => {
+test("bounded crawl is reachable through CLI and MCP with the shared graph contract", async () => {
   const web = Bun.serve({
     hostname: "127.0.0.1",
     port: 0,
@@ -294,7 +256,6 @@ test("bounded crawl is reachable through CLI, HTTP and MCP with the shared graph
   const config = { site: web.url.href };
   await Bun.write(`${dir}/config.json`, JSON.stringify(config));
   const request = { operation: "crawl", config, maxPages: 2, inspectLimit: 0 };
-  const server = startHttpApi(token, 0);
   const client = new Client({ name: "crawl-test", version: "1" });
   const graph = (e: any) => {
     const g = e.pages[0].response.observations[0].pages[0].response;
@@ -313,19 +274,11 @@ test("bounded crawl is reachable through CLI, HTTP and MCP with the shared graph
     const cli = await new Response(child.stdout).json();
     expect(await child.exited).toBe(0);
     expect(graph(cli)).toEqual(graph(direct));
-    const response = await fetch(new URL("v1/query", server.url), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-    expect(response.status).toBe(200);
-    expect(graph(await response.json())).toEqual(graph(direct));
     await client.connect(new StdioClientTransport({ command: process.execPath, args: [entry, "mcp"], stderr: "pipe" }));
     const mcp = await client.callTool({ name: "observe", arguments: { request } });
     expect(graph(mcp.structuredContent)).toEqual(graph(direct));
   } finally {
     await client.close();
-    await server.stop(true);
     await web.stop(true);
     await rm(dir, { recursive: true });
   }

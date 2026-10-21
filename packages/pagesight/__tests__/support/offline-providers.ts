@@ -75,41 +75,14 @@ const routes: Record<string, (request: Request) => Response> = {
       : json({ error: { code: 400, status: "INVALID_ARGUMENT" } }, 400),
   "POST https://chromeuxreport.googleapis.com/v1/records:queryRecord": crux,
   "POST https://chromeuxreport.googleapis.com/v1/records:queryHistoryRecord": crux,
-  "POST https://api.cloudflare.com/client/v4/graphql": ({ headers, body }) =>
-    headers.get("authorization") === `Bearer ${env.CLOUDFLARE_API_TOKEN}`
-      ? json({
-          data: {
-            viewer: {
-              zones: [
-                {
-                  zoneTag: (JSON.parse(body) as { variables: { zone: string } }).variables.zone,
-                  settings: {},
-                  httpRequestsAdaptiveGroups: [],
-                  firewallEventsAdaptive: [],
-                },
-              ],
-            },
-          },
-          errors: null,
-        })
-      : json({ errors: [{ message: "Authentication error" }] }, 401),
+  "GET https://raw.githubusercontent.com/ai-robots-txt/ai.robots.txt/main/robots.json": () =>
+    json({ GPTBot: { operator: "[OpenAI](https://openai.com)", respect: "Yes", function: "AI model training" } }),
   "GET https://example.com/robots.txt": () => new Response("User-agent: *\nAllow: /\n"),
+  "GET https://example.com/llms.txt": () => new Response("# Example\n"),
+  "GET https://example.com/llms-full.txt": () => new Response(null, { status: 404 }),
   "GET https://example.com/": () => html("Example", '<a href="/about">About</a>'),
   "GET https://example.com/about": () => html("About"),
 };
-for (const [method, d] of Object.entries({
-  GetCrawlStats: [],
-  GetCrawlIssues: [],
-  GetUrlInfo: { Url: "https://example.com/about" },
-  GetLinkCounts: { Links: [], TotalPages: 1 },
-  GetUrlLinks: { Details: [], TotalPages: 1 },
-  GetUserSites: [],
-  GetQueryStats: [],
-  GetPageStats: [],
-  GetRankAndTrafficStats: [],
-}))
-  routes[`GET https://ssl.bing.com/webmaster/api.svc/json/${method}`] = ({ query }) =>
-    query.get("apikey") === env.BING_WEBMASTER_API_KEY ? json({ d }) : json({ ErrorCode: 3 }, 401);
 
 const passthrough = globalThis.fetch;
 globalThis.fetch = Object.assign(

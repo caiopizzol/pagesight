@@ -6,19 +6,22 @@
  * https://github.com/ai-robots-txt/ai.robots.txt (robots.json)
  */
 
-export interface RobotsGroup {
+import { readBounded, RequestError } from "../shared/http.js";
+import { fetchFollowing } from "./fetch.js";
+
+interface RobotsGroup {
   userAgents: string[];
   rules: Array<{ type: "allow" | "disallow"; path: string }>;
 }
 
-export interface RobotsTxt {
+interface RobotsTxt {
   groups: RobotsGroup[];
   sitemaps: string[];
   raw: string;
   errors: string[];
 }
 
-export interface CrawlerStatus {
+interface CrawlerStatus {
   name: string;
   company: string;
   category: string;
@@ -29,7 +32,7 @@ export interface CrawlerStatus {
   matchedGroup?: string;
 }
 
-export interface CrawlerInfo {
+interface CrawlerInfo {
   token: string;
   operator: string;
   respect: string;
@@ -44,6 +47,11 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 let cachedRegistry: CrawlerInfo[] | null = null;
 let cacheTimestamp = 0;
+
+export function clearCrawlerRegistryCache(): void {
+  cachedRegistry = null;
+  cacheTimestamp = 0;
+}
 
 function stripMarkdownLinks(text: string): string {
   return text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
@@ -61,30 +69,31 @@ async function fetchRegistry(): Promise<CrawlerInfo[]> {
     return cachedRegistry;
   }
 
+  let data: Record<string, Record<string, string>>;
   try {
     const res = await fetch(REGISTRY_URL, {
       headers: { "User-Agent": "Pagesight/0.1" },
       signal: AbortSignal.timeout(10_000),
     });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const data = (await res.json()) as Record<string, Record<string, string>>;
-
-    cachedRegistry = Object.entries(data).map(([token, info]) => ({
-      token,
-      operator: stripMarkdownLinks(info.operator ?? "Unknown"),
-      respect: info.respect ?? "Unclear",
-      function: info.function ?? "Unknown",
-      description: stripMarkdownLinks(info.description ?? ""),
-    }));
-
-    cacheTimestamp = Date.now();
-    return cachedRegistry;
-  } catch {
-    // Fall back to cached or empty
-    return cachedRegistry ?? [];
+    if (!res.ok) throw new RequestError(`AI crawler registry returned HTTP ${res.status}`, res.status);
+    data = (await res.json()) as Record<string, Record<string, string>>;
+  } catch (error) {
+    // A stale registry still names real crawlers; only a cold cache leaves the caller nothing.
+    if (cachedRegistry) return cachedRegistry;
+    throw error instanceof RequestError
+      ? error
+      : new RequestError("AI crawler registry request failed", null, "network_error");
   }
+
+  cachedRegistry = Object.entries(data).map(([token, info]) => ({
+    token,
+    operator: stripMarkdownLinks(info.operator ?? "Unknown"),
+    respect: info.respect ?? "Unclear",
+    function: info.function ?? "Unknown",
+    description: stripMarkdownLinks(info.description ?? ""),
+  }));
+  cacheTimestamp = Date.now();
+  return cachedRegistry;
 }
 
 // --- Parser ---
@@ -257,7 +266,7 @@ export function isAllowed(
 
 // --- AI Crawler Audit ---
 
-export async function auditAiCrawlers(robots: RobotsTxt): Promise<CrawlerStatus[]> {
+async function auditAiCrawlers(robots: RobotsTxt): Promise<CrawlerStatus[]> {
   const registry = await fetchRegistry();
 
   return registry.map((crawler) => {
@@ -277,18 +286,18 @@ export async function auditAiCrawlers(robots: RobotsTxt): Promise<CrawlerStatus[
 
 // --- Fetch ---
 
-export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: RobotsTxt; statusCode: number }> {
-  const url = new URL("/robots.txt", origin).href;
+// Google stops reading robots.txt at 500 KiB.
+// https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt#file-format
+const ROBOTS_BYTE_LIMIT = 512_000;
 
-  const res = await fetch(url, {
-    headers: { "User-Agent": "Pagesight/0.1" },
-    redirect: "follow",
-  });
+export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: RobotsTxt; statusCode: number }> {
+  const { response: res } = await fetchFollowing(new URL("/robots.txt", origin).href);
 
   // RFC 9309 §§2.3.1.3–4 distinguish unavailable (4xx) from unreachable (5xx).
   // Pagesight treats 429 conservatively; Google also excludes it from the allow-on-4xx rule.
   // https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt#handling-http-status-codes
   if (res.status >= 500 || res.status === 429) {
+    await res.body?.cancel();
     const disallowAll: RobotsTxt = {
       groups: [{ userAgents: ["*"], rules: [{ type: "disallow", path: "/" }] }],
       sitemaps: [],
@@ -299,11 +308,66 @@ export async function fetchRobotsTxt(origin: string): Promise<{ robotsTxt: Robot
   }
 
   if (res.status >= 400) {
+    await res.body?.cancel();
     return { robotsTxt: { groups: [], sitemaps: [], raw: "", errors: [] }, statusCode: res.status };
   }
 
-  const raw = await res.text();
+  const raw = await readBounded(res, ROBOTS_BYTE_LIMIT);
   return { robotsTxt: parseRobotsTxt(raw), statusCode: res.status };
 }
 
-export { fetchRegistry as loadCrawlerRegistry };
+// --- Observation ---
+
+const LLMS_BYTE_LIMIT = 1_048_576;
+
+async function observeLlmsFile(origin: string, path: string) {
+  const { response } = await fetchFollowing(new URL(path, origin).href);
+  if (!response.ok) {
+    await response.body?.cancel();
+    return { path, status: response.status, bytes: null };
+  }
+  try {
+    return { path, status: response.status, bytes: Buffer.byteLength(await readBounded(response, LLMS_BYTE_LIMIT)) };
+  } catch (error) {
+    if (error instanceof RequestError && error.code === "size_limit")
+      return { path, status: response.status, bytes: null };
+    throw error;
+  }
+}
+
+export async function observeRobots(url: string) {
+  const origin = new URL(url).origin;
+  const warnings: string[] = [];
+  const { robotsTxt, statusCode } = await fetchRobotsTxt(origin);
+  const crawlers = await auditAiCrawlers(robotsTxt).catch(() => {
+    warnings.push("The AI crawler registry could not be fetched; aiCrawlers is empty, not empty of blocks.");
+    return [] as CrawlerStatus[];
+  });
+  const llms = await Promise.all(
+    ["/llms.txt", "/llms-full.txt"].map((path) =>
+      observeLlmsFile(origin, path).catch(() => {
+        warnings.push(`${path} could not be fetched; its status is unknown.`);
+        return { path, status: null as number | null, bytes: null };
+      }),
+    ),
+  );
+  for (const file of llms)
+    if (file.status === 200 && file.bytes === null)
+      warnings.push(`${file.path} exceeds the ${LLMS_BYTE_LIMIT} byte read limit; its size is unknown.`);
+  return {
+    url,
+    origin,
+    status: statusCode,
+    errors: robotsTxt.errors,
+    sitemaps: robotsTxt.sitemaps,
+    googlebotAllowed: isAllowed(robotsTxt, "Googlebot", "/").allowed,
+    aiCrawlers: crawlers.map(({ name, company, category, allowed }) => ({
+      name,
+      operator: company,
+      category,
+      allowed,
+    })),
+    llms,
+    warnings,
+  };
+}
