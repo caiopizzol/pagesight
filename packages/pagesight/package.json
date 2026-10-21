@@ -1,11 +1,10 @@
 {
   "name": "pagesight",
   "version": "0.20.0",
-  "description": "See your site the way search engines and AI see it.",
+  "description": "Search Console, GA4 and page evidence for understanding how people find and use your site.",
   "keywords": [
-    "ai-crawlers",
     "core-web-vitals",
-    "geo",
+    "google-analytics",
     "google-search-console",
     "mcp",
     "pagespeed-insights",

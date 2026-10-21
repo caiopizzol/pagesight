@@ -1,12 +1,10 @@
 import { httpUrl } from "./http-url.js";
-export { httpUrl } from "./http-url.js";
 import { z } from "zod";
 import { snapshotEvidenceSchema } from "./evidence-schema.js";
 import { dateSchema, pacificDate } from "../shared/dates.js";
 
-export { dateSchema } from "../shared/dates.js";
 const offset = z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
-export const maxPagesSchema = z.number().int().min(1).max(20).default(1);
+const maxPagesSchema = z.number().int().min(1).max(20).default(1);
 export const gscRequestSchema = z
   .object({
     startDate: dateSchema,
@@ -143,7 +141,7 @@ export const configSchema = z
     "Select at least one page or provider",
   );
 export type SiteConfig = z.infer<typeof configSchema>;
-export const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
+const assessedSnapshotSchema = snapshotEvidenceSchema.superRefine((snapshot, ctx) => {
   const config = configSchema.safeParse(snapshot.pages[0].response.context.config);
   if (!config.success)
     for (const issue of config.error.issues)
