@@ -57,6 +57,10 @@ test("canonical and hreflang resolve against a base element declared anywhere in
   const unbased = await observePage(`${fixture.url}bad-base`);
   expect(unbased.canonical).toBe(`${fixture.url}page`);
   expect(unbased.warnings).toContain("Malformed base href; links resolve against the final URL.");
+  const dataBase = await observePage(`${fixture.url}data-base`);
+  expect(dataBase.canonical).toBe(`${fixture.url}page`);
+  expect(dataBase.hreflang).toEqual([{ lang: "en", href: `${fixture.url}en` }]);
+  expect(dataBase.warnings).toContain("Ignored data: base href; links resolve against the final URL.");
 });
 
 test("malformed canonical keeps independently observed page evidence", async () => {

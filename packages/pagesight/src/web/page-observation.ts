@@ -59,7 +59,11 @@ export async function observePage(url: string) {
   let base = finalUrl;
   if (baseHref !== null) {
     try {
-      base = new URL(baseHref, finalUrl).href;
+      const declared = new URL(baseHref, finalUrl);
+      // HTML ignores data: and javascript: bases and keeps the document URL.
+      if (declared.protocol === "data:" || declared.protocol === "javascript:")
+        warnings.push(`Ignored ${declared.protocol} base href; links resolve against the final URL.`);
+      else base = declared.href;
     } catch {
       warnings.push("Malformed base href; links resolve against the final URL.");
     }

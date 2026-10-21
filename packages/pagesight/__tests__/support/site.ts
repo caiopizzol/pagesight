@@ -41,6 +41,10 @@ export function createSiteFixture() {
           ].join(""),
           { headers: { "Content-Type": "text/html" } },
         );
+      if (url.pathname === "/data-base")
+        return new Response(
+          '<title>Data base</title><base href="data:text/html,x"><link rel="canonical" href="/page"><link rel="alternate" hreflang="en" href="/en">',
+        );
       if (url.pathname === "/bad-base")
         return new Response('<title>Unbased</title><base href="http://[broken"><link rel="canonical" href="/page">');
       if (url.pathname === "/bad-canonical")
