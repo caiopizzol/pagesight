@@ -163,22 +163,29 @@ test("an explicit credential path that does not exist fails instead of using ano
   }
 });
 
-test("an unreadable credential path names its cause instead of reporting bad JSON", async () => {
+test("an unreadable or malformed credential file names its cause", async () => {
   const directory = await sandbox();
   const malformed = join(directory, "malformed.json");
   const locked = join(directory, "locked.json");
   await Bun.write(malformed, '{"type":');
   await Bun.write(locked, "{}");
   await chmod(locked, 0o000);
-  const cases: Array<[string, string]> = [
-    [malformed, `PAGESIGHT_GA_CREDENTIALS at ${malformed} is not valid JSON`],
-    [directory, `PAGESIGHT_GA_CREDENTIALS at ${directory} cannot be read (EISDIR)`],
-    [locked, `PAGESIGHT_GA_CREDENTIALS at ${locked} cannot be read (EACCES)`],
+  const literal = join(directory, "null.json");
+  await Bun.write(literal, "null");
+  const cases: Array<[string, string, string]> = [
+    [malformed, "invalid_credentials", `PAGESIGHT_GA_CREDENTIALS at ${malformed} is not valid JSON`],
+    [
+      literal,
+      "unsupported_credentials",
+      "Google credential JSON must be a complete service_account or authorized_user key",
+    ],
+    [directory, "invalid_credentials", `PAGESIGHT_GA_CREDENTIALS at ${directory} cannot be read (EISDIR)`],
+    [locked, "invalid_credentials", `PAGESIGHT_GA_CREDENTIALS at ${locked} cannot be read (EACCES)`],
   ];
-  for (const [path, message] of cases) {
+  for (const [path, code, message] of cases) {
     process.env.PAGESIGHT_GA_CREDENTIALS = path;
     const failure = await googleAccessToken("ga").catch((error: RequestError) => [error.code, error.message]);
-    expect(failure).toEqual(["invalid_credentials", message]);
+    expect(failure).toEqual([code, message]);
   }
 });
 

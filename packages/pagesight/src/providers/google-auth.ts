@@ -64,7 +64,8 @@ export async function writeGoogleLogin(login: GoogleLogin): Promise<string> {
   return path;
 }
 
-function toCredential(key: Record<string, unknown>): Credential {
+function toCredential(parsed: unknown): Credential {
+  const key = (typeof parsed === "object" && parsed !== null ? parsed : {}) as Record<string, unknown>;
   const text = (field: string) => (typeof key[field] === "string" ? key[field] : "");
   if (key.type === "service_account" && text("client_email") && text("private_key"))
     return {
@@ -88,7 +89,7 @@ function toCredential(key: Record<string, unknown>): Credential {
 }
 
 async function readCredential(name: string, path: string): Promise<Credential | null> {
-  let key: Record<string, unknown>;
+  let key: unknown;
   try {
     key = await Bun.file(path).json();
   } catch (error) {
