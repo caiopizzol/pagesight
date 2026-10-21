@@ -40,15 +40,16 @@ const browserPage = (text: string, status = 200) =>
     headers: { "content-type": "text/html; charset=utf-8" },
   });
 
+export function browserCommand(platform: NodeJS.Platform, url: string): string[] {
+  if (platform === "darwin") return ["open", url];
+  // Not "cmd /c start": cmd reads the URL's & separators as new commands and truncates it.
+  if (platform === "win32") return ["rundll32", "url.dll,FileProtocolHandler", url];
+  return ["xdg-open", url];
+}
+
 function openInBrowser(url: string): void {
-  const command =
-    process.platform === "darwin"
-      ? ["open", url]
-      : process.platform === "win32"
-        ? ["cmd", "/c", "start", "", url]
-        : ["xdg-open", url];
   try {
-    Bun.spawn(command, { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref();
+    Bun.spawn(browserCommand(process.platform, url), { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref();
   } catch {
     // The URL is already printed, so the user can still open it.
   }

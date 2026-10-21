@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { browserCommand } from "../../src/login.js";
 
 const entry = new URL("../../src/index.ts", import.meta.url).pathname;
 const preload = new URL("../support/offline-login.ts", import.meta.url).pathname;
@@ -92,6 +93,19 @@ async function authorize(space: Workspace) {
   const printed = await stdout.until((text) => text.split("\n").length > 2);
   return { child, stdout, url: new URL(printed.split("\n")[1]) };
 }
+
+test("every platform opens the whole authorization URL as one argument", () => {
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=fixture-client&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000%2Fcallback&scope=${encodeURIComponent(`${GSC_SCOPE} ${GA_SCOPE}`)}&state=fixture-state`;
+  expect(browserCommand("win32", url)).toEqual(["rundll32", "url.dll,FileProtocolHandler", url]);
+  expect(browserCommand("darwin", url)).toEqual(["open", url]);
+  expect(browserCommand("linux", url)).toEqual(["xdg-open", url]);
+  // cmd would read the & separators as new commands and drop everything after client_id.
+  for (const platform of ["win32", "darwin", "linux"] as const) {
+    const command = browserCommand(platform, url);
+    expect(command.filter((argument) => argument.includes(url))).toEqual([url]);
+    expect(command).not.toContain("cmd");
+  }
+});
 
 test("login google authorizes with PKCE and saves a login both products then use", async () => {
   const space = await workspace();
