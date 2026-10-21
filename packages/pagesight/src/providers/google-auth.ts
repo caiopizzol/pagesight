@@ -82,17 +82,33 @@ function toCredential(key: Record<string, unknown>, path: string): Credential {
   );
 }
 
-const credentialFile = (name: string, locate: () => string | undefined): CredentialSource => ({
+async function readCredential(path: string): Promise<Credential> {
+  try {
+    return toCredential(await Bun.file(path).json(), path);
+  } catch (error) {
+    if (error instanceof RequestError) throw error;
+    throw new RequestError("Cannot parse the configured Google credential JSON", null, "invalid_credentials");
+  }
+}
+
+// A credential path someone set names the account they chose; a missing file is their error to see,
+// not a reason to run as whoever the next source happens to be.
+const environmentFile = (name: string): CredentialSource => ({
+  name,
+  load: async () => {
+    const path = process.env[name];
+    if (!path) return null;
+    if (!(await Bun.file(path).exists()))
+      throw new RequestError(`${name} is set to ${path}, which does not exist`, null, "not_configured");
+    return readCredential(path);
+  },
+});
+
+const optionalFile = (name: string, locate: () => string): CredentialSource => ({
   name,
   load: async () => {
     const path = locate();
-    if (!path || !(await Bun.file(path).exists())) return null;
-    try {
-      return toCredential(await Bun.file(path).json(), path);
-    } catch (error) {
-      if (error instanceof RequestError) throw error;
-      throw new RequestError("Cannot parse the configured Google credential JSON", null, "invalid_credentials");
-    }
+    return (await Bun.file(path).exists()) ? readCredential(path) : null;
   },
 });
 
@@ -130,21 +146,17 @@ const products: Record<
     scope: "https://www.googleapis.com/auth/webmasters.readonly",
     label: "Search Console",
     overrides: "GSC_SERVICE_ACCOUNT_KEY, or GSC_CLIENT_ID with GSC_CLIENT_SECRET and GSC_REFRESH_TOKEN",
-    sources: [
-      credentialFile("GSC_SERVICE_ACCOUNT_KEY", () => process.env.GSC_SERVICE_ACCOUNT_KEY),
-      gscEnvironment,
-      pagesightLogin,
-    ],
+    sources: [environmentFile("GSC_SERVICE_ACCOUNT_KEY"), gscEnvironment, pagesightLogin],
   },
   ga: {
     scope: "https://www.googleapis.com/auth/analytics.readonly",
     label: "Analytics",
     overrides: "PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS",
     sources: [
-      credentialFile("PAGESIGHT_GA_CREDENTIALS", () => process.env.PAGESIGHT_GA_CREDENTIALS),
-      credentialFile("GOOGLE_APPLICATION_CREDENTIALS", () => process.env.GOOGLE_APPLICATION_CREDENTIALS),
+      environmentFile("PAGESIGHT_GA_CREDENTIALS"),
+      environmentFile("GOOGLE_APPLICATION_CREDENTIALS"),
       pagesightLogin,
-      credentialFile("gcloud_adc", () => join(homedir(), ".config/gcloud/application_default_credentials.json")),
+      optionalFile("gcloud_adc", () => join(homedir(), ".config/gcloud/application_default_credentials.json")),
     ],
   },
 };

@@ -9,9 +9,11 @@ import {
   googleLoginPath,
   writeGoogleLogin,
   type GoogleLogin,
+  type GoogleProduct,
 } from "../../src/providers/google-auth.js";
 import { gaFetch } from "../../src/providers/ga.js";
 import { listSitesResponse } from "../../src/providers/gsc.js";
+import type { RequestError } from "../../src/shared/http.js";
 import { mockFetch, requestUrl } from "../support/fetch.js";
 
 const GSC_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
@@ -131,6 +133,34 @@ test("environment credentials override the login file for their own product", as
     type: "authorized_user",
     clientEmail: null,
   });
+});
+
+test("an explicit credential path that does not exist fails instead of using another account", async () => {
+  const directory = await sandbox();
+  await writeGoogleLogin(login([GSC_SCOPE, GA_SCOPE]));
+  const missing = join(directory, "missing.json");
+  const exchanges: string[] = [];
+  const mocked = mockFetch(async (_input, init) => {
+    exchanges.push(new URLSearchParams(init?.body instanceof URLSearchParams ? init.body : "").get("refresh_token")!);
+    return Response.json({ access_token: "login-access", expires_in: 3600 });
+  });
+  const variables: Array<[string, GoogleProduct]> = [
+    ["PAGESIGHT_GA_CREDENTIALS", "ga"],
+    ["GOOGLE_APPLICATION_CREDENTIALS", "ga"],
+    ["GSC_SERVICE_ACCOUNT_KEY", "gsc"],
+  ];
+  try {
+    for (const [variable, product] of variables) {
+      process.env[variable] = missing;
+      const failure = await googleAccessToken(product).catch((error: RequestError) => [error.code, error.message]);
+      expect(failure).toEqual(["not_configured", `${variable} is set to ${missing}, which does not exist`]);
+      expect(await googleCredentialInfo(product)).toEqual({ source: "none", type: null, clientEmail: null });
+      delete process.env[variable];
+    }
+    expect(exchanges).toEqual([]);
+  } finally {
+    mocked.mockRestore();
+  }
 });
 
 test("a product whose scope the login never granted has no credential", async () => {
