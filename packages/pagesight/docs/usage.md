@@ -103,6 +103,7 @@ robots.txt states a policy; it does not prove how any crawler behaves.
 
 ```sh
 pagesight --help
+pagesight login google
 pagesight discover --url https://example.com/ --providers gsc,ga
 pagesight doctor --config seo.config.json
 pagesight gsc report --site sc-domain:example.com --request report.json --max-pages 4

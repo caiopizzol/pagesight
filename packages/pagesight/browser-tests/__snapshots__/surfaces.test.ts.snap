@@ -12,6 +12,8 @@ exports[`pagesight --help 1`] = `
 
 pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
+pagesight login google [--no-browser]
+pagesight logout
 pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
@@ -41,8 +43,33 @@ Data commands emit JSON by default; assess, opportunities and investigate accept
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
 2 invalid input, 3 partial evidence. Snapshot defaults to 28 days ending Pacific
 today minus 3 days; max-pages defaults to 4 (ad hoc reports: 1; maximum: 20).
-Credentials: GSC_* env, PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed).
+Credentials: pagesight login google covers Search Console and GA4. Overrides: GSC_* env,
+PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed).
 Requests, property metadata, provider limits and errors are preserved in evidence.
+"
+,
+}
+`;
+
+exports[`pagesight login google --no-browser 1`] = `
+{
+  "exit": 2,
+  "requests": [],
+  "stderr": 
+"{"error":{"code":"invalid_input","message":"Google sign-in needs a Google OAuth \\"Desktop app\\" client. Set PAGESIGHT_GOOGLE_CLIENT_ID and PAGESIGHT_GOOGLE_CLIENT_SECRET."}}
+"
+,
+  "stdout": "",
+}
+`;
+
+exports[`pagesight logout 1`] = `
+{
+  "exit": 0,
+  "requests": [],
+  "stderr": "",
+  "stdout": 
+"No Pagesight Google login to remove.
 "
 ,
 }

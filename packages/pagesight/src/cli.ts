@@ -4,12 +4,15 @@ import { renderOpportunities } from "./opportunities-text.js";
 import { parseArgs } from "node:util";
 import { defaultDates } from "./shared/dates.js";
 import { execute } from "./api/index.js";
+import { loginGoogle, logoutGoogle } from "./login.js";
 import { RequestError } from "./shared/http.js";
 
 export const help = `Pagesight — read-only site evidence
 
 pagesight                      Show CLI help
 pagesight mcp                  Start MCP explicitly
+pagesight login google [--no-browser]
+pagesight logout
 pagesight discover --url https://example.com/ [--providers gsc,ga]
 pagesight doctor --config seo.config.json
 pagesight gsc sites
@@ -39,12 +42,15 @@ Data commands emit JSON by default; assess, opportunities and investigate accept
 --out FILE saves the same evidence locally. Exit: 0 success, 1 provider failure,
 2 invalid input, 3 partial evidence. Snapshot defaults to 28 days ending Pacific
 today minus 3 days; max-pages defaults to 4 (ad hoc reports: 1; maximum: 20).
-Credentials: GSC_* env, PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed).
+Credentials: pagesight login google covers Search Console and GA4. Overrides: GSC_* env,
+PAGESIGHT_GA_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS (GA), GOOGLE_API_KEY (speed).
 Requests, property metadata, provider limits and errors are preserved in evidence.
 `;
 
 // Every CLI command and the flags it accepts; surface tests fail when one has no case.
 export const commands: Record<string, string[]> = {
+  "login.google": ["no-browser"],
+  logout: [],
   render: ["url", "from-url", "link-selector", "settle-ms", "timeout-ms"],
   crawl: ["config", "max-pages", "max-depth", "max-links", "inspect-limit", "include-query"],
   investigate: ["config", "url", "start", "end", "max-pages", "max-rows", "format"],
@@ -70,6 +76,18 @@ export const commands: Record<string, string[]> = {
   snapshot: ["config", "start", "end", "max-pages"],
   api: ["request"],
 };
+
+function reportError(error: unknown): void {
+  const request = error instanceof RequestError;
+  process.stderr.write(
+    `${JSON.stringify({
+      error: {
+        code: request ? error.code : "invalid_input",
+        message: request ? error.message : "Invalid command or request; use --help",
+      },
+    })}\n`,
+  );
+}
 
 async function jsonFile(path: string | undefined, label: string): Promise<unknown> {
   if (!path) throw new RequestError(`Missing --${label}`, null, "invalid_input");
@@ -118,6 +136,7 @@ export async function runCli(args: string[]): Promise<number> {
         "max-links": { type: "string" },
         "inspect-limit": { type: "string" },
         "include-query": { type: "boolean" },
+        "no-browser": { type: "boolean" },
       },
     });
     if (args.length === 0 || values.help || positionals[0] === "help") {
@@ -125,13 +144,25 @@ export async function runCli(args: string[]): Promise<number> {
       return 0;
     }
     const [family, action] = positionals;
-    if (positionals.length > (["gsc", "ga", "speed"].includes(family) ? 2 : 1))
+    const families = ["gsc", "ga", "speed", "login"];
+    if (positionals.length > (families.includes(family) ? 2 : 1))
       throw new RequestError("Too many command arguments", null, "invalid_input");
-    const operation = ["gsc", "ga", "speed"].includes(family) ? `${family}.${action ?? ""}` : family;
-    const allowed = [...(commands[operation] ?? []), "out", "json"];
+    const operation = families.includes(family) ? `${family}.${action ?? ""}` : family;
+    if (family === "login" && action !== "google")
+      throw new RequestError("Use: pagesight login google", null, "invalid_input");
+    const credential = operation === "login.google" || operation === "logout";
+    const allowed = [...(commands[operation] ?? []), ...(credential ? [] : ["out", "json"])];
     for (const flag of Object.keys(values))
       if (!allowed.includes(flag))
         throw new RequestError(`--${flag} is not supported for ${operation}`, null, "invalid_input");
+    if (credential)
+      try {
+        await (operation === "logout" ? logoutGoogle() : loginGoogle(!values["no-browser"]));
+        return 0;
+      } catch (error) {
+        reportError(error);
+        return error instanceof RequestError && error.code !== "invalid_input" ? 1 : 2;
+      }
     if (values.format && !["json", "text"].includes(values.format))
       throw new RequestError("Use --format json or text", null, "invalid_input");
     if (values.json && values.format === "text")
@@ -224,9 +255,7 @@ export async function runCli(args: string[]): Promise<number> {
     process.stdout.write(output);
     return result.status === "ok" ? 0 : result.status === "partial" ? 3 : 1;
   } catch (error) {
-    process.stderr.write(
-      `${JSON.stringify({ error: { code: error instanceof RequestError ? error.code : "invalid_input", message: error instanceof RequestError ? error.message : "Invalid command or request; use --help" } })}\n`,
-    );
+    reportError(error);
     return 2;
   }
 }
