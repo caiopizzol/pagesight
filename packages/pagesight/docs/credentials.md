@@ -11,9 +11,9 @@ pagesight discover --url https://example.com/
 
 The browser asks for `webmasters.readonly` and `analytics.readonly`. Pagesight saves
 the refresh token to `$PAGESIGHT_CONFIG_DIR`, `$XDG_CONFIG_HOME/pagesight` or
-`~/.config/pagesight`, in `google.json` with mode 0600. `pagesight logout` revokes it
-and deletes the file. A product whose scope you declined keeps falling back to the
-sources below.
+`~/.config/pagesight`, in `google.json` with mode 0600. `pagesight logout` asks Google
+to revoke the token and deletes the file whether or not Google accepts. A product whose
+scope you declined keeps falling back to the sources below.
 
 Sign-in needs a Google OAuth "Desktop app" client in `PAGESIGHT_GOOGLE_CLIENT_ID` and
 `PAGESIGHT_GOOGLE_CLIENT_SECRET`.
@@ -29,7 +29,12 @@ Each product takes the first source that is configured:
 | PageSpeed      | `GOOGLE_API_KEY` optional                                                                          |
 | CrUX           | `GOOGLE_API_KEY` required                                                                          |
 
-Credential variables hold a path to service-account JSON or `authorized_user` JSON.
+`GSC_SERVICE_ACCOUNT_KEY`, `PAGESIGHT_GA_CREDENTIALS` and `GOOGLE_APPLICATION_CREDENTIALS`
+hold a path to service-account JSON or `authorized_user` JSON; `GSC_CLIENT_ID`,
+`GSC_CLIENT_SECRET` and `GSC_REFRESH_TOKEN` hold the values themselves. A path you set
+must exist: Pagesight reports the variable and path instead of falling back to another
+account. Only the local gcloud ADC file is optional.
+
 Grant the account access to the property and enable both the Analytics Admin and Data
 APIs. The read API creates no consent flow or provider settings of its own.
 
