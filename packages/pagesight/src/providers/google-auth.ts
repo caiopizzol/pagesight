@@ -87,13 +87,17 @@ function toCredential(key: Record<string, unknown>): Credential {
   );
 }
 
-async function readCredential(path: string): Promise<Credential> {
+async function readCredential(name: string, path: string): Promise<Credential | null> {
+  let key: Record<string, unknown>;
   try {
-    return toCredential(await Bun.file(path).json());
+    key = await Bun.file(path).json();
   } catch (error) {
-    if (error instanceof RequestError) throw error;
-    throw new RequestError("Cannot parse the configured Google credential JSON", null, "invalid_credentials");
+    const code = (error as { code?: string }).code;
+    if (code === "ENOENT") return null;
+    const cause = error instanceof SyntaxError ? "is not valid JSON" : `cannot be read (${code ?? "unknown"})`;
+    throw new RequestError(`${name} at ${path} ${cause}`, null, "invalid_credentials");
   }
+  return toCredential(key);
 }
 
 // A credential path someone set names the account they chose; a missing file is their error to see,
@@ -103,18 +107,15 @@ const environmentFile = (name: string): CredentialSource => ({
   load: async () => {
     const path = process.env[name];
     if (!path) return null;
-    if (!(await Bun.file(path).exists()))
-      throw new RequestError(`${name} is set to ${path}, which does not exist`, null, "not_configured");
-    return readCredential(path);
+    const credential = await readCredential(name, path);
+    if (!credential) throw new RequestError(`${name} is set to ${path}, which does not exist`, null, "not_configured");
+    return credential;
   },
 });
 
 const optionalFile = (name: string, locate: () => string): CredentialSource => ({
   name,
-  load: async () => {
-    const path = locate();
-    return (await Bun.file(path).exists()) ? readCredential(path) : null;
-  },
+  load: () => readCredential(name, locate()),
 });
 
 const gscEnvironment: CredentialSource = {

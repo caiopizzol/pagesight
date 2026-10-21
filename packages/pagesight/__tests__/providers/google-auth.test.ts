@@ -163,6 +163,25 @@ test("an explicit credential path that does not exist fails instead of using ano
   }
 });
 
+test("an unreadable credential path names its cause instead of reporting bad JSON", async () => {
+  const directory = await sandbox();
+  const malformed = join(directory, "malformed.json");
+  const locked = join(directory, "locked.json");
+  await Bun.write(malformed, '{"type":');
+  await Bun.write(locked, "{}");
+  await chmod(locked, 0o000);
+  const cases: Array<[string, string]> = [
+    [malformed, `PAGESIGHT_GA_CREDENTIALS at ${malformed} is not valid JSON`],
+    [directory, `PAGESIGHT_GA_CREDENTIALS at ${directory} cannot be read (EISDIR)`],
+    [locked, `PAGESIGHT_GA_CREDENTIALS at ${locked} cannot be read (EACCES)`],
+  ];
+  for (const [path, message] of cases) {
+    process.env.PAGESIGHT_GA_CREDENTIALS = path;
+    const failure = await googleAccessToken("ga").catch((error: RequestError) => [error.code, error.message]);
+    expect(failure).toEqual(["invalid_credentials", message]);
+  }
+});
+
 test("a product whose scope the login never granted has no credential", async () => {
   await sandbox();
   await writeGoogleLogin(login([GA_SCOPE]));
