@@ -18,7 +18,9 @@ const result = await execute({ operation: "page", url: "https://example.com" });
 console.log(result);
 ```
 
-Search Console and GA4 reports take one sign-in:
+Search Console and GA4 reports take one sign-in. This release ships no OAuth client,
+so set `PAGESIGHT_GOOGLE_CLIENT_ID` and `PAGESIGHT_GOOGLE_CLIENT_SECRET` from your own
+Google OAuth "Desktop app" client first:
 
 ```sh
 bunx --bun pagesight login google
