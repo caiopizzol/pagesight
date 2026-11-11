@@ -1,6 +1,6 @@
 {
   "name": "pagesight",
-  "version": "0.20.0",
+  "version": "1.0.0",
   "description": "Search Console, GA4 and page evidence for understanding how people find and use your site.",
   "keywords": [
     "core-web-vitals",
